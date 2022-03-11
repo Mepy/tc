@@ -1,0 +1,6 @@
+# Mac Folder description files
+.DS_Store 
+
+# Output of Markdown files
+*.pdf
+
