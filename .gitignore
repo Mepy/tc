@@ -4,3 +4,8 @@
 # Output of Markdown files
 *.pdf
 
+# VSCode settings
+.vscode
+
+# CLion settings
+.idea

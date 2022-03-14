@@ -13,72 +13,102 @@
 /* type_name and expr_name could be the same RegExp */
 Stmt  ::= 
 _      | ";" /* drop these */
-Expr   |  Expr ";" /* just Expr */
 Block  | "{" [Stmt] "}" /* scope */
+       /* BlockBegin "{" 
+        * BlockStmt  Stmt
+        * BlockEnd   "}" 
+        */
 Let    |  "let" expr_name [":" Type]? "=" Expr ";"
-/* Var :  "let" "@" expr_name [":" Type]? "=" Expr ";" */
+Var    |  "let" "@" expr_name [":" Type]? "=" Expr ";"
 Var    |  "var" expr_name [":" Type]? "=" Expr ";" 
-ADT    |  "type" type_name "=" Type ";"
 If     |  "if" "(" Expr ")" Stmt ["else" Stmt]?
 While  |  "while" "(" Expr )" Stmt
 Break  |  "break" ";"
 Cont   |  "continue" ";"
 Ret    |  "return" [Expr]? ";" /* if no Expr, just fill with u0 "unit" */
+Exp    |  Expr ";" /* just Expr */
+Del    |  "del" Expr ";"
+
+Alias  |  "type" type_name "=" Type
+ADT    |  "type" type_name "=" [ "|" expr_name [Type] ] ";"
+       /* TypeDef(type_name)
+        * - Alias(Type)
+        * - ADT
+        *   ADTBranchBegin ADTBranchType ADTBranchEnd 
+        *   for "|" expr_name Type
+        *   ";" -> ADT()
+        */
        ;
-Type  ::=
-Infer  |  "_" /* type need to infer, 
-               * in fact this grammar is less frequently used. 
-               */
-U0     |  u0  /* "unit"  */
-B1     |  b1  /* "bool"  */
-C8     |  c8  /* "char"  */
-I64    |  i64 /* "int"   */
-F64    |  f64 /* "double */
-Var    |  type_name /*       */
-Ref    |  "@" Type /* @T, Ref T */
-Ptr    |  "&" Type /* &T, Ptr T */
-Arr    |  Type "[" integer "]" /* array */
-Fun    |  "{" [Type]  "->" Type "}"
-ADT    |  [ "|" expr_name [Type] ]
-       ;
+
+Type      ::=
+U          |  u0  /* "unit"  */
+B          |  b1  /* "bool"  */
+C          |  c8  /* "char"  */
+I          |  i64 /* "int"   */
+F          |  f64 /* "double */
+TypeVar    |  type_name /*       */
+TypeRef    |  "@" Type /* @T, Ref T */
+TypePtr    |  "&" Type /* &T, Ptr T */
+TypeArr    |  Type "[" integer "]" /* array */
+TypeFun    |  "{" [Type]  "->" Type "}"
+           ;
 
 Cell  ::= 
-Var    |  ["@"]? expr_name   /* TyCk : Ref T    -> Ref T */
-App    |  Expr::App          /* TyCk : Ref T    -> Ref T */
-Ele    |  Cell "[" Expr "] " /* TyCk : T[N] i64 -> Ref T */
-Ref    |  "*"  Expr          /* TyCk : Ptr T    -> Ref T */
-       ;
+CellVar    |  ["@"]? expr_name   /* TyCk : Ref T    -> Ref T */
+App        |  Expr::App          /* TyCk : Ref T    -> Ref T */
+           /* AppBeg AppArg ... AppArg
+            * CellAppEnd() 
+            */
+CellEle    |  Cell "[" Expr "] " /* TyCk : T[N] i64 -> Ref T */
+CellRef    |  "*"  Expr          /* TyCk : Ptr T    -> Ref T */
+           ;
 
 Expr  ::=
-U0     |  u0      /*        "unit"            */
-B1     |  boolean /*  "true"  |  "false"      */
-C8     |  char    /*  similar to C            */
-Str    |  string  /* TyCk : Arr[C8, length+1] */
-I64    |  integer /* non-negative dec i64     */
-F64    |  float   /* must differ from int, like 0. or 0f */
+B      |  boolean /*  "true"  |  "false"      */
+C      |  char    /*  similar to C            */
+S      |  string  /* TyCk : Arr[C8, length+1] */
+I      |  integer /* non-negative dec i64     */
+F      |  float   /* must differ from int, like 0. or 0f */
 Fun    |  "fun" [ ["@"]? expr_name [":" Type]?] "=>" 
-					( Stmt::Block | Expr )
+					( Stmt | Expr )
+       /* ExprFunBeg "fun"
+        * ExprFunRefArg(Name, Type) /* "@" */
+        * ExprFunArg(Name, Type)    /* " " */
+        * ExprFunExpr(Expr) -> Expr
+        * ExprFunStmt(Stmt) -> Stmt
+        */
           /* TyCk : { [@? Type] -> Typeof(Stmt::Block|Expr)  } */
 App    |  ("$" | Expr) "(" [Expr] ")" /* "$" means Self, recursively call */
+       /* AppBeg(if "$" then NULL else Expr) 
+        * AppArg [Expr] for many times
+        * ExprAppEnd
+        */
+
 /*  ADT <: Expr is just the expr of a adt */
 /* pattern match */
-Match  |  "match" Expr "with" [ "|" expr_name [Expr] "=>" Stmt ] 
+Match  |  "match" Expr "with" [ "|" expr_name [expr_name] "=>" (Stmt|Expr) ] 
+          /* MatchBeg 
+           * MatchBranch Beg(Name) Arg(Name) "=>" Stmt|Expr
+           * MatchEnd
+           */
           /* ADT -> Typeof(Stmt) 
            * branches' expr_name aka constructor should have the same ADT
            * branches' stmt should have the same Type
            */
 Asgn   |  Cell asgn Expr      /* TyCk : Ref T , (Ref)? T -> T */
-Addr   |  "&"  Cell /* address of  TyCk : Ref T -> Ptr T */
-Ref    |  "*"  Expr /* value of    TyCk : Ptr T ->     T */
-VarE   |  expr_name     /* TyCk : Ref? T -> T */
+
+Addr       |  "&"  Cell /* address of  TyCk : Ref T -> Ptr T */
+ExprVal    |  "*"  Expr /* value of    TyCk : Ptr T ->     T */
+ExprRef    |  "@*" Expr
+ExprVar    |  expr_name     /* TyCk : Ref? T -> T */
           /* Check Ref T? if so, fetch T, else just T */
           /* Ref Infer or Infer !! */
-VarR   | "@" expr_name  /* TyCk : Ref T -> Ref T */
+ExprVarRef   | "@" expr_name  /* TyCk : Ref T -> Ref T */
 
 /* Element of Array */
-EleE   |  Expr  "[" Expr "]"  /* TyCk : T[N], i64 ->     T */
-EleR   |  Expr "@[" Expr "]"  /* TyCk : T[N], i64 -> Ref T */
-EleA   |  Expr "&[" Expr "]"  /* TyCk : T[N], i64 -> Ptr T */
+Ele       |  Expr  "[" Expr "]"  /* TyCk : T[N], i64 ->     T */
+EleRef    |  Expr "@[" Expr "]"  /* TyCk : T[N], i64 -> Ref T */
+EleAddr   |  Expr "&[" Expr "]"  /* TyCk : T[N], i64 -> Ptr T */
 // CellE  |  Cell
 		  /*        Cell     CellE
            * TyCk : Ref T ->   T
@@ -93,9 +123,14 @@ EleA   |  Expr "&[" Expr "]"  /* TyCk : T[N], i64 -> Ptr T */
 New    |  "new" Type [Expr]? /* if Expr = NULL, let it = 1 */
            /* TyCk : (Expr:I64) -> Ptr Type */
            /* if error, just terminate now  */
-Del    |  "del" Expr
-           /* TyCk : (Expr:Ptr T) -> unit   */
-/* The following is just for data : I64 */
+           /* However, it seems that it's better to 
+            * provide a default value to init the array
+            *  "new" Expr ["**" Expr]?
+            * TyCk :   T        I64    -> Ptr T
+            * "**" from Python, means power
+            * without "**" is OK, if no currying
+            */
+
 UnOp   |  unary Expr 
             /* unary operator
              * around inverse
