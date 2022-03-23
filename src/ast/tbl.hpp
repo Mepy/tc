@@ -39,16 +39,17 @@ struct Data : public ExtdBase
         };
         using Ref = map<Node::ID, typename Data::ID>;
         using Def = map<typename Data::ID,     Data>;
-        Sym sym;
+        Sym*sym;
         Ref ref;
         Def def;
-        Table(){ def[0]=Data(); }
-        ~Table(){}
+        Table():sym(new Sym())
+        { def[0]=Data(); }
+        ~Table(){ delete sym; }
         /* constructor ensure def.rbegin() exists */
         typename Data::ID nid(){ return def.rbegin()->first+1; }
         typename Data::ID add(Name name){
             typename Data::ID id = nid();
-            this->sym[name]      = id   ;
+            (*(this->sym))[name] = id   ;
             this->def[id].name   = name ;
             return id;
         }
@@ -63,6 +64,14 @@ struct Data : public ExtdBase
                 return iter->second;
             else
                 return 0;
+        }
+        void scope_beg(){
+            this->sym = new Sym(this->sym);
+        }
+        void scope_end(){
+            auto sym = this->sym->parent;
+            delete this->sym;
+            this->sym = sym;
         }
     };
 };
@@ -97,10 +106,10 @@ struct TableBase
     expr::Data::Table expr;
     Stmts stmts;
 
-    /* currently constructing node */
-    Node* node;
+    /* currently constructing nodes */
+    stack<Node*> nodes;
 
-    TableBase():node(NULL){}
+    TableBase(){}
     ~TableBase(){}
 };
 

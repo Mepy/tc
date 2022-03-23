@@ -33,13 +33,17 @@ graph TD
 api  --> tbl
 
 stmt --> node
-type --> node
 cell --> node
 expr --> node
+type --> node
+cell --> rc
+expr --> rc
+type --> rc
 
 tbl  --> node
 
 node --> head
+rc   --> head
 ```
 #### ```struct```/```class ``` Heritance
 X-->Y means X is a sub-class of Y : 
@@ -48,15 +52,21 @@ graph TD
 
 Node --> ExtdBase
 Data --> ExtdBase
-Stmt --> Node
+
 Type --> Node
 Cell --> Node
 Expr --> Node
-
-Type --> RC
+Stmt --> Node
 
 type::Data --> Data
 expr::Data --> Data
+
+type::Type --> Type
+type::Type --> RC
+expr::Cell --> Cell
+expr::Expr --> Expr
+stmt::Stmt --> Stmt
+
 ```
 
 ```Table``` is just the API, with only member methods. 
@@ -67,3 +77,25 @@ graph LR
 Table --> TableBase
 ```
 ```Table```'s member methods are implmemented in ```impl.cpp```.
+
+### Extension
+After skiming heritance relations mentioned above, You might be curious about the bottom ```struct ExtdBase```, which is in fact used to extend ```struct Node```.
+A common usage is to record the position from source code.
+For example : 
+```tc
+// position_example.tc
+let name = "tc";
+```
+The position of "tc" is from ```{row:1, column:11}``` to ```{row:1, column:14}```.
+
+You can modify the ```extd``` field of ```struct Node *``` like this:
+```cpp
+// ...
+    auto expr = table.S(yytext); // yytext = "tc"
+    auto& extd = expr->extd;
+    extd.row_beg = 1;
+    extd.col_beg = 11;
+    extd.row_end = 1;
+    extd.col_end = 14;
+// ...
+```

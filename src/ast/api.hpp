@@ -54,6 +54,7 @@ struct Table : private TableBase
     Cell* CellAppEnd();
     Expr* ExprAppEnd();
 
+    Expr* ExprArr(Expr* expr, Size size);
     Cell* CellEle(Cell* cell, Expr* index);
     Expr* ExprEle(Expr* expr, Expr* index);
     Expr* ExprEleRef(Expr* expr, Expr* index);
@@ -61,7 +62,7 @@ struct Table : private TableBase
 
     Cell* CellRef(Expr* expr);  /* Ptr T -> Ref T */
     Expr* ExprVal(Expr* expr);  /* Ptr T ->     T */
-    Expr* ExprRef(Expr* expr); /* Ptr T -> Ref T */
+    Expr* ExprRef(Expr* expr);  /* Ptr T -> Ref T */
 
     Expr* B(Bool b);
     Expr* C(Char c);
@@ -89,7 +90,7 @@ struct Table : private TableBase
     Expr* UnOp(Oper oper, Expr* Expr);
     Expr* BinOp(Expr* lhs, Oper oper, Expr* rhs);
 
-    Expr* New(Type* type, Expr* size=NULL);
+    Expr* New(Expr* expr, Expr* size=NULL);
 
     /* save to and load from file */
     Table& operator>>(ofstream& file);

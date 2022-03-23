@@ -106,25 +106,15 @@ ExprVar    |  expr_name     /* TyCk : Ref? T -> T */
 ExprVarRef   | "@" expr_name  /* TyCk : Ref T -> Ref T */
 
 /* Element of Array */
+Arr       |  Expr "**" integer   /* TyCk : T         ->  T[N] */
 Ele       |  Expr  "[" Expr "]"  /* TyCk : T[N], i64 ->     T */
 EleRef    |  Expr "@[" Expr "]"  /* TyCk : T[N], i64 -> Ref T */
 EleAddr   |  Expr "&[" Expr "]"  /* TyCk : T[N], i64 -> Ptr T */
-// CellE  |  Cell
-		  /*        Cell     CellE
-           * TyCk : Ref T ->   T
-           * Cell::Var should not appear here,
-           * because Expr::Var and Expr::VarR hides it.
-           * Cell::App, Cell::Ele, Cell::Ref, too.
-           * So it might be useless? 
-           * But we might just implement Cell, 
-           * use it in Expr::CellE
-           * and drop Expr::{ VarE, App, EleE, Ref }
-           */
-New    |  "new" Type [Expr]? /* if Expr = NULL, let it = 1 */
-           /* TyCk : (Expr:I64) -> Ptr Type */
+New       |  "new" Expr "**" [Expr]? 
+           /* if Expr = NULL, let it = 1 */
+           /* TyCk : (Expr1:Type Expr2:I64) -> Ptr Type */
            /* if error, just terminate now  */
-           /* However, it seems that it's better to 
-            * provide a default value to init the array
+           /* Expr1 is a default value to init the array
             *  "new" Expr ["**" Expr]?
             * TyCk :   T        I64    -> Ptr T
             * "**" from Python, means power

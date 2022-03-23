@@ -9,3 +9,6 @@
 
 # CLion settings
 .idea
+
+
+*.html

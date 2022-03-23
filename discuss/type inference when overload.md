@@ -33,7 +33,7 @@ Faced with such a situation, we have many choices.
    ```
    let foo = fun x y:Float => x+y;
    ```
-    It's enough to determinate the overload '+', it must be '+.', Float's '+'. Finally, we come to know `x:Float` and `f:(Float, Float) -> Float`. In deed, the code can be translated into : 
+    It's enough to determinate the overload '+', it must be '+.', Float's '+'. Finally, we come to know `x:Float` and `foo:(Float, Float) -> Float`. In deed, the code can be translated into : 
    ```
    _foo : 
    fadd a1 a1 a2
@@ -52,14 +52,14 @@ Faced with such a situation, we have many choices.
    We explain with an example : 
    ```
    let swap = fun ptr i j =>{
-       let vj = *(ptr &+ j);
-       *(ptr + i) = vj;
-       ptr[j] = ptr[i];
+       let vj     = *(ptr &+ j);
+       *(ptr + j) = *(i + ptr);
+       ptr[i]     = vj;
    };
    ```
    NOTICE : There is no type annotation.
-   '+&' tells complier : "Hey, dear complier, the lhs, ```ptr : &T``` for some ```T```, and the rhs, ```j : Int```."
-   The programmer uses '+' in the next statement. But with ```ptr:&T```, complier knows that '+' is actually '&+'. The same with ```ptr[j]``` and ```ptr[i]```.
+   '&+' tells complier : "Hey, dear complier, the lhs, ```ptr : &T``` for some ```T```, and the rhs, ```j : Int```."
+   The programmer uses '+' in the next statement. But with ```ptr:&T```, complier knows that '+' is actually '&+' or '+&'. The same with ```ptr[i]```.
    (As for ```T```, we infer it when ```swap``` is called.)
 6. Combine 1 , 4.B and 3
    Similarly, but when type info lacks in '+', default action is to do type set's intersection.
