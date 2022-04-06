@@ -10,7 +10,7 @@
 namespace tc{
 namespace ast{
 
-template<typename T> using stack = std::vector<T>; 
+template<typename T> using stack = std::stack<T>; 
 template<typename T> using vector = std::vector<T>;
 template<typename K, typename V> using map = std::map<K, V>;
 using ifstream = std::ifstream;

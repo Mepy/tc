@@ -16,11 +16,12 @@ struct Table : private TableBase
     Stmt* Var(Name name, Expr* expr, Type* type=NULL);
     Stmt* If(Expr* cond, Stmt* fst, Stmt* snd=NULL);
     Stmt* While(Expr* cond, Stmt* stmt);
+    Stmt* Empty();
     Stmt* Break();
     Stmt* Cont();
     Stmt* Ret(Expr* expr=NULL);
     Stmt* Exp(Expr* expr);
-    Stmt* Del();
+    Stmt* Del(Expr* expr);
     
     void  TypeDef(Name name);
     Stmt* Alias(Type* type);
@@ -28,6 +29,9 @@ struct Table : private TableBase
     void  ADTBranchType(Type* type);
     void  ADTBranchEnd();
     Stmt* ADT();
+
+    // compile-time type check
+    Stmt* Check(Expr* expr, Type* type=NULL);
 
     /* Type */
     Type* U();
@@ -38,7 +42,7 @@ struct Table : private TableBase
     Type* TypeVar(Name name);
     Type* TypeRef(Type* type);
     Type* TypePtr(Type* type);
-    Type* TypeArr(Type* type, Int len);
+    Type* TypeArr(Type* type, Size size);
 
     void  TypeFunBeg();
     void  TypeFunArg(Type* type); /*  para  type */
@@ -95,6 +99,11 @@ struct Table : private TableBase
     /* save to and load from file */
     Table& operator>>(ofstream& file);
     Table& operator<<(ifstream& file);
+
+    Table();
+    ~Table();
+private:
+    Type* Typing(Expr* expr, Type* type=NULL);
 };
 
 }}

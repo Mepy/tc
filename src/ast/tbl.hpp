@@ -46,6 +46,7 @@ struct Data : public ExtdBase
         { def[0]=Data(); }
         ~Table(){ delete sym; }
         /* constructor ensure def.rbegin() exists */
+        typename Data::ID tid(){ return def.rbegin()->first  ; }
         typename Data::ID nid(){ return def.rbegin()->first+1; }
         typename Data::ID add(Name name){
             typename Data::ID id = nid();
@@ -79,7 +80,7 @@ namespace type
 {
     struct Data : public ast::Data
     {
-        Type* type;
+        Typep type;
         Data(Name name):ast::Data(name), type(NULL){}
         Data():type(NULL){}
         ~Data(){}
@@ -90,9 +91,10 @@ namespace expr
 {
     struct Data : public ast::Data
     {
-        Type* type;
-        Expr* expr;
-        Data(Name name):ast::Data(name), type(NULL){}
+        Typep type;
+        Exprp expr;
+        Data(Name name, Typep type, Exprp expr)
+        :ast::Data(name), expr(expr), type(type){}
         Data():type(NULL){}
         ~Data(){}
         using Table = ast::Data::Table<Data>;
@@ -108,6 +110,8 @@ struct TableBase
 
     /* currently constructing nodes */
     stack<Node*> nodes;
+
+    Typep u, b, c, i, f;
 
     TableBase(){}
     ~TableBase(){}

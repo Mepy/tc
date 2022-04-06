@@ -27,7 +27,7 @@ Break  |  "break" ";"
 Cont   |  "continue" ";"
 Ret    |  "return" [Expr]? ";" /* if no Expr, just fill with u0 "unit" */
 Exp    |  Expr ";" /* just Expr */
-Del    |  "del" Expr ";"
+Del    |  "del" Expr ";" /* Ptr T */
 
 Alias  |  "type" type_name "=" Type
 ADT    |  "type" type_name "=" [ "|" expr_name [Type] ] ";"
