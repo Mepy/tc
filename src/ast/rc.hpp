@@ -22,10 +22,16 @@ inline void decr(T* ptr)
         delete ptr;
 }
 template<typename T>
-inline void decr(vector<T*> ptrs)
+inline void decr(vector<T*>& ptrs)
 {
     for(auto iter=ptrs.begin(); iter!=ptrs.end(); ++iter)
         decr(*iter);
+}
+template<typename K, typename T>
+inline void decr(map<K, T>& m)
+{
+    for(auto iter=m.begin(); iter!=m.end(); ++iter)
+            decr(iter->second);
 }
 template<typename T>
 inline T* incr(T* ptr)

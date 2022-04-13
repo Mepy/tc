@@ -11,7 +11,7 @@ namespace type{
 struct Type : public ast::Type, public RC
 {
     using Flag = enum { Undefined,
-        Infer, U, B, C, I, F, Let, Var, Ref, Ptr, Arr, Fun
+        Infer, U, B, C, I, F, ADT, Ref, Ptr, Arr, Fun
     };
     Flag flag;
     Type(){}
@@ -26,15 +26,13 @@ struct Lit : public Type
     ~Lit(){}
 };
 
-// Let, Var
-// Let -> declare a new type 
-// Var -> use   the old type 
-struct Var : public Type
+struct ADT : public Type
 {
-    ID id;
-    Var(Flag flag, ID id)
-    :Type(flag), id(id){}
-    ~Var(){}
+    map<ID, Types> cons;
+    ADT():Type(Flag::ADT){}
+    ~ADT(){
+        decr(cons);
+    }
 };
 
 // Infer, Ref, Ptr

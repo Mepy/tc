@@ -111,7 +111,7 @@ struct TableBase
     /* currently constructing nodes */
     stack<Node*> nodes;
 
-    Typep u, b, c, i, f;
+    Typep u, b, c, i, f, adt;
 
     TableBase(){}
     ~TableBase(){}

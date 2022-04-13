@@ -14,6 +14,8 @@ Table::Table()
     this->c = new type::Lit(type::Type::C);
 	this->i = new type::Lit(type::Type::I);
 	this->f = new type::Lit(type::Type::F);
+
+	this->adt = new type::ADT();
 }
 Table::~Table()
 {
@@ -22,6 +24,8 @@ Table::~Table()
     decr(c);
     decr(i);
     decr(f);
+
+	decr(adt);
 }
 
 void	Table::BlockBegin()
@@ -142,37 +146,65 @@ void	Table::TypeDef(Name name)
 {
 	auto id = this->type.add(name);
 	this->nodes.push(new stmt::TypeDef(id));
+
 	// TODO push
 }
 
 Stmt*	Table::Alias(Typep type)
 {
-
-	if(((type::Type*)type)->flag==type::Type::Var)
-		type = this->type[((type::Var*)type)->id].type;
-
 	auto stmt = this->nodes.top();
 	this->nodes.pop();
 	auto id = ((stmt::TypeDef*)stmt)->id;
 	delete stmt;
 
-	this->type[id].type = type;
+	this->type[id].type = type; 
+	/* no need to incr, because match type with
+	 * | Primitives -> has been incred in PTypes
+	 * | TypeVar    -> has been incred in TypeVar
+	 * | _          -> new types
+	 */
 	return Empty();
 }
 
 void	Table::ADTBranchBegin(Name cons)
 {
-	
+	auto id = this->expr.add(cons);
+	((type::ADT*)(this->adt))
+	->cons[id]=Types();
 }
 
 void	Table::ADTBranchType(Typep type)
 {
-	
+	((type::ADT*)(this->adt))
+	->cons.rbegin()
+	->second.push_back(type);
 }
 
 void	Table::ADTBranchEnd()
 {
+	auto con = ((type::ADT*)(this->adt))
+		->cons.rbegin();
+	auto id = con->first;
+	auto types = con->second;
+
+	// create function for constructors
+
+	auto label_tuple = new expr::LabelTuple(incr(this->adt), id);
+	auto confun = new expr::Fun(expr::Expr::Cons);
+	for(auto iter=types.begin();iter!=types.end();++iter)
+	{
+		auto eid = this->expr.add("");
+		confun->params.push_back(eid);
+		label_tuple->tuple.push_back(new expr::Var(eid));
+	}
 	
+	confun->stmt = new stmt::Exp(stmt::Stmt::Ret, label_tuple);
+	
+	this->expr[id].expr = confun;
+
+	// WARNING : let-stmt for constructor-function NOT created YET.
+	// TODO    : for locality, it should be created here.
+	//         : Or, we just mark it as constructor, inline when needed.
 }
 
 Stmt*	Table::ADT()
@@ -182,8 +214,8 @@ Stmt*	Table::ADT()
 	auto id = ((stmt::TypeDef*)stmt)->id;
 	delete stmt;
 
-	auto type = new type::Var(type::Type::Let, id);
-	this->type[id].type = type;
+	this->type[id].type = this->adt;
+	this->adt =  new type::ADT();
 
 	return Empty();
 }
@@ -194,9 +226,16 @@ Stmt*   Table::Check(Expr* expr, Typep type)
 	return Empty();
 }
 
+/* type */
+
 Typep	Table::Typing(Expr* expr, Typep type)
 {
-	
+	auto ty = ((expr::Expr*)expr)->type;
+	if(NULL==type)
+		return ty;
+
+
+	// ty_eq
 }
 
 Typep	Table::U()
@@ -226,8 +265,10 @@ Typep	Table::F()
 
 Typep	Table::TypeVar(Name name)
 {
-	auto id = this->type[name];
-	return new type::Var(type::Type::Var, id);
+	return incr(
+		this->type[ // find data
+			this->type[name] // find id
+			].type);
 }
 
 Typep	Table::TypeRef(Typep type)
@@ -263,12 +304,18 @@ Typep	Table::TypeFunEnd(Typep rety)
 	return fun;
 }
 
+/* cell & expr */
+
 Cell*	Table::CellVar(Name name)
 {
 	auto id = this->expr[name];
 	auto data = this->expr[id];
 	if(type::Type::Ref==((type::Type*)data.type)->flag)
-		return (Cell*)(new expr::Var(id));
+	{
+		auto cell = new expr::Var(id);
+		cell->type = incr((type::Typ*)data.type);
+		return (Cell*)cell;
+	}
 	else
 		throw "CellVar Not-A-Ref";
 }

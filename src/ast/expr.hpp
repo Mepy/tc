@@ -11,7 +11,7 @@ namespace expr{
 struct Expr : public ast::Expr
 {
     using Flag = enum { Undefined,
-            U, B, C, S, I, F, Array, Fun, App, LabelTuple, Match,
+            U, B, C, S, I, F, Array, Fun, Cons, App, LabelTuple, Match,
             Asgn, Addr, Val, ValRef, Var, VarRef,
             Ele, EleRef, EleAddr,
             New, UnOp, BinOp,
@@ -75,7 +75,7 @@ struct LabelTuple : public Expr
     ID    label; /* Data::ID of constructor */
     Exprs tuple;
     LabelTuple(Typep type, ID label)
-    :Expr(Flag::LabelTuple, incr(type)), label(label){}
+    :Expr(Flag::LabelTuple, type), label(label){}
     ~LabelTuple(){
         del(tuple);
     }
@@ -177,13 +177,13 @@ struct EleAddr : public Expr
     }
 };
 
+// Fun, Cons : Constructor
 struct Fun : public Expr
 {
-    Exprs names;
+    IDs   params;
     Stmt* stmt ;
-    Fun():Expr(Flag::Fun), stmt(NULL){}
+    Fun(Flag flag=Flag::Fun):Expr(flag), stmt(NULL){}
     ~Fun(){ 
-        del(names);
         del(stmt);
     }
 };
