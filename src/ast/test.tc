@@ -1,0 +1,6 @@
+let g = \ f x => f(x);
+let main = \ => {
+    let x = 3;
+    let x = g(\x=>x+1, x);
+    puti(x);
+};

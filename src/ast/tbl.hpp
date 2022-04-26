@@ -6,6 +6,8 @@
 namespace tc{
 namespace ast{
 
+namespace ir{ namespace parser{ struct Module; }}
+
 struct Data : public ExtdBase
 {
     using ID = ID;
@@ -108,13 +110,16 @@ struct TableBase
     expr::Data::Table expr;
     Stmts stmts;
 
+    ir::parser::Module * module;
+
     /* currently constructing nodes */
     stack<Node*> nodes;
 
     Typep u, b, c, i, f, adt;
+    Exprp fun; /* func_expr for recursive */
 
-    TableBase(){}
-    ~TableBase(){}
+    TableBase(std::string path);
+    ~TableBase();
 };
 
 }}

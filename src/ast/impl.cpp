@@ -4,10 +4,22 @@
 #include "cell.hpp"
 #include "expr.hpp"
 
+#include "ir_parser.hpp"
+
 namespace tc{
 namespace ast{
 
-Table::Table()
+TableBase::TableBase(std::string path)
+{
+	this->module = new tc::ast::ir::parser::Module(path);
+}
+TableBase::~TableBase()
+{
+	delete this->module;
+}
+
+Table::Table(std::string path)
+:TableBase(path)
 {
 	this->u = new type::Lit(type::Type::U);
     this->b = new type::Lit(type::Type::B);
@@ -228,6 +240,7 @@ Stmt*   Table::Check(Expr* expr, Typep type)
 
 /* type */
 
+// TODO
 Typep	Table::Typing(Expr* expr, Typep type)
 {
 	auto ty = ((expr::Expr*)expr)->type;
@@ -353,7 +366,9 @@ Expr*	Table::ExprVarRef(Name name)
 void	Table::AppBeg(Expr* func) // = NULL
 {
 	if(NULL==func)
-		func = NULL; // TODO func self
+		func = this->fun;
+	
+	
 }
 
 void	Table::AppArg(Expr* para)
@@ -371,6 +386,7 @@ Expr*	Table::ExprAppEnd()
 	
 }
 
+// TODO
 Cell*	Table::CellEle(Cell* cell, Expr* index)
 {
 	auto cell_ty = (type::Type*)(((expr::Expr*)cell)->type);
@@ -420,9 +436,13 @@ Expr*	Table::F(Float f)
 	return new expr::F(f, F());
 }
 
+// TODO
 void	Table::ExprFunBeg()
 {
-	
+	this->fun = new expr::Fun(); 
+	/* emmm, there should be sth
+	 * must use id to refer to it!!!
+	 */
 }
 
 void	Table::ExprFunRefArg(Name name, Typep type) // =NULL

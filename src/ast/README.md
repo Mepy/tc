@@ -1,5 +1,26 @@
 ## AST
+### Introduction
+This module, named after **AST**, is mainly to construct **A**bstract **S**yntax **T**ree.
+
+When constructing AST in the mean time, this module is also walking it the 0-th time, desugaring the syntax, infering types, collecting symbol infomation and transforming it into [Administrative Normal Form, ANF](https://en.wikipedia.org/wiki/A-normal_form), one kind of Intermediate Representation, IR.
+
+Due to this reason, This module, **AST**, has another explanation : **A**NF, **S**ymbols and **T**ypes.
+
+Therefore, This module has 2 interfaces, one used by **Parsing**, another used by **Codegen**.
+
+- Parsing
+  Use methods declared in [api.hpp](./api.hpp).
+- Codegen 
+  Use the data structure directly, see [ir.hpp](./ir.hpp) and [ir_codegen.hpp](./ir_codegen.cpp).
+
+As for desugaring :
+- reference -> pointer
+  There is not reference in ir but only pointers.
+
 ### Tutorial
+#### Parsing
+The following is an example. As for more details, refer to [api.hpp](./api.hpp).
+
 ```cpp
 #include "api.hpp"
 using Table = tc::ast::Table;
@@ -22,26 +43,25 @@ void example()
     table.Let("main", fun);
 }
 ```
-### API
-Refer to ```api.hpp```.
 
-### Structure
+### Code Structure
 #### ```#include "*.hpp"``` Dependency
-X-->Y means ```#include "Y.hpp"``` in ```X.hpp``` : 
+X-->Y means ```#include "Y.hpp"``` in ```X.hpp```: 
 ```Mermaid
 graph TD
 api  --> tbl
 
+ir_codegen --> ir
+ir_parser  --> ir
+
+tbl  --> node
 stmt --> node
-cell --> node
 expr --> node
 type --> node
-cell --> rc
 expr --> rc
 type --> rc
 
-tbl  --> node
-
+ir --> head
 node --> head
 rc   --> head
 ```
@@ -99,3 +119,26 @@ You can modify the ```extd``` field of ```struct Node *``` like this:
     extd.col_end = 14;
 // ...
 ```
+
+### IR structure
+Each IR of one module includes 3 part:
+Spec [TODO], see [ir.hpp](./ir.hpp) first.
+- **A**NF Instructions
+- **S**ymbols' Infomation
+  **S**ymbols are variables introduced in source code, those by ANF transformation included. Variables should be in order according to their IDs, from small to large.
+  
+  Names of symbols will be saved in text format with suffix ```.symb```.
+
+  Symbols are divided into 4 different sorts:
+  - Non-Function
+    Those being not functions.
+  - Constructors
+    Introduced by ADT.
+  - Function
+    Those being functions without free variables.
+  - Closure
+    Those with free variables.
+  
+
+- **T**ypes' Infomation
+  Similar to **S**ymbols' Infomation, and readable type structure saved in text format with suffix ```.type```.

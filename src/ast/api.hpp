@@ -1,12 +1,12 @@
-#ifndef tc_ast_table_hpp
-#define tc_ast_table_hpp
+#ifndef tc_ast_api_hpp
+#define tc_ast_api_hpp
 
 #include "tbl.hpp"
 
 namespace tc{
 namespace ast{
 
-struct Table : private TableBase
+struct Table : protected TableBase
 {
     /* Stmt */
     void  BlockBegin();
@@ -96,11 +96,9 @@ struct Table : private TableBase
 
     Expr* New(Expr* expr, Expr* size=NULL);
 
-    /* save to and load from file */
-    Table& operator>>(ofstream& file);
-    Table& operator<<(ifstream& file);
 
-    Table();
+
+    Table(std::string path);
     ~Table();
 private:
     Type* Typing(Expr* expr, Type* type=NULL);

@@ -29,7 +29,7 @@ Ret    |  "return" [Expr]? ";" /* if no Expr, just fill with u0 "unit" */
 Exp    |  Expr ";" /* just Expr */
 Del    |  "del" Expr ";" /* Ptr T */
 
-Alias  |  "type" type_name "=" Type
+Alias  |  "type" type_name "=" Type ";"
 ADT    |  "type" type_name "=" [ "|" expr_name [Type] ] ";"
        /* TypeDef(type_name)
         * - Alias(Type)
@@ -38,14 +38,16 @@ ADT    |  "type" type_name "=" [ "|" expr_name [Type] ] ";"
         *   for "|" expr_name Type
         *   ";" -> ADT()
         */
+
+Check  |  "check" Expr Type ";"
        ;
 
 Type      ::=
-U          |  u0  /* "unit"  */
-B          |  b1  /* "bool"  */
-C          |  c8  /* "char"  */
-I          |  i64 /* "int"   */
-F          |  f64 /* "double */
+U          |  u0  /* "Unit"   */
+B          |  b1  /* "Bool"   */
+C          |  c8  /* "Char"   */
+I          |  i64 /* "Int"    */
+F          |  f64 /* "Double" */
 TypeVar    |  type_name /*       */
 TypeRef    |  "@" Type /* @T, Ref T */
 TypePtr    |  "&" Type /* &T, Ptr T */
@@ -64,12 +66,13 @@ CellRef    |  "*"  Expr          /* TyCk : Ptr T    -> Ref T */
            ;
 
 Expr  ::=
+NULL   |  np      /* "nullptr" */
 B      |  boolean /*  "true"  |  "false"      */
 C      |  char    /*  similar to C            */
 S      |  string  /* TyCk : Arr[C8, length+1] */
 I      |  integer /* non-negative dec i64     */
 F      |  float   /* must differ from int, like 0. or 0f */
-Fun    |  "fun" [ ["@"]? expr_name [":" Type]?] "=>" 
+Fun    |  ("fun" | "\") [ ["@"]? expr_name [":" Type]?] "=>" 
 					( Stmt | Expr )
        /* ExprFunBeg "fun"
         * ExprFunRefArg(Name, Type) /* "@" */
@@ -101,12 +104,13 @@ Addr       |  "&"  Cell /* address of  TyCk : Ref T -> Ptr T */
 ExprVal    |  "*"  Expr /* value of    TyCk : Ptr T ->     T */
 ExprRef    |  "@*" Expr
 ExprVar    |  expr_name     /* TyCk : Ref? T -> T */
-          /* Check Ref T? if so, fetch T, else just T */
-          /* Ref Infer or Infer !! */
-ExprVarRef   | "@" expr_name  /* TyCk : Ref T -> Ref T */
+              /* Check Ref T? if so, fetch T, else just T */
+              /* Ref Infer or Infer !! */
+ExprVarRef | "@" expr_name  /* TyCk : Ref T -> Ref T */
 
 /* Element of Array */
 Arr       |  Expr "**" integer   /* TyCk : T         ->  T[N] */
+          /* integer should be constant when in lexer pass */
 Ele       |  Expr  "[" Expr "]"  /* TyCk : T[N], i64 ->     T */
 EleRef    |  Expr "@[" Expr "]"  /* TyCk : T[N], i64 -> Ref T */
 EleAddr   |  Expr "&[" Expr "]"  /* TyCk : T[N], i64 -> Ptr T */
@@ -117,8 +121,13 @@ New       |  "new" Expr "**" [Expr]?
            /* Expr1 is a default value to init the array
             *  "new" Expr ["**" Expr]?
             * TyCk :   T        I64    -> Ptr T
-            * "**" from Python, means power
+            * "^" instead of "**" from Python, means power
             * without "**" is OK, if no currying
+            * ambiguity : 
+            *   new 0 ** 2 should be New(0, 2)
+            *   instead of New(Arr(0, 2), NULL) 
+            *   if ** occurs, it must be New's seperator
+            *   new (0 ** 2) -> New(Arr(0, 2), NULL)
             */
 
 UnOp   |  unary Expr 
@@ -144,7 +153,7 @@ BinOp  |  Expr binary Expr
              * Equal operation for T
              * "=="  "!=" 
              * operation for Pointer
-             * "+&" "-&"
+             * "+&" "&+" "&-"
              * ptr +& 1 -> ptr+1 in C
              */
        ;       
