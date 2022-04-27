@@ -17,11 +17,11 @@ const Byte8 Magic    = 0x0063206465707974L; /* typed c\0 */
 const Byte8 Version  = 0x3232343032323032L; /* 20220422  */
 const Byte8 RESERVED = 0x4445565245534552L; /* RESERVED  */
 
+using string = std::string;
 template<typename T> using stack = std::stack<T>; 
 template<typename T> using vector = std::vector<T>;
 template<typename K, typename V> using map = std::map<K, V>;
 
-using Name   = std::string;
 using ID     = Byte4; /* unique identifier */
 using Offset = Byte4; /* record offset in source code*/
 using Size   = Byte4; /* length of array */
@@ -49,6 +49,8 @@ struct Extd
     Offset /* position span in source file */
         row_beg, row_end,
         col_beg, col_end;
+    Extd():row_beg(0), row_end(0), col_beg(0), col_end(0){}
+    ~Extd(){}
 };
 struct ExtdBase
 {

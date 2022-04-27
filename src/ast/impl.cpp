@@ -1,7 +1,6 @@
 #include "api.hpp"
 #include "stmt.hpp"
 #include "type.hpp"
-#include "cell.hpp"
 #include "expr.hpp"
 
 #include "ir_parser.hpp"
@@ -9,17 +8,9 @@
 namespace tc{
 namespace ast{
 
-TableBase::TableBase(std::string path)
-{
-	this->module = new tc::ast::ir::parser::Module(path);
-}
-TableBase::~TableBase()
-{
-	delete this->module;
-}
 
-Table::Table(std::string path)
-:TableBase(path)
+API::API(std::string path)
+:Context(path)
 {
 	this->u = new type::Lit(type::Type::U);
     this->b = new type::Lit(type::Type::B);
@@ -29,7 +20,7 @@ Table::Table(std::string path)
 
 	this->adt = new type::ADT();
 }
-Table::~Table()
+API::~API()
 {
 	decr(u);
     decr(b);
@@ -40,7 +31,7 @@ Table::~Table()
 	decr(adt);
 }
 
-void	Table::BlockBegin()
+void	API::BlockBegin()
 {
 	auto block = new stmt::Block();
 	block->flag = stmt::Stmt::Block;
@@ -50,14 +41,14 @@ void	Table::BlockBegin()
 	this->expr.scope_beg();
 }
 
-void	Table::BlockStmt(Stmt* stmt)
+void	API::BlockStmt(Stmt* stmt)
 {
 	auto block = (stmt::Block*)(this->nodes.top());
 	if( ! (((stmt::Stmt*)stmt)->flag==stmt::Stmt::Empty) )
 		block->stmts.push_back(stmt);
 }
 
-Stmt*	Table::BlockEnd()
+Stmt*	API::BlockEnd()
 {
 	auto stmt = (stmt::Stmt*)(this->nodes.top());
 	this->nodes.pop();
@@ -66,7 +57,7 @@ Stmt*	Table::BlockEnd()
 	return stmt;
 }
 
-Stmt*	Table::Let(Name name, Expr* expr, Typep type) // =NULL
+Stmt*	API::Let(Name name, Expr* expr, Typep type) // =NULL
 {
 	
 	if(NULL==type)
@@ -83,7 +74,7 @@ Stmt*	Table::Let(Name name, Expr* expr, Typep type) // =NULL
 	return stmt;
 }
 
-Stmt*	Table::Var(Name name, Expr* expr, Typep type) // =NULL
+Stmt*	API::Var(Name name, Expr* expr, Typep type) // =NULL
 {
 	
 	if(NULL==type)
@@ -101,7 +92,7 @@ Stmt*	Table::Var(Name name, Expr* expr, Typep type) // =NULL
 	return stmt;
 }
 
-Stmt*	Table::If(Expr* cond, Stmt* fst, Stmt* snd) // =NULL
+Stmt*	API::If(Expr* cond, Stmt* fst, Stmt* snd) // =NULL
 {
 	if(NULL==snd)
 		snd = new stmt::Empty(stmt::Stmt::Empty);
@@ -111,41 +102,41 @@ Stmt*	Table::If(Expr* cond, Stmt* fst, Stmt* snd) // =NULL
 	return new stmt::If(cond, fst, snd);
 }
 
-Stmt*	Table::While(Expr* cond, Stmt* body)
+Stmt*	API::While(Expr* cond, Stmt* body)
 {	
 	Typing(cond, this->b);
 
 	return new stmt::While(cond, body);
 }
 
-Stmt*	Table::Empty()
+Stmt*	API::Empty()
 {
 	return new stmt::Empty(stmt::Stmt::Empty);
 }
 
-Stmt*	Table::Break()
+Stmt*	API::Break()
 {
 	return new stmt::Empty(stmt::Stmt::Break);
 }
 
-Stmt*	Table::Cont()
+Stmt*	API::Cont()
 {
 	return new stmt::Empty(stmt::Stmt::Cont);
 }
 
-Stmt*	Table::Ret(Expr* expr) // =NULL
+Stmt*	API::Ret(Expr* expr) // =NULL
 {
 	if(NULL==expr)
 		expr = new expr::U(this->u);
 	return new stmt::Exp(stmt::Stmt::Ret, expr);
 }
 
-Stmt*	Table::Exp(Expr* expr)
+Stmt*	API::Exp(Expr* expr)
 {
 	return new stmt::Exp(stmt::Stmt::Exp, expr);
 }
 
-Stmt*	Table::Del(Expr* expr)
+Stmt*	API::Del(Expr* expr)
 {
 	auto type = (type::Type*)(Typing(expr));
 	if(type->flag==type::Type::Ptr)
@@ -154,7 +145,7 @@ Stmt*	Table::Del(Expr* expr)
 		throw "Del Not-A-Pointer";
 }
 
-void	Table::TypeDef(Name name)
+void	API::TypeDef(Name name)
 {
 	auto id = this->type.add(name);
 	this->nodes.push(new stmt::TypeDef(id));
@@ -162,7 +153,7 @@ void	Table::TypeDef(Name name)
 	// TODO push
 }
 
-Stmt*	Table::Alias(Typep type)
+Stmt*	API::Alias(Typep type)
 {
 	auto stmt = this->nodes.top();
 	this->nodes.pop();
@@ -178,21 +169,21 @@ Stmt*	Table::Alias(Typep type)
 	return Empty();
 }
 
-void	Table::ADTBranchBegin(Name cons)
+void	API::ADTBranchBegin(Name cons)
 {
 	auto id = this->expr.add(cons);
 	((type::ADT*)(this->adt))
 	->cons[id]=Types();
 }
 
-void	Table::ADTBranchType(Typep type)
+void	API::ADTBranchType(Typep type)
 {
 	((type::ADT*)(this->adt))
 	->cons.rbegin()
 	->second.push_back(type);
 }
 
-void	Table::ADTBranchEnd()
+void	API::ADTBranchEnd()
 {
 	auto con = ((type::ADT*)(this->adt))
 		->cons.rbegin();
@@ -219,7 +210,7 @@ void	Table::ADTBranchEnd()
 	//         : Or, we just mark it as constructor, inline when needed.
 }
 
-Stmt*	Table::ADT()
+Stmt*	API::ADT()
 {
 	auto stmt = this->nodes.top();
 	this->nodes.pop();
@@ -232,7 +223,7 @@ Stmt*	Table::ADT()
 	return Empty();
 }
 
-Stmt*   Table::Check(Expr* expr, Typep type)
+Stmt*   API::Check(Expr* expr, Typep type)
 {
 	Typing(expr, type);
 	return Empty();
@@ -241,7 +232,7 @@ Stmt*   Table::Check(Expr* expr, Typep type)
 /* type */
 
 // TODO
-Typep	Table::Typing(Expr* expr, Typep type)
+Typep	API::Typing(Expr* expr, Typep type)
 {
 	auto ty = ((expr::Expr*)expr)->type;
 	if(NULL==type)
@@ -251,32 +242,32 @@ Typep	Table::Typing(Expr* expr, Typep type)
 	// ty_eq
 }
 
-Typep	Table::U()
+Typep	API::U()
 {
 	return incr(this->u);
 }
 
-Typep	Table::B()
+Typep	API::B()
 {
 	return incr(this->b);
 }
 
-Typep	Table::C()
+Typep	API::C()
 {
 	return incr(this->c);
 }
 
-Typep	Table::I()
+Typep	API::I()
 {
 	return incr(this->i);
 }
 
-Typep	Table::F()
+Typep	API::F()
 {
 	return incr(this->f);
 }
 
-Typep	Table::TypeVar(Name name)
+Typep	API::TypeVar(Name name)
 {
 	return incr(
 		this->type[ // find data
@@ -284,32 +275,32 @@ Typep	Table::TypeVar(Name name)
 			].type);
 }
 
-Typep	Table::TypeRef(Typep type)
+Typep	API::TypeRef(Typep type)
 {
 	return new type::Typ(type::Type::Ref, type);
 }
 
-Typep	Table::TypePtr(Typep type)
+Typep	API::TypePtr(Typep type)
 {
 	return new type::Typ(type::Type::Ptr, type);
 }
 
-Typep	Table::TypeArr(Typep type, Size size)
+Typep	API::TypeArr(Typep type, Size size)
 {
 	return new type::Arr(type, size);
 }
 
-void	Table::TypeFunBeg()
+void	API::TypeFunBeg()
 {
 	auto type = new type::Fun();
 	this->nodes.push(type);
 }
-void	Table::TypeFunArg(Typep type)
+void	API::TypeFunArg(Typep type)
 {
 	auto fun = (type::Fun*)(this->nodes.top());
 	fun->params.push_back(type);
 }
-Typep	Table::TypeFunEnd(Typep rety)
+Typep	API::TypeFunEnd(Typep rety)
 {
 	auto fun = (type::Fun*)(this->nodes.top());
 	this->nodes.pop();
@@ -319,7 +310,7 @@ Typep	Table::TypeFunEnd(Typep rety)
 
 /* cell & expr */
 
-Cell*	Table::CellVar(Name name)
+Cell*	API::CellVar(Name name)
 {
 	auto id = this->expr[name];
 	auto data = this->expr[id];
@@ -333,7 +324,7 @@ Cell*	Table::CellVar(Name name)
 		throw "CellVar Not-A-Ref";
 }
 
-Expr*	Table::ExprVar(Name name)
+Expr*	API::ExprVar(Name name)
 {
 	auto id = this->expr[name];
 	auto data = this->expr[id];
@@ -348,7 +339,7 @@ Expr*	Table::ExprVar(Name name)
 	return expr;
 }
 
-Expr*	Table::ExprVarRef(Name name)
+Expr*	API::ExprVarRef(Name name)
 {
 	auto id = this->expr[name];
 	auto data = this->expr[id];
@@ -363,7 +354,7 @@ Expr*	Table::ExprVarRef(Name name)
 	return expr;
 }
 
-void	Table::AppBeg(Expr* func) // = NULL
+void	API::AppBeg(Expr* func) // = NULL
 {
 	if(NULL==func)
 		func = this->fun;
@@ -371,23 +362,23 @@ void	Table::AppBeg(Expr* func) // = NULL
 	
 }
 
-void	Table::AppArg(Expr* para)
+void	API::AppArg(Expr* para)
 {
 	
 }
 
-Cell*	Table::CellAppEnd()
+Cell*	API::CellAppEnd()
 {
 
 }
 
-Expr*	Table::ExprAppEnd()
+Expr*	API::ExprAppEnd()
 {
 	
 }
 
 // TODO
-Cell*	Table::CellEle(Cell* cell, Expr* index)
+Cell*	API::CellEle(Cell* cell, Expr* index)
 {
 	auto cell_ty = (type::Type*)(((expr::Expr*)cell)->type);
 	if(type::Type::Infer==cell_ty->flag)
@@ -395,49 +386,49 @@ Cell*	Table::CellEle(Cell* cell, Expr* index)
 	
 }
 
-Expr*	Table::ExprEle(Expr* expr, Expr* index)
+Expr*	API::ExprEle(Expr* expr, Expr* index)
 {
 	
 }
 
-Expr*	Table::ExprEleRef(Expr* expr, Expr* index)
+Expr*	API::ExprEleRef(Expr* expr, Expr* index)
 {
 	
 }
 
-Expr*	Table::ExprEleAddr(Expr* expr, Expr* index)
+Expr*	API::ExprEleAddr(Expr* expr, Expr* index)
 {
 	
 }
 
-Expr*	Table::B(Bool b)
+Expr*	API::B(Bool b)
 {
 	return new expr::B(b, B());
 }
 
-Expr*	Table::C(Char c)
+Expr*	API::C(Char c)
 {
 	return new expr::C(c, C());
 }
 
-Expr*	Table::S(Str s)
+Expr*	API::S(Str s)
 {
 	return new expr::S(s, 
 		new type::Arr(C(), s.length()+1));
 }
 
-Expr*	Table::I(Int i)
+Expr*	API::I(Int i)
 {
 	return new expr::I(i, I());
 }
 
-Expr*	Table::F(Float f)
+Expr*	API::F(Float f)
 {
 	return new expr::F(f, F());
 }
 
 // TODO
-void	Table::ExprFunBeg()
+void	API::ExprFunBeg()
 {
 	this->fun = new expr::Fun(); 
 	/* emmm, there should be sth
@@ -445,87 +436,87 @@ void	Table::ExprFunBeg()
 	 */
 }
 
-void	Table::ExprFunRefArg(Name name, Typep type) // =NULL
+void	API::ExprFunRefArg(Name name, Typep type) // =NULL
 {
 	
 }
 
-void	Table::ExprFunArg(Name name, Typep type) // =NULL
+void	API::ExprFunArg(Name name, Typep type) // =NULL
 {
 	
 }
 
-Expr*	Table::ExprFunExpr(Expr* expr)
+Expr*	API::ExprFunExpr(Expr* expr)
 {
 	
 }
 
-Expr*	Table::ExprFunStmt(Stmt* stmt)
+Expr*	API::ExprFunStmt(Stmt* stmt)
 {
 	
 }
 
-Expr*	Table::ExprPtr(Cell* cell)
+Expr*	API::ExprPtr(Cell* cell)
 {
 	
 }
 
-void	Table::MatchBeg(Expr* expr)
+void	API::MatchBeg(Expr* expr)
 {
 	
 }
 
-void	Table::MatchBranchBeg(Name name)
+void	API::MatchBranchBeg(Name name)
 {
 	
 }
 
-void	Table::MatchBranchArg(Name name)
+void	API::MatchBranchArg(Name name)
 {
 	
 }
 
-void	Table::MatchBranchExpr(Expr* expr)
+void	API::MatchBranchExpr(Expr* expr)
 {
 	
 }
 
-void	Table::MatchBranchStmt(Stmt* stmt)
+void	API::MatchBranchStmt(Stmt* stmt)
 {
 	
 }
 
-Expr*	Table::MatchEnd()
+Expr*	API::MatchEnd()
 {
 	
 }
 
-Expr*	Table::Asgn(Cell* cell, Oper oper, Expr* expr)
+Expr*	API::Asgn(Cell* cell, Oper oper, Expr* expr)
 {
 	
 }
 
-Expr*	Table::UnOp(Oper oper, Expr* Expr)
+Expr*	API::UnOp(Oper oper, Expr* Expr)
 {
 	
 }
 
-Expr*	Table::BinOp(Expr* lhs, Oper oper, Expr* rhs)
+Expr*	API::BinOp(Expr* lhs, Oper oper, Expr* rhs)
 {
 	
 }
 
-Expr*	Table::New(Expr* expr, Expr* size) // =NULL
+Expr*	API::New(Expr* expr, Expr* size) // =NULL
 {
 	
 }
 
-Table&	Table::operator>>(ofstream& file)
+API&	API::operator>>(ofstream& file)
 {
 	return *this;
 }
 
-Table&	Table::operator<<(ifstream& file)
+API&	API::operator<<(ifstream& file)
 {
 	return *this;
 }

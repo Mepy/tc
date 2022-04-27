@@ -8,6 +8,7 @@ template<typename T, typename Size>
 struct double_ended_forward_list
 {
     using Value = T;
+    using List = double_ended_forward_list;
     struct Node
     {
         Value       value;
@@ -68,12 +69,21 @@ struct double_ended_forward_list
             tail = head;
             size=0;
         }
-        
+
     }
     inline Iterator begin()
     { return Iterator(head->next); }
     inline Iterator end()
     { return Iterator(nullptr); }
+
+    List& operator+(List& other)
+    {
+        this->tail->next = other.head->next;
+        this->tail = other.tail;
+        other.tail = other.head;
+        other.head->next = nullptr;
+        return *this;
+    }
 };
 
 }}

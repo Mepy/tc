@@ -3,10 +3,13 @@
 
 #include "node.hpp"
 #include "rc.hpp"
+#include "ir_parser.hpp"
 
 namespace tc{
 namespace ast{
 namespace expr{
+
+using Block = tc::ast::ir::parser::Block;
 
 struct Expr : public ast::Expr
 {
@@ -18,7 +21,9 @@ struct Expr : public ast::Expr
         };
     Flag flag;
     Typep type;
-    Expr(Flag flag, Typep type=NULL):flag(flag), type(type){}
+    Block* block;
+    Expr(Flag flag, Typep type=nullptr, Block* block=nullptr)
+    :flag(flag), type(type), block(block){}
     virtual ~Expr(){ decr(type); }
 };
 
@@ -63,7 +68,7 @@ struct App : public Expr
 {
     Exprp func;
     Exprs args;
-    App():Expr(Flag::App), func(NULL){}
+    App():Expr(Flag::App), func(nullptr){}
     ~App(){
         del(func);
         del(args);
@@ -182,7 +187,7 @@ struct Fun : public Expr
 {
     IDs   params;
     Stmt* stmt ;
-    Fun(Flag flag=Flag::Fun):Expr(flag), stmt(NULL){}
+    Fun(Flag flag=Flag::Fun):Expr(flag), stmt(nullptr){}
     ~Fun(){ 
         del(stmt);
     }

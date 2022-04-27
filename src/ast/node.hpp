@@ -2,9 +2,18 @@
 #define tc_ast_node_hpp
 
 #include "head.hpp"
+#include "ir_parser.hpp"
 
 namespace tc{
 namespace ast{
+
+// Token
+struct Name : public ExtdBase
+{
+    string name;
+    Name(string name):name(name){}
+    ~Name();
+};
 
 struct Node : public ExtdBase
 {

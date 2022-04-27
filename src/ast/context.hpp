@@ -1,33 +1,33 @@
-#ifndef tc_ast_tbl_hpp
-#define tc_ast_tbl_hpp
+#ifndef tc_ast_context_hpp
+#define tc_ast_context_hpp
 
 #include "node.hpp"
+#include "ir_parser.hpp"
 
 namespace tc{
 namespace ast{
 
-namespace ir{ namespace parser{ 
-    struct Module; struct Block;
-}}
+using IR = ir::parser::IR;
 
-struct Data : public ExtdBase
+struct Data 
 {
-    using ID = ID;
-    Name name;
-    Data(Name name):name(name){}
-    Data(){}
+    using ID = Byte4;
+    vector<Name> names;
+    /* In most time, there is only no name for an ID (ANF) */
+    Data():names(0){} 
     ~Data(){}
     template<typename Data>
-    struct Table
+    struct Namespace
     {
-        using SymBase = map<Name, typename Data::ID>;
+        using SymBase = map<string, typename Data::ID>;
+        using Def     = map<typename Data::ID,   Data>;
         struct Sym : public SymBase
         {
             Sym* parent;
             Sym(Sym* parent=NULL):parent(parent){}
             ~Sym(){}
-            /* always return iter of base */
-            typename SymBase::iterator find(Name name)
+
+            typename SymBase::iterator find(string& name)
             {
                 typename SymBase::iterator iter;
                 iter = SymBase::find(name);
@@ -41,28 +41,18 @@ struct Data : public ExtdBase
                     return this->end();
             }
         };
-        using Ref = map<Node::ID, typename Data::ID>;
-        using Def = map<typename Data::ID,     Data>;
-        Sym*sym;
-        Ref ref;
-        Def def;
-        Table():sym(new Sym())
+        
+        Sym* sym;
+        Def  def;
+        Namespace():sym(new Sym())
         { def[0]=Data(); }
-        ~Table(){ delete sym; }
+        ~Namespace(){ delete sym; }
         /* constructor ensure def.rbegin() exists */
         typename Data::ID tid(){ return def.rbegin()->first  ; }
         typename Data::ID nid(){ return def.rbegin()->first+1; }
-        typename Data::ID add(Name name){
-            typename Data::ID id = nid();
-            (*(this->sym))[name] = id   ;
-            this->def[id].name   = name ;
-            return id;
-        }
-        Data& operator[](typename Data::ID id)
-        { return this->def[id]; }
 
         /* 0 -> NotFound */
-        typename Data::ID operator[](Name name)
+        typename Data::ID operator[](string name)
         {
             auto iter = this->sym.find(name);
             if(iter!=this->sym.end())
@@ -70,6 +60,8 @@ struct Data : public ExtdBase
             else
                 return 0;
         }
+        Data& operator[](typename Data::ID id)
+        { return this->def[id]; }
         void scope_beg(){
             this->sym = new Sym(this->sym);
         }
@@ -79,49 +71,43 @@ struct Data : public ExtdBase
             this->sym = sym;
         }
     };
+
 };
 namespace type
 {
     struct Data : public ast::Data
     {
         Typep type;
-        Data(Name name):ast::Data(name), type(NULL){}
         Data():type(NULL){}
         ~Data(){}
-        using Table = ast::Data::Table<Data>;
+        using Namespace = ast::Data::Namespace<Data>;
     };
 }
 namespace expr
 {
+    using Sort = ir::Symbol::Sort;
     struct Data : public ast::Data
     {
         Typep type;
         Exprp expr;
-        Data(Name name, Typep type, Exprp expr)
-        :ast::Data(name), expr(expr), type(type){}
+        Sort  sort;
         Data():type(NULL){}
         ~Data(){}
-        using Table = ast::Data::Table<Data>;
+        using Namespace = ast::Data::Namespace<Data>;
     };
 }
 
-struct TableBase
+struct Context
 {
-    /* Table Info */
-    type::Data::Table type;
-    expr::Data::Table expr;
-    Stmts stmts;
+    type::Data::Namespace type;
+    expr::Data::Namespace expr;
 
-    ir::parser::Module * module;
+    // TODO while list for break and continue
+    
+    IR ir;
 
-    /* currently constructing nodes */
-    stack<Node*> nodes;
-
-    Typep u, b, c, i, f, adt;
-    Exprp fun; /* func_expr for recursive */
-
-    TableBase(std::string path);
-    ~TableBase();
+    Context(std::string path):ir(path){}
+    ~Context(){}
 };
 
 }}

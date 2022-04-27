@@ -19,6 +19,14 @@ struct Type : public ast::Type, public RC
     virtual ~Type() = 0;
 };
 
+bool equal(Type* t1, Type* t2)
+{
+    // if(t1->flag==Type::Infer)
+        
+    if(t1->flag!=t2->flag)
+        return false;
+}
+
 // U, B, C, I, F
 struct Lit : public Type
 {

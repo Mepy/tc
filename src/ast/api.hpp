@@ -1,12 +1,12 @@
 #ifndef tc_ast_api_hpp
 #define tc_ast_api_hpp
 
-#include "tbl.hpp"
+#include "context.hpp"
 
 namespace tc{
 namespace ast{
 
-struct Table : protected TableBase
+struct API : protected Context
 {
     /* Stmt */
     void  BlockBegin();
@@ -97,9 +97,8 @@ struct Table : protected TableBase
     Expr* New(Expr* expr, Expr* size=NULL);
 
 
-
-    Table(std::string path);
-    ~Table();
+    API(std::string path):Context(path){}
+    ~API(){}
 private:
     Type* Typing(Expr* expr, Type* type=NULL);
 };

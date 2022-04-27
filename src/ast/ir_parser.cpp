@@ -6,9 +6,9 @@ namespace ir = tc::ast::ir;
 using Cat             = ir::Cat;
 using Kind            = ir::Kind;
 
-using Ins             = ir::Instruction;
-using Module          = ir::parser::Module;
+using IR              = ir::parser::IR;
 using Block           = ir::parser::Block;
+using Ins             = ir::Instruction;
 
 
 void member_like();
@@ -27,7 +27,7 @@ int main()
 
 void stream_like()
 {
-    Module module("test.ir");
+    IR ir("test.ir", Cat::EXEC);
     Block block;
 
     block
@@ -47,28 +47,28 @@ void stream_like()
     <<Ins(Ins::FDiv, 6, 4, 5)
     <<Ins(Ins::ILt, 7, 1, 2)
     <<Ins(Ins::Br, 7, 1, 2)
-    >>module
+    >>ir
     
     <<Ins::Return(3)
-    >>module
+    >>ir
 
     <<Ins::Return(6)
-    >>module
+    >>ir
 
     <<Ins::ItoF(9, 1)
     <<Ins::FtoI(10, 9)
-    >>module
+    >>ir
 
     <<Ins(Ins::New, 20, 10, 1)
     <<Ins::Delete(20)
-    >>module
+    >>ir
     ;
 
 }
 
 void member_like()
 {
-    Module module("test.ir");
+    IR ir("test.ir");
     Block block;
     block.kind = Kind::INST;
     block.push(Ins::IImm(1, 1234));
@@ -88,11 +88,11 @@ void member_like()
 
     block.push(Ins(Ins::ILt, 7, 1, 2));
     block.push(Ins(Ins::Br, 7, 1, 2));
-    block.save(module);
+    block.save(ir);
 
     block.push(Ins::Return(3));
-    block.save(module);
+    block.save(ir);
 
     block.push(Ins::Return(6));
-    block.save(module);
+    block.save(ir);
 }

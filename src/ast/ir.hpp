@@ -28,6 +28,10 @@ enum Kind : Byte4 { /* Block 's */
     TCON = 0x4E4F4354, /* TCON */ // for adt's constructors, just ids of constructors
 };
 
+/* for ty : { Instruction, Symbol, Type }
+ *     sizeof(ty) = 16
+ */
+
 struct Instruction
 {
     enum Sort : Byte4 {
@@ -166,14 +170,15 @@ struct Instruction
 struct Symbol
 {
     enum Sort : Byte4 {
-        Nfun = 0x6E75664E, /* Nfun */ // Not a function : Not Arrow Type
-        Cons = 0x736E6F43, /* Cons */ // Constructor
-        Func = 0x65727550, /* Func */ // (closed) Function
-        Clos = 0x736F6C43, /* Clos */ // Closure
+        Nfun_ = 0x6E75664E, /* Nfun */ // Not a function : Not Arrow Type
+        Cons_ = 0x736E6F43, /* Cons */ // Constructor
+        Func_ = 0x65727550, /* Func */ // (closed) Function
+        Clos_ = 0x736F6C43, /* Clos */ // Closure
     };
     Sort sort;
     ID   symb;   /* id         of symbol */
     union {
+        struct { ID type          ; } nfun;
         struct { ID type,     adty; } cons;
         struct { ID params, retype; } func;
         struct { ID type,     fvs;  } clos; 
@@ -185,6 +190,38 @@ struct Symbol
          *             When implemented, should pass fvs as context
          */
     } info;
+    Symbol(Sort sort=Nfun_, ID symb=0)
+    :sort(sort), symb(symb){}
+    inline static Symbol Nfun(ID symb, ID type)
+    {
+        Symbol symbol(Nfun_, symb);
+        symbol.info.nfun.type = type;
+        return symbol;
+    }
+    inline static Symbol Cons(ID symb, ID type, ID adty)
+    {
+        Symbol symbol(Cons_, symb);
+        auto& info = symbol.info.cons;
+        info.type = type;
+        info.adty = adty;
+        return symbol;
+    }
+    inline static Symbol Func(ID symb, ID params, ID retype)
+    {
+        Symbol symbol(Cons_, symb);
+        auto& info = symbol.info.func;
+        info.params = params;
+        info.retype = retype;
+        return symbol;
+    }
+    inline static Symbol Clos(ID symb, ID type, ID fvs)
+    {
+        Symbol symbol(Clos_, symb);
+        auto& info = symbol.info.clos;
+        info.type = type;
+        info.fvs  =  fvs;
+        return symbol;
+    }
 };
 
 struct Type
@@ -212,6 +249,9 @@ struct Type
      *              block[size-1]   = return type
      * case ADT   : id = id of block whose Sort = TCON
      */
+
+    Type(Sort sort=Unit, ID id=0, Byte8 len=0)
+    :sort(sort), id(id), len(len){}
 };
 
 }}}

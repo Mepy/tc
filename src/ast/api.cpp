@@ -1,63 +1,63 @@
 #include "api.hpp"
 #include "ir_parser.hpp"
 
-using Table = tc::ast::Table;
-
-void test(Table& table);
+using API = tc::ast::API;
+using Name = tc::ast::Name;
+void test(API& context);
 
 int main()
 {
-    Table table("test.ir"); // output filename
-    test(table);
+    API context("test.ir"); // output filename
+    test(context);
 }
 
-void test(Table& table)
+void test(API& context)
 {
     /* let g = \ f x => f(x); */
-    table.ExprFunBeg();
-    table.ExprFunArg("f");
-    table.ExprFunArg("x");
+    context.ExprFunBeg();
+    context.ExprFunArg(Name("f"));
+    context.ExprFunArg(Name("x"));
 
-    auto f = table.ExprVar("f");
-    table.AppBeg(f);
-    auto x  = table.ExprVar("x");
-    table.AppArg(x);
-    auto fx = table.ExprAppEnd();
+    auto f = context.ExprVar(Name("f"));
+    context.AppBeg(f);
+    auto x  = context.ExprVar(Name("x"));
+    context.AppArg(x);
+    auto fx = context.ExprAppEnd();
 
-    auto fun = table.ExprFunExpr(fx);
+    auto fun = context.ExprFunExpr(fx);
 
-    auto letg = table.Let("g", fun);
+    auto letg = context.Let(Name("g"), fun);
 
     /* let main = \ => ... */
-    table.ExprFunBeg();
-    table.BlockBegin();
+    context.ExprFunBeg();
+    context.BlockBegin();
 
     // let x = 3;
-    auto letx0 = table.Let("x", table.I(3));
-    table.BlockStmt(letx0);
+    auto letx0 = context.Let(Name("x"), context.I(3));
+    context.BlockStmt(letx0);
     // let x = g(\x=>x+1, x);
-    table.AppBeg(table.ExprVar("g"));
+    context.AppBeg(context.ExprVar(Name("g")));
 
-    table.ExprFunBeg();
-    table.ExprFunArg("x");
-    auto temp = table.ExprFunExpr(
-        table.BinOp(
-            table.ExprVar("x"),
+    context.ExprFunBeg();
+    context.ExprFunArg(Name("x"));
+    auto temp = context.ExprFunExpr(
+        context.BinOp(
+            context.ExprVar(Name("x")),
             tc::ast::Oper::Add,
-            table.I(1)
+            context.I(1)
         )
     );
-    table.AppArg(temp);
-    table.AppArg(table.ExprVar("x"));
+    context.AppArg(temp);
+    context.AppArg(context.ExprVar(Name("x")));
 
-    auto letx1 = table.Let("x", table.ExprAppEnd());
-    table.BlockStmt(letx1);
+    auto letx1 = context.Let(Name("x"), context.ExprAppEnd());
+    context.BlockStmt(letx1);
 
     // puti(x)
-    table.AppBeg(table.ExprVar("puti"));
-    table.AppArg(table.ExprVar("x"));
-    auto putx = table.Exp(table.ExprAppEnd());
-    table.BlockStmt(putx);
+    context.AppBeg(context.ExprVar(Name("puti")));
+    context.AppArg(context.ExprVar(Name("x")));
+    auto putx = context.Exp(context.ExprAppEnd());
+    context.BlockStmt(putx);
     
-    table.ExprFunStmt(table.BlockEnd());
+    context.ExprFunStmt(context.BlockEnd());
 }
