@@ -11,7 +11,6 @@ using IR = ir::parser::IR;
 
 struct Data 
 {
-    using ID = Byte4;
     vector<Name> names;
     /* In most time, there is only no name for an ID (ANF) */
     Data():names(0){} 
@@ -19,22 +18,22 @@ struct Data
     template<typename Data>
     struct Namespace
     {
-        using SymBase = map<string, typename Data::ID>;
-        using Def     = map<typename Data::ID,   Data>;
+        using SymBase = map<string, ID>;
+        using Def     = map<ID,   Data>;
         struct Sym : public SymBase
         {
             Sym* parent;
-            Sym(Sym* parent=NULL):parent(parent){}
+            Sym(Sym* parent=nullptr):parent(parent){}
             ~Sym(){}
 
-            typename SymBase::iterator find(string& name)
+            typename SymBase::iterator recursive_find(string& name)
             {
                 typename SymBase::iterator iter;
                 iter = SymBase::find(name);
-                if(iter!=this->end() || parent==NULL)
+                if(iter!=this->end() || parent==nullptr)
                     return iter;
 
-                iter = parent->find(name);
+                iter = parent->recursive_find(name);
                 if(iter!=parent->end())
                     return iter;
                 else
@@ -48,19 +47,22 @@ struct Data
         { def[0]=Data(); }
         ~Namespace(){ delete sym; }
         /* constructor ensure def.rbegin() exists */
-        typename Data::ID tid(){ return def.rbegin()->first  ; }
-        typename Data::ID nid(){ return def.rbegin()->first+1; }
+        ID tid(){ return def.rbegin()->first  ; }
+        ID nid(){ return def.rbegin()->first+1; }
 
         /* 0 -> NotFound */
-        typename Data::ID operator[](string name)
+        ID operator[](string& name)
         {
-            auto iter = this->sym.find(name);
-            if(iter!=this->sym.end())
+            auto iter = this->sym->recursive_find(name);
+            if(iter!=this->sym->end())
                 return iter->second;
             else
                 return 0;
         }
-        Data& operator[](typename Data::ID id)
+        bool is_free(string& name) /* if exists, whether it is free varaibles */
+        { return this->sym->find(name)==this->sym->end(); }
+
+        Data& operator[](ID id)
         { return this->def[id]; }
         void scope_beg(){
             this->sym = new Sym(this->sym);
@@ -78,20 +80,17 @@ namespace type
     struct Data : public ast::Data
     {
         Typep type;
-        Data():type(NULL){}
+        Data():type(nullptr){}
         ~Data(){}
         using Namespace = ast::Data::Namespace<Data>;
     };
 }
 namespace expr
 {
-    using Sort = ir::Symbol::Sort;
     struct Data : public ast::Data
     {
-        Typep type;
         Exprp expr;
-        Sort  sort;
-        Data():type(NULL){}
+        Data():expr(nullptr){}
         ~Data(){}
         using Namespace = ast::Data::Namespace<Data>;
     };
@@ -102,9 +101,16 @@ struct Context
     type::Data::Namespace type;
     expr::Data::Namespace expr;
 
+
     // TODO while list for break and continue
-    
+
     IR ir;
+
+    Typep u, b, c, i, f, adt;
+    Exprp fun; 
+
+    stack<Nodep> nodes; /* for recursive storage */ 
+    stack<Exprp> funcs; /* for recursive and closure analysis */ 
 
     Context(std::string path):ir(path){}
     ~Context(){}

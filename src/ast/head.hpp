@@ -23,9 +23,10 @@ template<typename T> using vector = std::vector<T>;
 template<typename K, typename V> using map = std::map<K, V>;
 
 using ID     = Byte4; /* unique identifier */
+using IDs    = vector<ID>; 
+
 using Offset = Byte4; /* record offset in source code*/
 using Size   = Byte4; /* length of array */
-
 
 using Bool = bool;
 using Char = char;

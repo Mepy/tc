@@ -22,10 +22,13 @@ enum Kind : Byte4 { /* Block 's */
     
     SYMB = 0x424D5953, /* SYMB */ // Symbol
     PARA = 0x41524150, /* PARA */ // func  's parameters, just ids of expr
-    
-    TYPE = 0x54505954, /* TYPE */ // Type info, 
+    CLOS = 0x534F4C43, /* CLOS */ // for closure's function info 
+
+    TYPE = 0x45505954, /* TYPE */ // Type info, 
     TIDS = 0x53444954, /* TIDS */ // for Func type, just ids
     TCON = 0x4E4F4354, /* TCON */ // for adt's constructors, just ids of constructors
+
+    CSTR = 0x52545343, /* CSTR */ // c string immediate
 };
 
 /* for ty : { Instruction, Symbol, Type }
@@ -77,7 +80,7 @@ struct Instruction
         Constr= 0x736E6F43, /* Cons */
         Destr = 0x74736E44, /* Dest */
 
-        Alloc = 0x636F6C41, /* Aloc */ 
+        Aloc  = 0x636F6C41, /* Aloc */ 
         New   = 0x2A77654E, /* New* */
         Del   = 0x2A6C6544, /* Del* */
 
@@ -111,7 +114,7 @@ struct Instruction
      *               src.id[1] = id of block of arguments 
      * case Destr  : src.id[0] = id of term destructed
      *               src.id[1] = id of block of branches
-     * case Alloc  : src.id[0] = id of initial
+     * case Aloc   : src.id[0] = id of initial
      *               src.id[1] = id of length
      * case New    : src.id[0] = id of initial
      *             : src.id[1] = id of length
@@ -155,6 +158,8 @@ struct Instruction
         ins.src.RESERVED = RESERVED;
         return ins;
     }
+    static inline Instruction Alloc(ID dst, ID src)
+    { return Instruction(Aloc, dst, src, 0x6B617453); /* Stak */}
     static inline Instruction Delete(ID dst)
     {
         auto ins = Instruction(Del, dst);
@@ -178,15 +183,15 @@ struct Symbol
     Sort sort;
     ID   symb;   /* id         of symbol */
     union {
-        struct { ID type          ; } nfun;
+        struct { ID type,    _zero; } nfun;
         struct { ID type,     adty; } cons;
         struct { ID params, retype; } func;
-        struct { ID type,     fvs;  } clos; 
+        struct { ID func,      fvs; } clos;
         /* case cons : cons.type is id of block whose sort = TIDS
          * case func : func.params is id of block whose sort = PARA
          *             As for its type, use typeof(params) and retype to combine
          * case clos : closure is an object(fvs) but typed with
-         *             clos.type,   id of block whose sort = TIDS
+         *             clos.func,   id of block whose sort = TCLS
          *             When implemented, should pass fvs as context
          */
     } info;
@@ -196,6 +201,7 @@ struct Symbol
     {
         Symbol symbol(Nfun_, symb);
         symbol.info.nfun.type = type;
+        symbol.info.nfun._zero = 0;
         return symbol;
     }
     inline static Symbol Cons(ID symb, ID type, ID adty)
@@ -214,11 +220,11 @@ struct Symbol
         info.retype = retype;
         return symbol;
     }
-    inline static Symbol Clos(ID symb, ID type, ID fvs)
+    inline static Symbol Clos(ID symb, ID func, ID fvs)
     {
         Symbol symbol(Clos_, symb);
         auto& info = symbol.info.clos;
-        info.type = type;
+        info.func = func;
         info.fvs  =  fvs;
         return symbol;
     }

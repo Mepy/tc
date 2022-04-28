@@ -2,31 +2,9 @@
 #define tc_ast_expr_hpp
 
 #include "node.hpp"
-#include "rc.hpp"
-#include "ir_parser.hpp"
-
 namespace tc{
 namespace ast{
 namespace expr{
-
-using Block = tc::ast::ir::parser::Block;
-
-struct Expr : public ast::Expr
-{
-    using Flag = enum { Undefined,
-            U, B, C, S, I, F, Array, Fun, Cons, App, LabelTuple, Match,
-            Asgn, Addr, Val, ValRef, Var, VarRef,
-            Ele, EleRef, EleAddr,
-            New, UnOp, BinOp,
-        };
-    Flag flag;
-    Typep type;
-    Block* block;
-    Expr(Flag flag, Typep type=nullptr, Block* block=nullptr)
-    :flag(flag), type(type), block(block){}
-    virtual ~Expr(){ decr(type); }
-};
-
 struct U : public Expr
 {
     U(Typep type):Expr(Flag::U, incr(type)){}

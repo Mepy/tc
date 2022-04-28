@@ -6,7 +6,7 @@
 namespace tc{
 namespace ast{
 
-struct API : protected Context
+struct API : public Context
 {
     /* Stmt */
     void  BlockBegin();
@@ -97,8 +97,8 @@ struct API : protected Context
     Expr* New(Expr* expr, Expr* size=NULL);
 
 
-    API(std::string path):Context(path){}
-    ~API(){}
+    API(std::string path);
+    ~API();
 private:
     Type* Typing(Expr* expr, Type* type=NULL);
 };

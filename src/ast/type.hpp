@@ -7,31 +7,11 @@
 namespace tc{
 namespace ast{
 namespace type{
-
-struct Type : public ast::Type, public RC
-{
-    using Flag = enum { Undefined,
-        Infer, U, B, C, I, F, ADT, Ref, Ptr, Arr, Fun
-    };
-    Flag flag;
-    Type(){}
-    Type(Flag flag):flag(flag){}
-    virtual ~Type() = 0;
-};
-
-bool equal(Type* t1, Type* t2)
-{
-    // if(t1->flag==Type::Infer)
-        
-    if(t1->flag!=t2->flag)
-        return false;
-}
-
 // U, B, C, I, F
-struct Lit : public Type
+struct Atom : public Type
 {
-    Lit(Flag flag):Type(flag){}
-    ~Lit(){}
+    Atom(Flag flag):Type(flag){}
+    ~Atom(){}
 };
 
 struct ADT : public Type

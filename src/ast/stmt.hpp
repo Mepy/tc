@@ -7,22 +7,6 @@
 namespace tc{
 namespace ast{
 namespace stmt{
-    
-struct Stmt : public ast::Stmt
-{
-    using Flag = enum { Undefined,
-        Block, If, While, 
-        Empty, Break, Cont, 
-        Ret, Exp, Del,
-        Let, Var, Check,
-        TypeDef
-    };
-    Flag flag;
-    Stmt():flag(Undefined){}
-    Stmt(Flag flag):flag(flag){}
-    virtual ~Stmt() = 0;
-};
-
 struct Block : public Stmt
 {
     Stmts stmts;
@@ -67,8 +51,8 @@ struct Var : public Stmt
     ID id; /* expr_name -> ID */
     Typep type;
     Exprp expr;
-    Var(ID id, Exprp expr, Typep type)
-    :id(id), expr(expr), type(type){}
+    Var(Flag flag, ID id, Exprp expr, Typep type)
+    :Stmt(flag), id(id), expr(expr), type(type){}
     ~Var(){
         del(expr);
         decr(type);

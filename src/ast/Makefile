@@ -1,13 +1,25 @@
 CC = g++
 STD = -std=c++11
 
+test_api : api.out
+	./$<
 
-test : ir_parser.out
-	./ir_parser.out && \
-	echo "Please view test.ir in binary format."
+api.out : api.o ast.o
+	${CC} $^ -o $@
+
+api.o : api.cpp
+	${CC} $< ${STD} -c -o $@
+
+test_ir_parser : ir_parser.out
+	# Please view test.ir in binary format. \
+	./$<
+	
 
 ir_parser.out : ir_parser.cpp
 	${CC} $< ${STD} -o $@
 
+ast.o : impl.cpp
+	${CC} $< ${STD} -c -o $@
+
 clean : 
-	rm *.out *.ir
+	rm *.o *.out *.ir

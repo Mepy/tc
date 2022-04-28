@@ -83,6 +83,8 @@ public: /* struct Block  */
                 case PARA:
                 case TIDS:
                 case TCON:
+
+                case CSTR:
                     throw "Not IR  kind of block\n";
                 default:
                     throw "Unknown kind of block\n";
@@ -125,7 +127,6 @@ public: /* struct Block  */
                     obfs<<kind<<ids.size;
                     for(auto& iter : ids)
                         obfs<<iter;
-                    
                     // align
                     for(unsigned n = 4 - (ids.size+2)%4;n;--n)
                         obfs<<Byte4(0); 
@@ -134,17 +135,75 @@ public: /* struct Block  */
                 case INST:
                 case SYMB:
                 case TYPE:
+                case CSTR:
                     throw "Not ID  kind of block\n";
                 default:
                     throw "Unknown kind of block\n";
             }
         }
     };
-    
+    struct Block_Ch
+    {
+        Kind kind;
+        list<Char> chs;
+        Block_Ch(Kind kind=KUNO):kind(kind){ }
+        ~Block_Ch(){ }
+
+        inline Block_Ch& operator<<(Kind kind)
+        { this->kind=kind; return *this; }
+        inline Block_Ch& operator<<(ID&& id)
+        { chs.push_tail(id); return *this; }
+        
+        /* block with kind is no longer available */
+        inline Block_Ch& operator>>(IR& ir)
+        {  save(ir); return *this; }
+
+        inline void push(ID&& id)
+        { chs.push_tail(id); }
+
+        /* block with kind is no longer available */
+        inline void save(IR& ir)
+        {
+            auto& module = ir.module;
+            auto& obfs = module.obfs;
+            switch(kind)
+            {
+                case CSTR:
+                    ++module.size;
+                    obfs<<kind<<chs.size;
+                    for(auto& iter : chs)
+                        obfs<<iter;
+                    // align
+                    for(unsigned n = 16 - (chs.size+8)%16;n;--n)
+                        obfs<<Byte(0); 
+                    chs.clear();
+                    break;
+                case ARGS:
+                case FILD:
+                case BRCH:
+                case PARA:
+                case TIDS:
+                case TCON:
+
+                case INST:
+                case SYMB:
+                case TYPE:
+                    throw "Not Ch  kind of block\n";
+                default:
+                    throw "Unknown kind of block\n";
+            }
+        }
+    };
 public: /* members */ 
     Block_IR  symb,
               type;
     Block_ID   ids;
+    /* cons_type use this */
+// func_params, clos_func
+    Block_Ch   str;
+    Block_ID cons_type,
+           func_params; /* when closure, reuse this */
+
     IR(std::string path, Cat cat=Cat::EXEC)
     :module(path, cat)
     ,symb(ir::Kind::SYMB)
@@ -166,17 +225,27 @@ public: /* members */
 };
 
 using Block = IR::Block_IR;
-Block* concat(Block* left, Block* right)
+using Blockp = Block*;
+
+inline Blockp move(Blockp& block)
 {
+    auto ret = block;
+    block = nullptr;
+    return ret;
+}
+inline Blockp concat(Blockp& left, Blockp& right)
+{
+    Blockp ret;
     if(nullptr==right)
-        return left;
+    { ret = left; left = nullptr; return ret; }
     
     if(nullptr==left)
-        return right;
-    
-    left->irs + right->irs;
+    { ret = right; right = nullptr; return ret; }
 
-    return left;
+    left->irs + right->irs;
+    ret = left;
+    left = right = nullptr;
+    return ret;
 }
 
 }}}}

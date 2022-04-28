@@ -49,12 +49,13 @@ void example()
 X-->Y means ```#include "Y.hpp"``` in ```X.hpp```: 
 ```Mermaid
 graph TD
-api  --> tbl
+api  --> context
+context --> ir_parser
 
 ir_codegen --> ir
 ir_parser  --> ir
 
-tbl  --> node
+context  --> node
 stmt --> node
 expr --> node
 type --> node

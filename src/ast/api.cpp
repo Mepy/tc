@@ -3,14 +3,21 @@
 
 using API = tc::ast::API;
 using Name = tc::ast::Name;
+
 void test(API& context);
+void test_let_x_101(API& context);
 
 int main()
 {
     API context("test.ir"); // output filename
-    test(context);
+    test_let_x_101(context);
 }
 
+void test_let_x_101(API& context)
+{
+    auto stmt = context.Let(Name("x"), context.I(101));
+    stmt->block->save(context.ir);
+}
 void test(API& context)
 {
     /* let g = \ f x => f(x); */
