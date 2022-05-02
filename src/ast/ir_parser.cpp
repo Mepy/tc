@@ -1,7 +1,10 @@
 #include "ir_parser.hpp"
 #include <iostream>
 
-namespace ir = tc::ast::ir;
+namespace ir          = tc::ast::ir;
+namespace ins         = ir::parser::instruction;
+namespace symbol      = ir::parser::symbol;
+namespace type        = ir::parser::type;
 
 using Cat             = ir::Cat;
 using Kind            = ir::Kind;
@@ -9,7 +12,8 @@ using Kind            = ir::Kind;
 using IR              = ir::parser::IR;
 using Block           = ir::parser::Block;
 using Ins             = ir::Instruction;
-
+using Symbol          = ir::Symbol;
+using Type            = ir::Type;
 
 void member_like();
 void stream_like();
@@ -20,6 +24,16 @@ int main()
     <<"ir_parser  : "
     <<"sizeof(Ins) = "
     <<sizeof(Ins)
+    <<", sizeof(Symbol) = "
+    <<sizeof(Symbol)
+    <<", sizeof(Type) = "
+    <<sizeof(Type)
+    <<std::endl;
+
+    std::cout
+    <<"Please view "
+    <<"test.ir"
+    <<" in binary format."
     <<std::endl;
 
     stream_like();
@@ -32,15 +46,15 @@ void stream_like()
 
     block
     <<Kind::INST
-    <<Ins::IImm(1, 1234)
-    <<Ins::IImm(2, 5678)
+    <<ins::IImm(1, 1234)
+    <<ins::IImm(2, 5678)
     <<Ins(Ins::IAdd, 3, 1, 2)
     <<Ins(Ins::ISub, 3, 1, 2)
     <<Ins(Ins::IMul, 3, 1, 2)
     <<Ins(Ins::IDiv, 3, 1, 2)
     <<Ins(Ins::IMod, 3, 1, 2)
-    <<Ins::FImm(4, 3.14)
-    <<Ins::FImm(5, 2.71)
+    <<ins::FImm(4, 3.14)
+    <<ins::FImm(5, 2.71)
     <<Ins(Ins::FAdd, 6, 4, 5)
     <<Ins(Ins::FSub, 6, 4, 5)
     <<Ins(Ins::FMul, 6, 4, 5)
@@ -49,18 +63,18 @@ void stream_like()
     <<Ins(Ins::Br, 7, 1, 2)
     >>ir
     
-    <<Ins::Return(3)
+    <<ins::Return(3)
     >>ir
 
-    <<Ins::Return(6)
+    <<ins::Return(6)
     >>ir
 
-    <<Ins::ItoF(9, 1)
-    <<Ins::FtoI(10, 9)
+    <<ins::I2F(9, 1)
+    <<ins::F2I(10, 9)
     >>ir
 
-    <<Ins(Ins::New, 20, 10, 1)
-    <<Ins::Delete(20)
+    <<ins::New(20, 10)
+    <<ins::Delete(20)
     >>ir
     ;
 
@@ -71,16 +85,16 @@ void member_like()
     IR ir("test.ir");
     Block block;
     block.kind = Kind::INST;
-    block.push(Ins::IImm(1, 1234));
-    block.push(Ins::IImm(2, 5678));
+    block.push(ins::IImm(1, 1234));
+    block.push(ins::IImm(2, 5678));
     block.push(Ins(Ins::IAdd, 3, 1, 2));
     block.push(Ins(Ins::ISub, 3, 1, 2));
     block.push(Ins(Ins::IMul, 3, 1, 2));
     block.push(Ins(Ins::IDiv, 3, 1, 2));
     block.push(Ins(Ins::IMod, 3, 1, 2));
 
-    block.push(Ins::FImm(4, 3.14));
-    block.push(Ins::FImm(5, 2.71));
+    block.push(ins::FImm(4, 3.14));
+    block.push(ins::FImm(5, 2.71));
     block.push(Ins(Ins::FAdd, 6, 4, 5));
     block.push(Ins(Ins::FSub, 6, 4, 5));
     block.push(Ins(Ins::FMul, 6, 4, 5));
@@ -90,9 +104,9 @@ void member_like()
     block.push(Ins(Ins::Br, 7, 1, 2));
     block.save(ir);
 
-    block.push(Ins::Return(3));
+    block.push(ins::Return(3));
     block.save(ir);
 
-    block.push(Ins::Return(6));
+    block.push(ins::Return(6));
     block.save(ir);
 }

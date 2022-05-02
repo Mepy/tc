@@ -38,9 +38,9 @@ enum Kind : Byte4 { /* Block 's */
 struct Instruction
 {
     enum Sort : Byte4 {
-        UNNO  = 0x4F4E4E55, /* UNNO */
-        IImm_ = 0x6D6D4949, /* IImm */
-        FImm_ = 0x6D6D4946, /* FImm */
+        SUNO  = 0x4F4E5553, /* SUNO */ // Sort Unknown
+        IImm  = 0x6D6D4949, /* IImm */
+        FImm  = 0x6D6D4946, /* FImm */
         IAdd  = 0x642B4149, /* IA+d */ 
         ISub  = 0x622D5349, /* IS-b */
         IMul  = 0x6C2A4D49, /* IM*l */
@@ -77,10 +77,11 @@ struct Instruction
 
         Func  = 0x636E7546, /* Func */
         Call  = 0x6C6C6143, /* Call */
-        Constr= 0x736E6F43, /* Cons */
-        Destr = 0x74736E44, /* Dest */
+        Ctor  = 0x726F7443, /* Ctor */
+        Dtor  = 0x726F7444, /* Dtor */
 
-        Aloc  = 0x636F6C41, /* Aloc */ 
+        Array = 0x79617241, /* Aray */
+        Alloc = 0x636F6C41, /* Aloc */ 
         New   = 0x2A77654E, /* New* */
         Del   = 0x2A6C6544, /* Del* */
 
@@ -114,125 +115,89 @@ struct Instruction
      *               src.id[1] = id of block of arguments 
      * case Destr  : src.id[0] = id of term destructed
      *               src.id[1] = id of block of branches
-     * case Aloc   : src.id[0] = id of initial
+     * case Array  : src.id[0] = id of initial
      *               src.id[1] = id of length
-     * case New    : src.id[0] = id of initial
-     *             : src.id[1] = id of length
+     * case Alloc  : src.id[0] = id of expr
+     *               src.id[1] = 0x6B617453 // Stak
+     * case New    : src.id[0] = id of expr
+     *               src.id[1] = 0x70616548 // Heap
      * case Del    : dst = id of pointer to delete
      *               src.RESERVED = RESERVED
      * case Set    : dst = id of pointer to set
      *               src.id[0] = id of value
      *               src.id[1] = id of offset relative to ptr
-     *               
      * case Get    : dst = id of value
      *               src.id[0] = id of pointer to get
      *               src.id[1] = id of offset relative to ptr
      * case F2I    : src.id[0] = id of src
-     *               src.id[1] = I<~F
+     *               src.id[1] = 0x467E3C49 // I<~F
      * case I2F    : src.id[0] = id of src
-     *               src.id[1] = F<~I
+     *               src.id[1] = 0x497E3C46 // F<~I
      */
 
-    Instruction(Sort sort=UNNO, ID dst=0):sort(sort), dst(dst){}
+    Instruction(Sort sort=SUNO, ID dst=0):sort(sort), dst(dst){}
     Instruction(Sort sort, ID dst, ID src0, ID src1)
     :sort(sort), dst(dst)
     {
         src.id[0] = src0;
         src.id[1] = src1;
     }
-    static inline Instruction IImm(ID dst, Int i)
-    {
-        auto ins = Instruction(IImm_, dst);
-        ins.src.Iimm = i; 
-        return ins;
-    }
-    static inline Instruction FImm(ID dst, Float f)
-    { 
-        auto ins = Instruction(FImm_, dst);
-        ins.src.Fimm = f; 
-        return ins;
-    }
-    static inline Instruction Return(ID dst)
-    {
-        auto ins = Instruction(Ret, dst);
-        ins.src.RESERVED = RESERVED;
-        return ins;
-    }
-    static inline Instruction Alloc(ID dst, ID src)
-    { return Instruction(Aloc, dst, src, 0x6B617453); /* Stak */}
-    static inline Instruction Delete(ID dst)
-    {
-        auto ins = Instruction(Del, dst);
-        ins.src.RESERVED = RESERVED;
-        return ins;
-    }
-    static inline Instruction ItoF(ID dst, ID src)
-    { return Instruction(I2F, dst, src, 0x497E3C46); /* F<~I */ }
-    static inline Instruction FtoI(ID dst, ID src)
-    { return Instruction(F2I, dst, src, 0x467E3C49); /* F<~I */ }
+
+
 };
 
 struct Symbol
 {
     enum Sort : Byte4 {
-        Nfun_ = 0x6E75664E, /* Nfun */ // Not a function : Not Arrow Type
-        Cons_ = 0x736E6F43, /* Cons */ // Constructor
-        Func_ = 0x65727550, /* Func */ // (closed) Function
-        Clos_ = 0x736F6C43, /* Clos */ // Closure
+        SUNO  = 0x4F4E5553, /* SUNO */ // Sort Unknown
+        Const = 0x74736E43, /* Cnst */ // Compiler-time constant
+        Param = 0x61726150, /* Para */ // Parameter of function
+        NonD  = 0x446E6F4E, /* NonD */ // Non-Determinate introduced by Param, NOT Pure Function
+
+        Ctor  = 0x726F7443, /* Ctor */ // Constructor
+
+        CFun  = 0x6E754643, /* CFun */ // Function that is Closed and     Pure
+        CPrg  = 0x67725043, /* CPrg */ // Function that is Closed and NOT Pure
+        
+        QFun  = 0x6E754651, /* QFun */ 
+            // Function that is Open and     Pure
+            // but all reference of open variables are Const
+            // -> Quasi-closed Func
+
+        QPrg  = 0x67725051, /* QPrg */ 
+            // Function that is Open and NOT Pure
+            // ... 
+            // -> Quasi-closed Prog
+
+        Open  = 0x6E65704F, /* Open */ // Function that is Open
+
+        Clos  = 0x736F6C43, /* Clos */ // Closure, Open Function that has been instantialized
     };
     Sort sort;
-    ID   symb;   /* id         of symbol */
-    union {
-        struct { ID type,    _zero; } nfun;
-        struct { ID type,     adty; } cons;
-        struct { ID params, retype; } func;
-        struct { ID func,      fvs; } clos;
-        /* case cons : cons.type is id of block whose sort = TIDS
-         * case func : func.params is id of block whose sort = PARA
-         *             As for its type, use typeof(params) and retype to combine
-         * case clos : closure is an object(fvs) but typed with
-         *             clos.func,   id of block whose sort = TCLS
-         *             When implemented, should pass fvs as context
+    union Info
+    {
+        ID  type; 
+        /* case Const: case Param: case NonD:
+         * type of symbol
          */
-    } info;
-    Symbol(Sort sort=Nfun_, ID symb=0)
-    :sort(sort), symb(symb){}
-    inline static Symbol Nfun(ID symb, ID type)
-    {
-        Symbol symbol(Nfun_, symb);
-        symbol.info.nfun.type = type;
-        symbol.info.nfun._zero = 0;
-        return symbol;
-    }
-    inline static Symbol Cons(ID symb, ID type, ID adty)
-    {
-        Symbol symbol(Cons_, symb);
-        auto& info = symbol.info.cons;
-        info.type = type;
-        info.adty = adty;
-        return symbol;
-    }
-    inline static Symbol Func(ID symb, ID params, ID retype)
-    {
-        Symbol symbol(Cons_, symb);
-        auto& info = symbol.info.func;
-        info.params = params;
-        info.retype = retype;
-        return symbol;
-    }
-    inline static Symbol Clos(ID symb, ID func, ID fvs)
-    {
-        Symbol symbol(Clos_, symb);
-        auto& info = symbol.info.clos;
-        info.func = func;
-        info.fvs  =  fvs;
-        return symbol;
-    }
+        ID block; 
+        /* case Ctor: sort = ... [type, adty]
+         * case CFun: sort = ... [params, retype]
+         * case CPrg:            [params, retype]
+         * case QFun:            [params, retype, outer]
+         * case QPrg:            [params, retype, outer]
+         * case Open:            [params, retype, outer]
+         * case Closure:         [params, retype, outer]
+         */
+        Info(ID id):type(id){ }
+    }    info;
+    Symbol(Sort sort=SUNO, ID id=0):sort(sort), info(id){ }
 };
 
 struct Type
 {
     enum Sort : Byte4 {
+        SUNO  = 0x4F4E5553, /* SUNO */ // Sort Unknown
         Unit  = 0x30557954, /* TyU0 */ 
         Bool  = 0x31427954, /* TyB1 */
         Char  = 0x31437954, /* TyC1 */
@@ -256,7 +221,7 @@ struct Type
      * case ADT   : id = id of block whose Sort = TCON
      */
 
-    Type(Sort sort=Unit, ID id=0, Byte8 len=0)
+    Type(Sort sort=SUNO, ID id=0, Byte8 len=0)
     :sort(sort), id(id), len(len){}
 };
 

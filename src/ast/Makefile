@@ -11,7 +11,6 @@ api.o : api.cpp
 	${CC} $< ${STD} -c -o $@
 
 test_ir_parser : ir_parser.out
-	# Please view test.ir in binary format. \
 	./$<
 	
 

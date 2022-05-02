@@ -10,6 +10,57 @@ namespace ast{
 namespace ir{
 namespace parser{
 
+namespace instruction{
+inline Instruction IImm(ID dst, Int   i)
+{
+    auto ins = Instruction(Instruction::IImm, dst);
+    ins.src.Iimm = i;
+    return ins;
+}
+inline Instruction FImm(ID dst, Float f)
+{
+    auto ins = Instruction(Instruction::FImm, dst);
+    ins.src.Fimm = f;
+    return ins;
+}
+inline Instruction Alloc(ID dst, ID src)
+{ return Instruction(Instruction::Alloc, dst, src, 0x6B617453 /* Stak */); }
+inline Instruction New(ID dst, ID src)
+{ return Instruction(Instruction::New  , dst, src, 0x70616548 /* Heap */ ); }
+inline Instruction Return(ID dst)
+{
+    auto ins = Instruction(Instruction::Ret, dst);
+    ins.src.RESERVED = RESERVED;
+    return ins;
+}
+inline Instruction Delete(ID dst)
+{
+    auto ins = Instruction(Instruction::Del, dst);
+    ins.src.RESERVED = RESERVED;
+    return ins;
+}
+inline  Instruction I2F(ID dst, ID src)
+{ return Instruction(Instruction::I2F, dst, src, 0x497E3C46 /* F<~I */ ); }
+inline static Instruction F2I(ID dst, ID src)
+{ return Instruction(Instruction::F2I, dst, src, 0x467E3C49 /* I<~F */ ); }
+
+}
+namespace symbol{
+inline Symbol Const(ID type ){ return Symbol(Symbol::Const, type ); }
+inline Symbol Param(ID type ){ return Symbol(Symbol::Param, type ); }
+inline Symbol NonD (ID type ){ return Symbol(Symbol::NonD , type ); }
+inline Symbol Ctor (ID block){ return Symbol(Symbol::Ctor , block); }
+inline Symbol CFun (ID block){ return Symbol(Symbol::CFun , block); }
+inline Symbol CPrg (ID block){ return Symbol(Symbol::CPrg , block); }
+inline Symbol QFun (ID block){ return Symbol(Symbol::QFun , block); }
+inline Symbol QPrg (ID block){ return Symbol(Symbol::QPrg , block); }
+inline Symbol Open (ID block){ return Symbol(Symbol::Open , block); }
+inline Symbol Clos (ID block){ return Symbol(Symbol::Clos , block); }
+}
+namespace type{
+
+}
+
 struct IR
 {
 private: /* member module : struct Module */
@@ -100,15 +151,14 @@ public: /* struct Block  */
 
         inline Block_ID& operator<<(Kind kind)
         { this->kind=kind; return *this; }
-        inline Block_ID& operator<<(ID&& id)
-        { ids.push_tail(id); return *this; }
+
+        inline Block_ID& operator<<(ID id){ ids.push_tail(id); return *this; }
         
         /* block with kind is no longer available */
         inline Block_ID& operator>>(IR& ir)
         {  save(ir); return *this; }
 
-        inline void push(ID&& id)
-        { ids.push_tail(id); }
+        inline void push(ID id){ ids.push_tail(id); }
 
         /* block with kind is no longer available */
         inline void save(IR& ir)
@@ -142,6 +192,7 @@ public: /* struct Block  */
             }
         }
     };
+    // [TODO] : Block_Ch
     struct Block_Ch
     {
         Kind kind;
@@ -151,15 +202,16 @@ public: /* struct Block  */
 
         inline Block_Ch& operator<<(Kind kind)
         { this->kind=kind; return *this; }
-        inline Block_Ch& operator<<(ID&& id)
-        { chs.push_tail(id); return *this; }
+        inline Block_Ch& operator<<(Char&& ch)
+        { chs.push_tail(ch); return *this; }
         
         /* block with kind is no longer available */
         inline Block_Ch& operator>>(IR& ir)
         {  save(ir); return *this; }
 
-        inline void push(ID&& id)
-        { chs.push_tail(id); }
+        inline void push(Char&& ch)
+        { chs.push_tail(ch); }
+        
 
         /* block with kind is no longer available */
         inline void save(IR& ir)
@@ -194,6 +246,8 @@ public: /* struct Block  */
             }
         }
     };
+public: 
+    using Blocks = map<ID, Block_IR*>;
 public: /* members */ 
     Block_IR  symb,
               type;
@@ -203,6 +257,8 @@ public: /* members */
     Block_Ch   str;
     Block_ID cons_type,
            func_params; /* when closure, reuse this */
+
+    Blocks  blocks; /* reserve ID for block */
 
     IR(std::string path, Cat cat=Cat::EXEC)
     :module(path, cat)
@@ -230,7 +286,7 @@ using Blockp = Block*;
 inline Blockp move(Blockp& block)
 {
     auto ret = block;
-    block = nullptr;
+ block = nullptr;
     return ret;
 }
 inline Blockp concat(Blockp& left, Blockp& right)
@@ -244,6 +300,7 @@ inline Blockp concat(Blockp& left, Blockp& right)
 
     left->irs + right->irs;
     ret = left;
+    delete right;
     left = right = nullptr;
     return ret;
 }
