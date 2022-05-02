@@ -1,6 +1,7 @@
 #ifndef tc_ast_ir_parser_hpp
 #define tc_ast_ir_parser_hpp
 
+#include <iostream>
 #include "ir.hpp"
 #include "../utils/obfstream.hpp"
 #include "../utils/double_ended_forward_list.hpp"
@@ -10,56 +11,7 @@ namespace ast{
 namespace ir{
 namespace parser{
 
-namespace instruction{
-inline Instruction IImm(ID dst, Int   i)
-{
-    auto ins = Instruction(Instruction::IImm, dst);
-    ins.src.Iimm = i;
-    return ins;
-}
-inline Instruction FImm(ID dst, Float f)
-{
-    auto ins = Instruction(Instruction::FImm, dst);
-    ins.src.Fimm = f;
-    return ins;
-}
-inline Instruction Alloc(ID dst, ID src)
-{ return Instruction(Instruction::Alloc, dst, src, 0x6B617453 /* Stak */); }
-inline Instruction New(ID dst, ID src)
-{ return Instruction(Instruction::New  , dst, src, 0x70616548 /* Heap */ ); }
-inline Instruction Return(ID dst)
-{
-    auto ins = Instruction(Instruction::Ret, dst);
-    ins.src.RESERVED = RESERVED;
-    return ins;
-}
-inline Instruction Delete(ID dst)
-{
-    auto ins = Instruction(Instruction::Del, dst);
-    ins.src.RESERVED = RESERVED;
-    return ins;
-}
-inline  Instruction I2F(ID dst, ID src)
-{ return Instruction(Instruction::I2F, dst, src, 0x497E3C46 /* F<~I */ ); }
-inline static Instruction F2I(ID dst, ID src)
-{ return Instruction(Instruction::F2I, dst, src, 0x467E3C49 /* I<~F */ ); }
 
-}
-namespace symbol{
-inline Symbol Const(ID type ){ return Symbol(Symbol::Const, type ); }
-inline Symbol Param(ID type ){ return Symbol(Symbol::Param, type ); }
-inline Symbol NonD (ID type ){ return Symbol(Symbol::NonD , type ); }
-inline Symbol Ctor (ID block){ return Symbol(Symbol::Ctor , block); }
-inline Symbol CFun (ID block){ return Symbol(Symbol::CFun , block); }
-inline Symbol CPrg (ID block){ return Symbol(Symbol::CPrg , block); }
-inline Symbol QFun (ID block){ return Symbol(Symbol::QFun , block); }
-inline Symbol QPrg (ID block){ return Symbol(Symbol::QPrg , block); }
-inline Symbol Open (ID block){ return Symbol(Symbol::Open , block); }
-inline Symbol Clos (ID block){ return Symbol(Symbol::Clos , block); }
-}
-namespace type{
-
-}
 
 struct IR
 {
@@ -259,12 +211,14 @@ public: /* members */
            func_params; /* when closure, reuse this */
 
     Blocks  blocks; /* reserve ID for block */
+    ID      current;
 
     IR(std::string path, Cat cat=Cat::EXEC)
     :module(path, cat)
     ,symb(ir::Kind::SYMB)
     ,type(ir::Kind::TYPE)
-    { }
+    ,current(0)
+    { this->blocks[0] = new Block_IR(ir::Kind::INST); }
 
     ~IR(){ symb>>(*this); type>>(*this); }
 
@@ -278,6 +232,19 @@ public: /* members */
     inline void push(Type&& type)
     { this->type.irs.push_tail(*(Instruction*)&type); }
 
+    inline ID block_cid()
+    { return blocks.rbegin()->first; }
+    inline void set_current(ID id)
+    {
+        this->current = id;
+        for(auto iter=this->blocks.begin()
+        ;   iter->first<id
+        ;   ++iter)
+            iter->second->save(*this);
+
+        this->blocks.erase(this->blocks.begin(), this->blocks.find(id));
+
+    }
 };
 
 using Block = IR::Block_IR;
@@ -286,7 +253,7 @@ using Blockp = Block*;
 inline Blockp move(Blockp& block)
 {
     auto ret = block;
- block = nullptr;
+    block = nullptr;
     return ret;
 }
 inline Blockp concat(Blockp& left, Blockp& right)

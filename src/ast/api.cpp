@@ -1,16 +1,28 @@
 #include "api.hpp"
 #include "ir_parser.hpp"
-
+#include <iostream>
 using API = tc::ast::API;
 using Name = tc::ast::Name;
 
 void test(API& context);
 void test_let_x_101(API& context);
+void test_br(API& context);
+
 
 int main()
 {
-    API context("test.ir"); // output filename
-    test_let_x_101(context);
+    API context("test.hex"); // output filename
+    test_br(context);
+    
+}
+
+void test_if(API& context)
+{
+    auto _if = context.If(
+        context.B(false)
+    ,   context.Let(Name("Y"), context.I(1))
+    ,   context.Let(Name("N"), context.I(0))
+    );
 }
 
 void test_let_x_101(API& context)
@@ -18,6 +30,7 @@ void test_let_x_101(API& context)
     auto stmt = context.Let(Name("x"), context.I(101));
     stmt->block->save(context.ir);
 }
+
 void test(API& context)
 {
     /* let g = \ f x => f(x); */

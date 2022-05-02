@@ -1,0 +1,69 @@
+#ifndef tc_ast_ir_helper_hpp
+#define tc_ast_ir_helper_hpp
+
+#include "ir.hpp"
+
+namespace tc{
+namespace ast{
+namespace ir{
+
+namespace instruction{
+inline Instruction IImm(ID dst, Int   i)
+{
+    auto ins = Instruction(Instruction::IImm, dst);
+    ins.src.Iimm = i;
+    return ins;
+}
+inline Instruction FImm(ID dst, Float f)
+{
+    auto ins = Instruction(Instruction::FImm, dst);
+    ins.src.Fimm = f;
+    return ins;
+}
+inline Instruction Alloc(ID dst, ID src)
+{ return Instruction(Instruction::Alloc, dst, src, 0x6B617453 /* Stak */); }
+inline Instruction New(ID dst, ID src)
+{ return Instruction(Instruction::New  , dst, src, 0x70616548 /* Heap */ ); }
+inline Instruction Return(ID dst)
+{
+    auto ins = Instruction(Instruction::Ret, dst);
+    ins.src.RESERVED = RESERVED;
+    return ins;
+}
+inline Instruction Delete(ID dst)
+{
+    auto ins = Instruction(Instruction::Del, dst);
+    ins.src.RESERVED = RESERVED;
+    return ins;
+}
+inline  Instruction I2F(ID dst, ID src)
+{ return Instruction(Instruction::I2F, dst, src, 0x497E3C46 /* F<~I */ ); }
+inline Instruction F2I(ID dst, ID src)
+{ return Instruction(Instruction::F2I, dst, src, 0x467E3C49 /* I<~F */ ); }
+
+inline Instruction Br(ID cond, ID fst, ID snd)
+{ return Instruction(Instruction::Br, cond, fst, snd); }
+inline Instruction Jump(ID block)
+{ return Instruction(Instruction::Br, 0, block, 0x706D754A /* Jump */ ); }
+
+}
+namespace symbol{
+inline Symbol Const(ID type ){ return Symbol(Symbol::Const, type ); }
+inline Symbol Param(ID type ){ return Symbol(Symbol::Param, type ); }
+inline Symbol NonD (ID type ){ return Symbol(Symbol::NonD , type ); }
+inline Symbol Ctor (ID block){ return Symbol(Symbol::Ctor , block); }
+inline Symbol CFun (ID block){ return Symbol(Symbol::CFun , block); }
+inline Symbol CPrg (ID block){ return Symbol(Symbol::CPrg , block); }
+inline Symbol QFun (ID block){ return Symbol(Symbol::QFun , block); }
+inline Symbol QPrg (ID block){ return Symbol(Symbol::QPrg , block); }
+inline Symbol Open (ID block){ return Symbol(Symbol::Open , block); }
+inline Symbol Clos (ID block){ return Symbol(Symbol::Clos , block); }
+}
+namespace type{
+
+}
+
+
+}}}
+
+#endif

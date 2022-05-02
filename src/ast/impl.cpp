@@ -4,35 +4,110 @@
 #include "expr.hpp"
 
 #include <iostream>
-
+#include "ir_helper.hpp"
 namespace tc{
 namespace ast{
 
 using Ins = ir::Instruction;
 
-bool equal(Type* t1, Type* t2)
+namespace ins = ir::instruction;
+namespace sym = ir::symbol;
+
+// [MM] : WARNING
+void unify(Typep& t1, Typep& t2) 
 {
-    // [MM] : type
-    if(t1->flag==Type::Infer)
-    {
-        if(nullptr==((type::Typ*)t1)->type)
-        {
-            ((type::Typ*)t1)->type = t2;
-            return true;
-        }
-        else return equal(((type::Typ*)t1)->type, t2);
-    }
-    else if(t2->flag==Type::Infer)
-        return equal(t2, t1);
-    else if(t1->flag!=t2->flag)
-        return false;
-        
-    switch(t1->flag)
-    {
-        case Type::U:case Type::B:case Type::C:
-        case Type::I:case Type::F: return true;
-        default: return true; // [TODO]
-    }
+	if(t1==t2)
+		return;
+
+	if(Type::Infer==t1->flag)
+	{
+		if(Type::Infer!=t2->flag)
+			t1 = t2;
+		else // Both Infer
+		{
+			auto ty1 = (type::Typ*)t1;
+			auto ty2 = (type::Typ*)t2;
+
+			if(nullptr==ty1->type)
+			{
+				if(nullptr==ty2->type)
+					t2 = t1;
+				else
+					t1 = t2 = ty2->type;
+			}
+			else // nullptr!=ty1->type
+			{
+				if(nullptr==ty2->type)
+					t2 = t1 = ty1->type;
+				else // nullptr!=ty2->type
+				{
+					unify(ty1->type, ty2->type);
+					t1 = t2; 
+				}
+			}
+		}
+	}
+	else
+	{
+		if(Type::Infer==t2->flag)
+			t2 = t1;
+		else if(t1->flag!=t2->flag)
+			throw "Not Typed.\n"; // [TODO] throw better msg
+		else switch(t1->flag)
+		{
+			case Type::Infer: /* tc Compiler bugs here */
+				throw "TC COMPILER DEBUG please.\n";
+			case Type::U:case Type::B:case Type::C:
+        	case Type::I:case Type::F: break;
+
+			case Type::ADT: 
+				if(t1->id==t2->id)
+					break;
+				else
+					throw "Not Typed.\n";
+			case Type::Ref:
+			case Type::Ptr:
+			{
+				auto ty1 = (type::Typ*)t1;
+				auto ty2 = (type::Typ*)t2;
+				unify(ty1->type, ty2->type);
+				break;
+			}
+			case Type::Arr:
+			{
+				auto ty1 = (type::Arr*)t1;
+				auto ty2 = (type::Arr*)t2;
+				if(ty1->size!=ty2->size)
+					throw "Not Typed Array Size.\n";
+				
+				unify(ty1->type, ty2->type);
+				break;
+			}
+			case Type::Fun:
+			{
+				auto ty1 = (type::Fun*)t1;
+				auto ty2 = (type::Fun*)t2;
+				auto& params1 = ty1->params;
+				auto& params2 = ty2->params;
+
+				if(params1.size()!=params2.size())
+					throw "Not Typed Fun Params Size.\n";
+				
+				unify(ty1->retype, ty2->retype);
+
+				for(auto it1=params1.begin(), it2=params2.begin()
+				;   it1!=params1.end()
+				;   ++it1, ++it2)
+					unify(*it1, *it2);
+
+				break;
+			}
+			
+
+        	default: break;
+		}
+	}
+
 }
 
 API::API(std::string path)
@@ -88,10 +163,10 @@ Stmt*	API::BlockEnd()
 	return stmt;
 }
 
-Stmt*	API::Let(Name name, Expr* expr, Typep type) // =NULL
+Stmt*	API::Let(Name name, Expr* expr, Typep type) // =nullptr
 {
 	std::cout<<"let "<<name<<" = "<<((expr::I*)expr)->i<<std::endl;
-	if(NULL==type)
+	if(nullptr==type)
 		type = 
 			new type::Typ(Type::Infer, type);
 
@@ -106,13 +181,12 @@ Stmt*	API::Let(Name name, Expr* expr, Typep type) // =NULL
 
     stmt->block = move(expr->block);
     
-
 	return stmt;
 }
 
-Stmt*	API::Var(Name name, Expr* expr, Typep type) // =NULL
+Stmt*	API::Var(Name name, Expr* expr, Typep type) // =nullptr
 {
-	if(NULL==type)
+	if(nullptr==type)
 		type = 
 			new type::Typ(Type::Ref, 
 				new type::Typ(Type::Infer, type));
@@ -123,28 +197,93 @@ Stmt*	API::Var(Name name, Expr* expr, Typep type) // =NULL
 	auto& data = this->expr[id];
     data.names.push_back(name);
     data.expr = expr;
+	data.expr->type = new type::Typ(Type::Ref, type);
 
 	auto stmt = new stmt::Var(Stmt::Var, id, expr, type);
 
     stmt->block = move(expr->block);
-    stmt->block->push(Ins::Alloc(id, expr->id));
+    stmt->block->push(ins::Alloc(id, expr->id));
 
 	return stmt;
 }
 
-Stmt*	API::If(Expr* cond, Stmt* fst, Stmt* snd) // =NULL
+Stmt*	API::If(Expr* cond, Stmt* fst, Stmt* snd) // =nullptr
 {
-	if(NULL==snd)
+	if(nullptr==snd)
 		snd = new stmt::Empty(Stmt::Empty);
 	
 	Typing(cond, this->b);
 
+
+	auto& blocks = this->ir.blocks;
+
+	auto old_id = this->ir.current;
+	auto old_block = blocks[old_id];
+
+	auto cid = this->ir.block_cid();
+
+	auto cond_id = cid+1;
+
+	old_block->push(ins::Jump(cond_id));
+	auto cond_block = blocks[cond_id] = move(cond->block);
+	
+
+	auto fst_id = cid+2;
+	auto fst_block = blocks[fst_id] = move(fst->block);
+	
+	if(nullptr!=snd)
+	{
+		auto snd_id = cid+3;
+		auto snd_block = blocks[snd_id] = move(snd->block);
+		auto new_id = cid+4;
+		auto new_block = blocks[new_id] = new Block(ir::Kind::INST);
+		
+		cond_block->push(ins::Br(cond->id, fst_id, snd_id));
+		fst_block->push(ins::Jump(new_id));
+		snd_block->push(ins::Jump(new_id));
+		this->ir.set_current(new_id);
+	}
+	else
+	{
+		auto new_id = cid+3;
+		cond_block->push(ins::Br(cond->id, fst_id, new_id));
+		fst_block->push(ins::Jump(new_id));
+		this->ir.set_current(new_id);
+	}
+
 	return new stmt::If(cond, fst, snd);
 }
 
-Stmt*	API::While(Expr* cond, Stmt* body)
+Stmt*	API::While(Expr* cond, Stmt* body) // nullptr
 {	
 	Typing(cond, this->b);
+
+	auto& blocks = this->ir.blocks;
+
+	auto old_id = this->ir.current;
+	auto old_block = blocks[old_id];
+
+	auto cid = this->ir.block_cid();
+	auto cond_id = cid+1;
+	auto cond_block = blocks[cond_id] = move(cond->block);
+
+	old_block->push(ins::Jump(cond_id));
+
+	auto body_id = cid+2;
+	Block* body_block;
+	if(nullptr==body)
+		body_block = blocks[body_id] = new Block(ir::Kind::INST);
+	else
+		body_block = blocks[body_id] = move(body->block);
+
+	body_block->push(ins::Jump(cond_id));
+
+	auto new_id = cid+3;
+	blocks[new_id] = new Block(ir::Kind::INST);
+
+	cond_block->push(ins::Br(cond->id, body_id, new_id));
+
+	this->ir.set_current(new_id);
 
 	return new stmt::While(cond, body);
 }
@@ -164,9 +303,9 @@ Stmt*	API::Cont()
 	return new stmt::Empty(Stmt::Cont);
 }
 
-Stmt*	API::Ret(Expr* expr) // =NULL
+Stmt*	API::Ret(Expr* expr) // =nullptr
 {
-	if(NULL==expr)
+	if(nullptr==expr)
 		expr = new expr::U(this->u);
 	return new stmt::Exp(Stmt::Ret, expr);
 }
@@ -178,7 +317,7 @@ Stmt*	API::Exp(Expr* expr)
 
 Stmt*	API::Del(Expr* expr)
 {
-	auto type = (Typing(expr));
+	auto type = Typing(expr);
 	if(type->flag==Type::Ptr)
 		return new stmt::Exp(Stmt::Del, expr);
 	else
@@ -272,20 +411,15 @@ Stmt*   API::Check(Expr* expr, Typep type)
 
 /* type */
 
-// TODO
-Typep	API::Typing(Expr* expr, Typep type)
+// [MM] [TODO]
+/* return NOT nullptr */
+Typep	API::Typing(Expr* expr, Typep type) 
 {
-	auto ty = expr->type;
-	if(NULL==type)
-		return ty;
-
-    // std::cout<<(equal(ty, type)?"Yes":"No")<<std::endl;
-    if(equal(ty, type))
-        return ty;
-    else
-        throw "Not Typed.\n";
-
-	// ty_eq
+	auto& ty = expr->type;
+	if(nullptr!=type)
+		unify(ty, type);
+	
+	return ty;
 }
 
 Typep	API::U()
@@ -374,7 +508,7 @@ Cell*	API::CellVar(Name name)
 
 Expr*	API::ExprVar(Name name)
 {
-    // TODO memory management for type
+    // [MM] : type
 	auto id = this->expr[name];
 	auto& data = this->expr[id];
 	auto type = data.expr->type;
@@ -404,9 +538,9 @@ Expr*	API::ExprVarRef(Name name)
 	return expr;
 }
 
-void	API::AppBeg(Expr* func) // = NULL
+void	API::AppBeg(Expr* func) // = nullptr
 {
-	if(NULL==func)
+	if(nullptr==func)
 		func = this->fun;
 	
 	
@@ -453,7 +587,13 @@ Expr*	API::ExprEleAddr(Expr* expr, Expr* index)
 
 Expr*	API::B(Bool b)
 {
-	return new expr::B(b, B());
+	auto type = B();
+    auto expr = new expr::B(b, type);
+    auto id = this->expr.nid();
+    ir.push(sym::Const(type->id));
+    expr->block->push(ins::IImm(id, b));
+
+	return expr;
 }
 
 Expr*	API::C(Char c)
@@ -472,8 +612,8 @@ Expr*	API::I(Int i)
     auto type = I();
     auto expr = new expr::I(i, type);
     auto id = this->expr.nid();
-    ir.push(ir::Symbol::Nfun(id, type->id));
-    expr->block->push(Ins::IImm(id, i));
+    ir.push(sym::Const(type->id));
+    expr->block->push(ins::IImm(id, i));
     
 	return expr;
 }
@@ -483,21 +623,34 @@ Expr*	API::F(Float f)
 	return new expr::F(f, F());
 }
 
-// TODO
+
 void	API::ExprFunBeg()
 {
 	this->fun = new expr::Fun(); 
-	/* emmm, there should be sth
-	 * must use id to refer to it!!!
-	 */
-}
-
-void	API::ExprFunRefArg(Name name, Typep type) // =NULL
-{
 	
+	return;
 }
 
-void	API::ExprFunArg(Name name, Typep type) // =NULL
+void	API::ExprFunRefArg(Name name, Typep type) // =nullptr
+{
+	if(nullptr==type)
+		type = 
+			new type::Typ(Type::Infer, type);
+	
+	type = new type::Typ(Type::Ref, type);
+
+    auto id = this->expr.nid();
+
+	auto& data = this->expr[id];
+    data.names.push_back(name);
+    data.expr = new expr::Param(type); /* nulllptr means it is an argument */
+
+	this->ir.func_params.push(id);
+	
+
+}
+
+void	API::ExprFunArg(Name name, Typep type) // =nullptr
 {
 	
 }
@@ -562,7 +715,7 @@ Expr*	API::BinOp(Expr* lhs, Oper oper, Expr* rhs)
 	
 }
 
-Expr*	API::New(Expr* expr, Expr* size) // =NULL
+Expr*	API::New(Expr* expr, Expr* size) // =nullptr
 {
 	
 }

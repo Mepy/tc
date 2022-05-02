@@ -1,10 +1,11 @@
 #include "ir_parser.hpp"
+#include "ir_helper.hpp"
 #include <iostream>
 
 namespace ir          = tc::ast::ir;
-namespace ins         = ir::parser::instruction;
-namespace symbol      = ir::parser::symbol;
-namespace type        = ir::parser::type;
+namespace ins         = ir::instruction;
+namespace symbol      = ir::symbol;
+namespace type        = ir::type;
 
 using Cat             = ir::Cat;
 using Kind            = ir::Kind;

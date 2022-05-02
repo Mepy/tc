@@ -78,7 +78,7 @@ struct Expr : public Node
     Typep   type;
 
     // Expr
-    using Flag = enum { Undefined,
+    using Flag = enum { Undefined, Param, 
             U, B, C, S, I, F, Array, Fun, Cons, App, LabelTuple, Match,
             Asgn, Addr, Val, ValRef, Var, VarRef,
             Ele, EleRef, EleAddr,

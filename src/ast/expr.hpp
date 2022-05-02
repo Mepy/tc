@@ -42,6 +42,12 @@ struct F : public Expr
     ~F(){ }
 };
 
+struct Param : public Expr 
+{ 
+    Param(Typep type=nullptr):Expr(Flag::Param, type, nullptr){ }
+    ~Param(){ }
+};
+
 struct App : public Expr
 {
     Exprp func;

@@ -7,7 +7,7 @@ test_api : api.out
 api.out : api.o ast.o
 	${CC} $^ -o $@
 
-api.o : api.cpp
+api.o : api.cpp api.hpp ir_parser.hpp
 	${CC} $< ${STD} -c -o $@
 
 test_ir_parser : ir_parser.out
@@ -21,4 +21,4 @@ ast.o : impl.cpp
 	${CC} $< ${STD} -c -o $@
 
 clean : 
-	rm *.o *.out *.ir
+	rm *.o *.out *.ir *.hex
