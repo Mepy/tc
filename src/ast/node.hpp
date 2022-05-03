@@ -40,9 +40,12 @@ struct Stmt : public Node
         TypeDef
     };
 
-    Flag flag;
+    Flag  flag;
+
+
     Stmt():flag(Undefined), block_beg(nullptr), block_end(nullptr){}
-    Stmt(Flag flag, Block_Ins* beg=nullptr, Block_Ins* end=nullptr):flag(flag), block_beg(beg), block_end(end){}
+    Stmt(Flag flag, Block_Ins* beg=nullptr, Block_Ins* end=nullptr)
+    :flag(flag), block_beg(beg), block_end(end){}
     virtual ~Stmt(){}
 };
 
@@ -51,14 +54,14 @@ using Stmts = vector<Stmtp>;
 struct Type : public Node , public RC
 {
     // Data
-    ID        id;
+    ID     id;
 
     using Flag = enum { Undefined,
         Infer, U, B, C, I, F, ADT, Ref, Ptr, Arr, Fun
     };
     Flag flag;
     Type(){}
-    Type(Flag flag):flag(flag){}
+    Type(Flag flag, ID id=0):flag(flag), id(id){}
     virtual ~Type(){}
 };
 using Typep = Type*;

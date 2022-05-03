@@ -12,6 +12,7 @@ using Ins = ir::Instruction;
 
 namespace ins = ir::instruction;
 namespace sym = ir::symbol;
+namespace typ = ir::type;
 
 // [MM] : WARNING
 void unify(Typep& t1, Typep& t2) 
@@ -55,7 +56,7 @@ void unify(Typep& t1, Typep& t2)
 			throw "Not Typed.\n"; // [TODO] throw better msg
 		else switch(t1->flag)
 		{
-			case Type::Infer: /* tc Compiler bugs here */
+			case Type::Infer: // tc Compiler bugs here
 				throw "TC COMPILER DEBUG please.\n";
 			case Type::U:case Type::B:case Type::C:
         	case Type::I:case Type::F: break;
@@ -113,16 +114,20 @@ void unify(Typep& t1, Typep& t2)
 API::API(std::string path)
 :Context(path)
 {
-	this->u = new type::Atom(Type::U);
-    this->u->id = 1;
-    this->b = new type::Atom(Type::B);
-    this->b->id = 2;
-    this->c = new type::Atom(Type::C);
-    this->c->id = 3;
-	this->i = new type::Atom(Type::I);
-    this->i->id = 4;
-	this->f = new type::Atom(Type::F);
-    this->f->id = 5;
+	this->u = new type::Atom(Type::U, 0);
+	this->ir.push(ir::type::Unit ());
+    this->b = new type::Atom(Type::B, 1);
+	this->ir.push(ir::type::Bool ());
+    this->c = new type::Atom(Type::C, 2);
+	this->ir.push(ir::type::Char ());
+	this->i = new type::Atom(Type::I, 3);
+	this->ir.push(ir::type::Int  ());
+	this->f = new type::Atom(Type::F, 4);
+	this->ir.push(ir::type::Float());
+
+	this->unit = new expr::U(this->u);
+	this->unit->id = 0;
+	this->ir.push(sym::Const(0));
 
 	this->adt = new type::ADT();
 }
@@ -141,7 +146,7 @@ void	API::BlockBegin()
 {
 	auto block = new stmt::Block();
 	block->flag = Stmt::Block;
-	this->nodes.push(block);
+	// this->nodes.push(block);
 
 	this->type.scope_beg();
 	this->expr.scope_beg();
@@ -175,8 +180,6 @@ Stmt*	API::Let(Name name, Expr* expr, Typep type) // =nullptr
     auto id = expr->id;
 	this->expr[id].names.push_back(name);
 
-    
-
     auto stmt = new stmt::Var(Stmt::Let, id, expr, type, move(expr->block));
     
 	return stmt;
@@ -204,17 +207,6 @@ Stmt*	API::Var(Name name, Expr* expr, Typep type) // =nullptr
 	return stmt;
 }
 
-void X(Stmt* stmt)
-{
-	if(stmt->block_beg==stmt->block_end)
-	{
-		// only one block
-	}
-	else
-	{
-		
-	}
-}
 
 Stmt*	API::If(Expr* cond, Stmt* fst, Stmt* snd) // =nullptr
 {
@@ -250,10 +242,15 @@ Stmt*	API::If(Expr* cond, Stmt* fst, Stmt* snd) // =nullptr
 		cond_block->push(ins::Br(cond->id, fst_id, end_id));
 		fst->block_end->push(ins::Jump(end_id));
 	}
-	std::cout<<"hey end_id = "<<end_id<<std::endl;
 	this->ir.save(end_id);
 
 	return new stmt::If(cond, fst, snd, cond_block, end_block);
+}
+
+// [TODO] while-list
+void    API::WhileBeg()
+{
+
 }
 
 Stmt*	API::While(Expr* cond, Stmt* body) // nullptr
@@ -302,121 +299,127 @@ Stmt*	API::Empty()
 	return nullptr;
 }
 
+// [TODO] : while-list
 Stmt*	API::Break()
 {
 	return new stmt::Empty(Stmt::Break);
 }
 
+// [TODO] : while-list
 Stmt*	API::Cont()
 {
 	return new stmt::Empty(Stmt::Cont);
 }
 
+// [TODO] : return type
 Stmt*	API::Ret(Expr* expr) // =nullptr
 {
-	if(nullptr==expr)
-		expr = new expr::U(this->u);
+	auto type = Typing(expr);
 
-	return new stmt::Exp(Stmt::Ret, expr);
+	Block_Insp block;
+	if(nullptr==expr)
+	{
+		block = new Block_Ins();
+		block->push(ins::Return(0));
+	}
+	else
+	{
+		block = move(expr->block);
+		block->push(ins::Return(expr->id));
+	}
+	return new stmt::Exp(Stmt::Ret, expr, block);
 }
 
 Stmt*	API::Exp(Expr* expr)
 {
-	return new stmt::Exp(Stmt::Exp, expr);
+	return new stmt::Exp(Stmt::Exp, expr, move(expr->block));
 }
 
 Stmt*	API::Del(Expr* expr)
 {
 	auto type = Typing(expr);
-	if(type->flag==Type::Ptr)
-		return new stmt::Exp(Stmt::Del, expr);
-	else
+
+	if(type->flag!=Type::Ptr)
 		throw "Del Not-A-Pointer";
+	
+	auto block = move(expr->block);
+	block->push(ins::Delete(expr->id));
+
+	return new stmt::Exp(Stmt::Del, expr, block);
 }
 
 void	API::TypeDef(Name name)
 {
-	// auto id = this->type.add(name);
-	// this->nodes.push(new stmt::TypeDef(id));
-
-	// TODO push
+	this->type_name = name;
+	auto id = this->ir.type.size;
+	this->adt->id = id;
+	this->type.sym->insert(pair<string, ID>(name, id));
+	
+	this->type.def[id] = type::Data(name, this->adt);
+	this->ir.adt.type = id;
 }
 
 Stmt*	API::Alias(Typep type)
 {
-	auto stmt = this->nodes.top();
-	this->nodes.pop();
-	auto id = ((stmt::TypeDef*)stmt)->id;
-	delete stmt;
+	auto  tid   = type->id; 
 
-	this->type[id].type = type; 
-	/* no need to incr, because match type with
-	 * | Primitives -> has been incred in PTypes
-	 * | TypeVar    -> has been incred in TypeVar
-	 * | _          -> new types
-	 */
-	return Empty();
+	auto& names = this->type[tid].names;
+	names.push_back(this->type_name);
+	auto& id = this->type.sym->operator[](this->type_name);
+
+	this->type.def.erase(id);
+	id = tid; 
+
+	return nullptr;
 }
 
 void	API::ADTBranchBegin(Name cons)
 {
-	// auto id = this->expr.add(cons);
-	// ((type::ADT*)(this->adt))
-	// ->cons[id]=Types();
+	auto id = this->expr.nid(cons);
+	this->ir.adt.tsum->push(id);
 }
 
 void	API::ADTBranchType(Typep type)
 {
-	((type::ADT*)(this->adt))
-	->cons.rbegin()
-	->second.push_back(type);
+	if(this->adt==type)
+		this->ir.adt.is_recur = true;
+
+	this->ir.adt.tcon->push(type->id);
 }
 
 void	API::ADTBranchEnd()
 {
-    /*
-	auto con = ((type::ADT*)(this->adt))
-		->cons.rbegin();
-	auto id = con->first;
-	auto types = con->second;
+	auto cid     = this->ir.block_cid();
+	auto tcon_id = cid + 1;
+	auto block = 
+		move(this->ir.adt.tcon
+		,	 ir::block::tcon());
+	block->push(this->adt->id);
 
-	// create function for constructors
-
-	auto label_tuple = new expr::LabelTuple(incr(this->adt), id);
-	auto confun = new expr::Fun(Expr::Cons);
-	for(auto iter=types.begin();iter!=types.end();++iter)
-	{
-		auto eid = this->expr.add("");
-		confun->params.push_back(eid);
-		label_tuple->tuple.push_back(new expr::Var(eid));
-	}
-	
-	confun->stmt = new stmt::Exp(Stmt::Ret, label_tuple);
-	
-	this->expr[id].expr = confun;
-    */
-	// WARNING : let-stmt for constructor-function NOT created YET.
-	// TODO    : for locality, it should be created here.
-	//         : Or, we just mark it as constructor, inline when needed.
+	this->ir.blocks[tcon_id] = block;
+	this->ir.push(sym::Ctor(tcon_id));
 }
 
 Stmt*	API::ADT()
 {
-	auto stmt = this->nodes.top();
-	this->nodes.pop();
-	auto id = ((stmt::TypeDef*)stmt)->id;
-	delete stmt;
+	auto cid     = this->ir.block_cid();
+	auto tsum_id = cid + 1;
+	this->ir.blocks[tsum_id] = 
+		move(this->ir.adt.tsum
+		,	 ir::block::tsum());
 
-	this->type[id].type = this->adt;
-	this->adt =  new type::ADT();
+	this->ir.push(typ::ADT(this->ir.adt.is_recur, tsum_id));
+	this->ir.adt.clear();
 
-	return Empty();
+	this->adt = new type::ADT(); // replace the old one
+
+	return nullptr;
 }
 
 Stmt*   API::Check(Expr* expr, Typep type)
 {
 	Typing(expr, type);
-	return Empty();
+	return nullptr;
 }
 
 /* type */
@@ -534,7 +537,7 @@ Expr*	API::ExprVar(Name name)
 
 Expr*	API::ExprVarRef(Name name)
 {
-    // TODO memory management for type
+    // [MM] : type
 	auto id = this->expr[name];
 	auto& data = this->expr[id];
 	auto type = data.expr->type;

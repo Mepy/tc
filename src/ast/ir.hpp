@@ -25,8 +25,9 @@ enum Kind : Byte4 { /* Block 's */
     CLOS = 0x534F4C43, /* CLOS */ // for closure's function info 
 
     TYPE = 0x45505954, /* TYPE */ // Type info, 
-    TIDS = 0x53444954, /* TIDS */ // for Func type, just ids
-    TCON = 0x4E4F4354, /* TCON */ // for adt's constructors, just ids of constructors
+    TFUN = 0x4E465554, /* TFUN */ // for function's type, just ids of types
+    TCON = 0x4E4F4354, /* TCON */ // for construtors' type, just ids of types
+    TSUM = 0x4D555354, /* TSUM */ // for adt's constructors, just ids of constructors
 
     CSTR = 0x52545343, /* CSTR */ // c string immediate
 };
@@ -214,6 +215,7 @@ struct Type
         Array = 0x5D5B7954, /* Ty[] */
         Func  = 0x3E2D7954, /* Ty-> */
         ADT   = 0x787C7954, /* Ty|x */
+        ADTR  = 0x247C7954, /* Ty|$ */
     };
     Sort sort;
     ID     id;
@@ -225,7 +227,7 @@ struct Type
      * case Func  : id = id of block whose Sort = TIDS
      *              block[0:size-2] = params type
      *              block[size-1]   = return type
-     * case ADT   : id = id of block whose Sort = TCON
+     * case ADT   : id = id of block whose Sort = TSUM
      */
 
     Type(Sort sort=SUNO, ID id=0, Byte8 len=0)

@@ -65,6 +65,7 @@ inline Instruction Jump(ID block)
 
 }
 namespace symbol{
+
 inline Symbol Const(ID type ){ return Symbol(Symbol::Const, type ); }
 inline Symbol Param(ID type ){ return Symbol(Symbol::Param, type ); }
 inline Symbol NonD (ID type ){ return Symbol(Symbol::NonD , type ); }
@@ -75,11 +76,30 @@ inline Symbol QFun (ID block){ return Symbol(Symbol::QFun , block); }
 inline Symbol QPrg (ID block){ return Symbol(Symbol::QPrg , block); }
 inline Symbol Open (ID block){ return Symbol(Symbol::Open , block); }
 inline Symbol Clos (ID block){ return Symbol(Symbol::Clos , block); }
+
 }
 namespace type{
 
+inline Type Unit (){ return Type(Type::Unit , 0); }
+inline Type Bool (){ return Type(Type::Bool , 1); }
+inline Type Char (){ return Type(Type::Char , 2); }
+inline Type Int  (){ return Type(Type::Int  , 3); }
+inline Type Float(){ return Type(Type::Float, 4); }
+
+inline Type ADT(bool is_recur, ID id)
+{ return Type(is_recur ?Type::ADTR :Type::ADT , id); }
+
 }
 
+namespace block{
+
+using Block_ID = parser::Block_ID;
+inline Block_ID* tcon()
+{ return new Block_ID(Kind::TCON); }
+inline Block_ID* tsum()
+{ return new Block_ID(Kind::TSUM); }
+
+}
 
 }}}
 

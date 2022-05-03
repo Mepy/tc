@@ -6,7 +6,7 @@
 namespace tc{
 namespace ast{
 
-struct API : protected Context
+struct API : public Context
 {
     /* Stmt */
     void  BlockBegin();
@@ -15,6 +15,7 @@ struct API : protected Context
     Stmt* Let(Name name, Expr* expr, Type* type=NULL);
     Stmt* Var(Name name, Expr* expr, Type* type=NULL);
     Stmt* If(Expr* cond, Stmt* fst, Stmt* snd=NULL);
+    void  WhileBeg();
     Stmt* While(Expr* cond, Stmt* stmt);
     Stmt* Empty();
     Stmt* Break();

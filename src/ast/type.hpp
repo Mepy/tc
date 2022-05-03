@@ -10,14 +10,14 @@ namespace type{
 // U, B, C, I, F
 struct Atom : public Type
 {
-    Atom(Flag flag):Type(flag){}
+    Atom(Flag flag, ID id=0):Type(flag, id){}
     ~Atom(){}
 };
 
 struct ADT : public Type
 {
     map<ID, Types> cons;
-    ADT():Type(Flag::ADT){}
+    ADT(ID id=0):Type(Flag::ADT, id){}
     ~ADT(){
         decr(cons);
     }

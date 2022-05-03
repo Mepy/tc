@@ -15,19 +15,12 @@ namespace parser{
 
 struct IR
 {
-private: /* member module : struct Module */
+private: /* Types included */
     using Obfs = tc::utils::obfstream;
-    struct Module
-    {
-
-        ~Module(){}
-    };
-    Module  module;
-public: /* struct Block  */
     template<typename T>
-    using list = utils::double_ended_forward_list<T, Byte4>;
+    using List = utils::double_ended_forward_list<T, Byte4>;
 public: 
-    struct Block_Sym : public list<Symbol>
+    struct Block_Sym : public List<Symbol>
     {
         void save(Obfs& obfs)
         {
@@ -40,7 +33,7 @@ public:
             this->clear();
         }
     };
-    struct Block_Typ : public list<Type>
+    struct Block_Typ : public List<Type>
     {
         void save(Obfs& obfs)
         {
@@ -50,8 +43,6 @@ public:
             this->clear();
         }
     };
-
-    
     struct Block 
     {
         Kind kind;
@@ -63,7 +54,7 @@ public:
     struct Block_ : public Block
     {
         Block_(Kind kind=KUNO):Block(kind){ }
-        list<T> ls;
+        List<T> ls;
         void push(T&& t){ push(t); }
         void push(T&  t){ ls.push_tail(t); }
         void save(Obfs& obfs)
@@ -80,38 +71,36 @@ public:
             case ARGS:
             case FILD:
             case BRCH:
-            case TIDS:
+            case TFUN:
             case TCON:
+            case TSUM:
                 obfs<<kind<<ls.size;
                 for(auto& iter : ls)
                     obfs<<iter;
                 // align
-                for(unsigned n = 4 - (ls.size+2)%4;n;--n)
+                for(unsigned n = (2-ls.size)%4;n;--n)
                     obfs<<Byte4(0); 
+                ls.clear();
+                break;
+            case CSTR:
+                obfs<<Kind::CSTR<<ls.size;
+                for(auto& iter : ls)
+                    obfs<<iter;
+                // align
+                for(unsigned n = (8-ls.size)%16;n;--n)
+                    obfs<<Byte(0);
                 ls.clear();
                 break;
             default:
                 std::cout<<"kind = "<<kind<<std::endl;
-                throw "Not INST or ID kind of block.";
+                throw "Not INST, ID or CSTR kind of block.";
             }
         }
     };
     struct Block_Ins : public Block_<Instruction>
     { Block_Ins():Block_<Instruction>(Kind::INST){} };
     using Block_ID  = Block_<ID>;
-    struct Block_Str : public list<Char>
-    {
-        void save(Obfs& obfs)
-        {
-            obfs<<Kind::CSTR<<this->size;
-            for(auto& iter : (*this))
-                obfs<<iter;
-            // align
-            for(unsigned n = 16 - (this->size+8)%16;n;--n)
-                obfs<<Byte(0);
-            this->clear();
-        }
-    };
+    using Block_Str = Block_<Char>;
     using Blocks = map<ID, Block*>;
 public: /* members */ 
     Block_Str  str;
@@ -131,9 +120,27 @@ public: /* members */
     Cat   cat;
     Size size;
     Block_Ins* main; /* main block */
+    struct ADT
+    {
+        bool  is_recur;
+        ID        type; /* id of adt            */
+        Block_ID* tcon; /* ids of product types */
+        Block_ID* tsum; /* ids of constructors  */
 
+        ADT()
+        :is_recur(false)
+        ,tcon(new Block_ID(Kind::TCON))
+        ,tsum(new Block_ID(Kind::TSUM))
+        {}
+        ~ADT()
+        {
+            delete tsum;
+            delete tcon;
+        }
+        void clear(){ is_recur = false; }
+    } adt;
     IR(std::string path, Cat cat=Cat::EXEC)
-    :obfs(path), cat(cat), size(0)
+    :obfs(path), cat(cat), size(0), main(nullptr)
     { 
         obfs
         <<Magic<<Version
@@ -145,18 +152,19 @@ public: /* members */
         auto entry = Instruction(Instruction::Jump, 0);
         entry.src.RESERVED = RESERVED;
         block->push(entry);
-        
     }
     ~IR()
     {
         auto cid = this->block_cid();
         for(auto& iter : blocks)
         {
-            std::cout<<"saving id="<<iter.first<<std::endl;
+            std::cout<<"~IR() saving block with id="<<iter.first<<std::endl;
             iter.second->save(obfs);
+            delete iter.second;
         }
-
-        this->main->save(obfs);
+        
+        if(nullptr!=this->main) // [TODO] : nullptr==main
+            this->main->save(obfs);
         this->symb.save(obfs);
         this->type.save(obfs);
         this->obfs
@@ -170,9 +178,8 @@ public: /* members */
                  +sizeof(Kind )+sizeof(Size)+sizeof(RESERVED)
                  +sizeof(Instruction::Sort)
             )
-            <<cid+1 // Jump to main block
+            <<cid+1 // Jump to the main block
             ;
-
     }
 
     inline IR& operator<<(Symbol&& symb)
@@ -198,19 +205,29 @@ public: /* members */
         {
             std::cout<<"saving id="<<iter->first<<std::endl;
             iter->second->save(this->obfs);
+            delete iter->second;
         }
         this->blocks.erase(this->blocks.begin(), iter);
     }
 };
 
-using Block = IR::Block;
-using Block_Ins = IR::Block_Ins;
-using Blockp = Block*;
-using Block_Insp = Block_Ins*;
-inline Block_Insp move(Block_Insp& block)
+using Block      = IR::Block    ;
+using Blockp     = Block*       ;
+using Block_Ins  = IR::Block_Ins;
+using Block_Insp = Block_Ins*   ;
+using Block_ID   = IR::Block_ID ;
+using Block_IDp  = Block_ID*    ;
+
+inline Block_Insp move(Block_Insp& old_block, Block_Insp new_block=nullptr)
 {
-    auto ret = block;
-    block = nullptr;
+    auto ret  = old_block;
+    old_block = new_block;
+    return ret;
+}
+inline Block_IDp move(Block_IDp& old_block, Block_IDp new_block=nullptr)
+{
+    auto ret  = old_block;
+    old_block = new_block;
     return ret;
 }
 inline Block_Insp concat(Block_Insp& left, Block_Insp& right)

@@ -27,8 +27,8 @@ struct Empty : public Stmt
 struct Exp : public Stmt
 {
     Exprp expr;
-    Exp(Flag flag, Exprp expr)
-    :Stmt(flag), expr(expr){}
+    Exp(Flag flag, Exprp expr, Block_Insp block)
+    :Stmt(flag, block, block), expr(expr){}
     ~Exp(){
         del(expr);
     }

@@ -14,6 +14,7 @@ struct Data
     vector<Name> names;
     /* In most time, there is only no name for an ID (ANF) */
     Data():names(0){} 
+    Data(Name& name):names(1, name){ }
     ~Data(){}
     template<typename Data>
     struct Namespace
@@ -47,6 +48,13 @@ struct Data
         { def[0]=Data(); }
         ~Namespace(){ delete sym; }
         /* constructor ensure def.rbegin() exists */
+        ID nid(Name& name)
+        {
+            auto id = def.rbegin()->first+1;
+            sym->insert(pair<string, ID>(name, id));
+            def.insert(pair<ID, Data>(id, Data(name)));
+            return id;
+        }
         ID nid()
         {
             auto id = def.rbegin()->first+1;
@@ -54,7 +62,7 @@ struct Data
             return id;
         }
 
-        /* 0 -> NotFound */
+        /* 0 -> NotFound */ // [TODO] 0 or -1?
         ID operator[](string& name)
         {
             auto iter = this->sym->recursive_find(name);
@@ -84,7 +92,9 @@ namespace type
     struct Data : public ast::Data
     {
         Typep type;
-        Data():type(nullptr){}
+        Data(Typep type=nullptr):type(type){}
+        Data(Name& name, Typep type=nullptr)
+        :ast::Data(name), type(type){}
         ~Data(){}
         using Namespace = ast::Data::Namespace<Data>;
     };
@@ -95,6 +105,7 @@ namespace expr
     {
         Exprp expr;
         Data():expr(nullptr){}
+        Data(Name& name):ast::Data(name), expr(nullptr){}
         ~Data(){}
         using Namespace = ast::Data::Namespace<Data>;
     };
@@ -105,16 +116,18 @@ struct Context
     type::Data::Namespace type;
     expr::Data::Namespace expr;
 
-
     // TODO while list for break and continue
 
-    IR ir;
-
     Typep u, b, c, i, f, adt;
-    Exprp fun; 
+    Exprp fun;
+    Exprp unit;
 
     stack<Nodep> nodes; /* for recursive storage */ 
     stack<Exprp> funcs; /* for recursive and closure analysis */ 
+
+    IR ir;
+    Name  type_name; /* for type_alias and adt */
+    
 
     Context(std::string path):ir(path){}
     ~Context(){}

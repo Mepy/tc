@@ -8,13 +8,14 @@ void test(API& context);
 void test_let_x_101(API& context);
 void test_if(API& context);
 void test_while(API& context);
+void test_type(API& context);
 
 int main()
 {
     API context("test.hex"); // output filename
     try
     {
-        test_if(context);
+        test_type(context);
     }
     catch(const char* str)
     {
@@ -22,6 +23,41 @@ int main()
     }
 }
 
+void test_type(API& context)
+{
+    /* // adt.tc
+     * type Nat = 
+     *     | zero 
+     *     | succ Nat
+     *     ;
+     * type False =
+     *     ;
+     * type Nickname = Nat;
+     */
+    context.TypeDef(Name("Nat"));
+
+    context.ADTBranchBegin(Name("zero"));
+    context.ADTBranchEnd();
+    context.ADTBranchBegin(Name("succ"));
+    
+    context.ADTBranchType(
+        context.TypeVar(Name("Nat"))
+    );
+    
+    context.ADTBranchEnd();
+    context.ADT();
+
+    context.TypeDef(Name("False"));
+    context.ADT();
+
+    context.TypeDef(Name("Nickname"));
+    context.Alias(context.TypeVar(Name("Nat")));
+
+    auto& names = context.type[5].names; // Nat, Nickname
+    for(auto& name:names)
+        std::cout<<name<<" ";
+    std::cout<<std::endl;
+}
 void test_if(API& context)
 {
     auto _if = context.If(
