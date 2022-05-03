@@ -8,8 +8,11 @@
 namespace tc{
 namespace ast{
 
-using Sort  = tc::ast::ir::Symbol::Sort; 
-using Block = tc::ast::ir::parser::Block;
+using Sort       = ir::Symbol::Sort; 
+using Block      = ir::parser::Block;
+using Blockp     = ir::parser::Blockp;
+using Block_Ins  = ir::parser::Block_Ins;
+using Block_Insp = ir::parser::Block_Insp;
 
 // Token
 struct Name : public ExtdBase, string
@@ -25,7 +28,8 @@ using Nodep = Node*;
 struct Stmt : public Node 
 {
     // IR
-    Block* block;
+    Block_Ins* block_beg;
+    Block_Ins* block_end;
 
     // Stmt
     using Flag = enum { Undefined,
@@ -37,8 +41,8 @@ struct Stmt : public Node
     };
 
     Flag flag;
-    Stmt():flag(Undefined){}
-    Stmt(Flag flag):flag(flag){}
+    Stmt():flag(Undefined), block_beg(nullptr), block_end(nullptr){}
+    Stmt(Flag flag, Block_Ins* beg=nullptr, Block_Ins* end=nullptr):flag(flag), block_beg(beg), block_end(end){}
     virtual ~Stmt(){}
 };
 
@@ -70,8 +74,8 @@ using Cells = vector<Cellp>;
 struct Expr : public Node 
 {
     // IR
-    Sort    sort; /* Sort of Symbol \in { Nfun, Func, Clos }*/
-    Block* block;
+    Sort    sort; /* Sort of Symbol \in { Const, Param, NonD, Ctor, CFun, CPrg, QFun, QPrg, Open, Clos } */ 
+    Block_Ins* block;
 
     // Data
     ID        id;
@@ -87,7 +91,7 @@ struct Expr : public Node
 
     Flag    flag;
     Expr(Flag flag, Typep type=nullptr
-    , Block* block=new Block(ir::Kind::INST))
+    , Block_Ins* block=new Block_Ins())
     :flag(flag), type(type), block(block){}
     // [MM] : block free by ir::parser::concat or others
     virtual ~Expr(){ decr(type); }

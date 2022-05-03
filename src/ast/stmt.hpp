@@ -51,8 +51,8 @@ struct Var : public Stmt
     ID id; /* expr_name -> ID */
     Typep type;
     Exprp expr;
-    Var(Flag flag, ID id, Exprp expr, Typep type)
-    :Stmt(flag), id(id), expr(expr), type(type){}
+    Var(Flag flag, ID id, Exprp expr, Typep type, Block_Insp block)
+    :Stmt(flag, block, block), id(id), expr(expr), type(type){}
     ~Var(){
         del(expr);
         decr(type);
@@ -64,8 +64,8 @@ struct If : public Stmt
     Exprp cond;
     Stmtp fst;
     Stmtp snd;
-    If(Exprp cond, Stmtp fst, Stmtp snd)
-    :cond(cond), fst(fst), snd(snd){}
+    If(Exprp cond, Stmtp fst, Stmtp snd, Block_Insp beg, Block_Insp end)
+    :Stmt(Stmt::If, beg, end), cond(cond), fst(fst), snd(snd){}
     ~If(){
         del(cond);
         del(fst);
@@ -77,8 +77,8 @@ struct While : public Stmt
 {
     Exprp cond;
     Stmtp body;
-    While(Exprp cond, Stmtp body)
-    :cond(cond), body(body){}
+    While(Exprp cond, Stmtp body, Block_Insp beg, Block_Insp end)
+    :Stmt(Stmt::While, beg, end), cond(cond), body(body){}
     ~While(){
         del(cond);
         del(body);

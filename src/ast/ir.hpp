@@ -39,6 +39,8 @@ struct Instruction
 {
     enum Sort : Byte4 {
         SUNO  = 0x4F4E5553, /* SUNO */ // Sort Unknown
+        BImm  = 0x6D6D4942, /* BImm */
+        CImm  = 0x6D6D4943, /* CImm */
         IImm  = 0x6D6D4949, /* IImm */
         FImm  = 0x6D6D4946, /* FImm */
         IAdd  = 0x642B4149, /* IA+d */ 
@@ -72,6 +74,7 @@ struct Instruction
         Neq   = 0x3F3D2154, /* T!=? */
 
         Br    = 0x3A3F7242, /* Br?: */
+        Jump  = 0x706D754A, /* Jump */
         Ret   = 0x3E743D52, /* R=t> */
 
 
@@ -95,16 +98,20 @@ struct Instruction
     ID dst;    // ID Destinate
     union {
         ID    id[2]; // ID Source 
+        Bool  Bimm;
+        Char  Cimm;
         Int   Iimm;
         Float Fimm;
         Byte8 RESERVED;
     } src;
     /* switch sort
-     * case IImm ~ FImm : I(F)imm = imm
+     * case BImm ~ FImm : I(F)imm = imm
      * case IAdd ~ Neq : calculate src.id[0] sort src.id[1] 
      * case Br   : dst = id of condition
      *             src.id[0] = id of block when true
      *             src.id[1] = id of block when false
+     * case Jump : dst = id of block to jump
+     *             src.RESERVED = RESERVED
      * case Ret  : dst = if of value to return, 
      *             src.RESERVED = RESERVED
      * case Func : src.id[0] = id of block of parameters

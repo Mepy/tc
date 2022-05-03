@@ -19,253 +19,210 @@ private: /* member module : struct Module */
     using Obfs = tc::utils::obfstream;
     struct Module
     {
-        Cat cat;
-        Size size;
-        Obfs obfs;
 
-        Module(std::string path, Cat cat)
-        :cat(cat), size(0), obfs(path)
-        {
-            obfs
-            <<Magic<<Version
-            <<cat<<size<<RESERVED
-            ;
-        }
-        ~Module()
-        {
-            obfs
-            .seek(sizeof(Magic)+sizeof(Version)+sizeof(Cat))
-            <<size
-            ;
-        }
+        ~Module(){}
     };
-    
     Module  module;
 public: /* struct Block  */
     template<typename T>
     using list = utils::double_ended_forward_list<T, Byte4>;
-    
-    struct Block_IR
-    {
-        Kind kind;
-        list<Instruction> irs;
-        Block_IR(Kind kind=KUNO):kind(kind){ }
-        ~Block_IR(){ }
-
-        inline Block_IR& operator<<(Kind kind)
-        { this->kind=kind; return *this; }
-        inline Block_IR& operator<<(Instruction&& inst)
-        { irs.push_tail(inst); return *this;}
-        
-        /* block with kind is no longer available */
-        inline Block_IR& operator>>(IR& ir)
-        {  save(ir); return *this; }
-
-        inline void push(Instruction&& inst)
-        { irs.push_tail(inst); }
-
-        /* block with kind is no longer available */
-        inline void save(IR& ir)
-        {
-            auto& module = ir.module;
-            auto& obfs = module.obfs;
-            switch(kind)
-            {
-                case INST:
-                case SYMB:
-                case TYPE:
-                    ++module.size;
-                    obfs<<kind<<irs.size<<RESERVED;
-                    for(auto& iter : irs)
-                        obfs<<iter;
-                    irs.clear(); 
-                    break;
-                case ARGS:
-                case FILD:
-                case BRCH:
-                case PARA:
-                case TIDS:
-                case TCON:
-
-                case CSTR:
-                    throw "Not IR  kind of block\n";
-                default:
-                    throw "Unknown kind of block\n";
-            }
-        }
-    };
-    struct Block_ID
-    {
-        Kind kind;
-        list<ID> ids;
-        Block_ID(Kind kind=KUNO):kind(kind){ }
-        ~Block_ID(){ }
-
-        inline Block_ID& operator<<(Kind kind)
-        { this->kind=kind; return *this; }
-
-        inline Block_ID& operator<<(ID id){ ids.push_tail(id); return *this; }
-        
-        /* block with kind is no longer available */
-        inline Block_ID& operator>>(IR& ir)
-        {  save(ir); return *this; }
-
-        inline void push(ID id){ ids.push_tail(id); }
-
-        /* block with kind is no longer available */
-        inline void save(IR& ir)
-        {
-            auto& module = ir.module;
-            auto& obfs = module.obfs;
-            switch(kind)
-            {
-                case ARGS:
-                case FILD:
-                case BRCH:
-                case PARA:
-                case TIDS:
-                case TCON:
-                    ++module.size;
-                    obfs<<kind<<ids.size;
-                    for(auto& iter : ids)
-                        obfs<<iter;
-                    // align
-                    for(unsigned n = 4 - (ids.size+2)%4;n;--n)
-                        obfs<<Byte4(0); 
-                    ids.clear();
-                    break;
-                case INST:
-                case SYMB:
-                case TYPE:
-                case CSTR:
-                    throw "Not ID  kind of block\n";
-                default:
-                    throw "Unknown kind of block\n";
-            }
-        }
-    };
-    // [TODO] : Block_Ch
-    struct Block_Ch
-    {
-        Kind kind;
-        list<Char> chs;
-        Block_Ch(Kind kind=KUNO):kind(kind){ }
-        ~Block_Ch(){ }
-
-        inline Block_Ch& operator<<(Kind kind)
-        { this->kind=kind; return *this; }
-        inline Block_Ch& operator<<(Char&& ch)
-        { chs.push_tail(ch); return *this; }
-        
-        /* block with kind is no longer available */
-        inline Block_Ch& operator>>(IR& ir)
-        {  save(ir); return *this; }
-
-        inline void push(Char&& ch)
-        { chs.push_tail(ch); }
-        
-
-        /* block with kind is no longer available */
-        inline void save(IR& ir)
-        {
-            auto& module = ir.module;
-            auto& obfs = module.obfs;
-            switch(kind)
-            {
-                case CSTR:
-                    ++module.size;
-                    obfs<<kind<<chs.size;
-                    for(auto& iter : chs)
-                        obfs<<iter;
-                    // align
-                    for(unsigned n = 16 - (chs.size+8)%16;n;--n)
-                        obfs<<Byte(0); 
-                    chs.clear();
-                    break;
-                case ARGS:
-                case FILD:
-                case BRCH:
-                case PARA:
-                case TIDS:
-                case TCON:
-
-                case INST:
-                case SYMB:
-                case TYPE:
-                    throw "Not Ch  kind of block\n";
-                default:
-                    throw "Unknown kind of block\n";
-            }
-        }
-    };
 public: 
-    using Blocks = map<ID, Block_IR*>;
+    struct Block_Sym : public list<Symbol>
+    {
+        void save(Obfs& obfs)
+        {
+            obfs<<Kind::SYMB<<this->size<<RESERVED;
+            for(auto& iter : (*this))
+                obfs<<iter;
+            // align
+            if(this->size%2==1)
+                obfs<<Byte8(0);
+            this->clear();
+        }
+    };
+    struct Block_Typ : public list<Type>
+    {
+        void save(Obfs& obfs)
+        {
+            obfs<<Kind::TYPE<<this->size<<RESERVED;
+            for(auto& iter : (*this))
+                obfs<<iter;
+            this->clear();
+        }
+    };
+
+    
+    struct Block 
+    {
+        Kind kind;
+        Block(Kind kind=KUNO):kind(kind){ }
+        virtual ~Block(){ }
+        virtual void save(Obfs& obfs) = 0;
+    };
+    template<typename T>
+    struct Block_ : public Block
+    {
+        Block_(Kind kind=KUNO):Block(kind){ }
+        list<T> ls;
+        void push(T&& t){ push(t); }
+        void push(T&  t){ ls.push_tail(t); }
+        void save(Obfs& obfs)
+        {
+            switch(kind)
+            {
+            case INST:
+                obfs<<Kind::INST<<ls.size<<RESERVED;
+                for(auto& iter : ls)
+                    obfs<<iter;
+                ls.clear();
+                break;
+            case PARA:
+            case ARGS:
+            case FILD:
+            case BRCH:
+            case TIDS:
+            case TCON:
+                obfs<<kind<<ls.size;
+                for(auto& iter : ls)
+                    obfs<<iter;
+                // align
+                for(unsigned n = 4 - (ls.size+2)%4;n;--n)
+                    obfs<<Byte4(0); 
+                ls.clear();
+                break;
+            default:
+                std::cout<<"kind = "<<kind<<std::endl;
+                throw "Not INST or ID kind of block.";
+            }
+        }
+    };
+    struct Block_Ins : public Block_<Instruction>
+    { Block_Ins():Block_<Instruction>(Kind::INST){} };
+    using Block_ID  = Block_<ID>;
+    struct Block_Str : public list<Char>
+    {
+        void save(Obfs& obfs)
+        {
+            obfs<<Kind::CSTR<<this->size;
+            for(auto& iter : (*this))
+                obfs<<iter;
+            // align
+            for(unsigned n = 16 - (this->size+8)%16;n;--n)
+                obfs<<Byte(0);
+            this->clear();
+        }
+    };
+    using Blocks = map<ID, Block*>;
 public: /* members */ 
-    Block_IR  symb,
-              type;
+    Block_Str  str;
+    Block_Sym symb;
+    Block_Typ type;
     Block_ID   ids;
     /* cons_type use this */
 // func_params, clos_func
-    Block_Ch   str;
+    
     Block_ID cons_type,
-           func_params; /* when closure, reuse this */
+             func_params; /* when closure, reuse this */
 
     Blocks  blocks; /* reserve ID for block */
-    ID      current;
+
+    /* Module */
+    Obfs obfs;
+    Cat   cat;
+    Size size;
+    Block_Ins* main; /* main block */
 
     IR(std::string path, Cat cat=Cat::EXEC)
-    :module(path, cat)
-    ,symb(ir::Kind::SYMB)
-    ,type(ir::Kind::TYPE)
-    ,current(0)
-    { this->blocks[0] = new Block_IR(ir::Kind::INST); }
+    :obfs(path), cat(cat), size(0)
+    { 
+        obfs
+        <<Magic<<Version
+        <<cat<<size<<RESERVED
+        ;
+        auto block = new Block_Ins();
+        this->blocks[0] = block;
+        
+        auto entry = Instruction(Instruction::Jump, 0);
+        entry.src.RESERVED = RESERVED;
+        block->push(entry);
+        
+    }
+    ~IR()
+    {
+        auto cid = this->block_cid();
+        for(auto& iter : blocks)
+        {
+            std::cout<<"saving id="<<iter.first<<std::endl;
+            iter.second->save(obfs);
+        }
 
-    ~IR(){ symb>>(*this); type>>(*this); }
+        this->main->save(obfs);
+        this->symb.save(obfs);
+        this->type.save(obfs);
+        this->obfs
+            .seek(sizeof(Magic)+sizeof(Version)+sizeof(Cat))
+            <<cid+3
+            ;
+        
+        this->obfs
+            .seek(sizeof(Magic)+sizeof(Version)
+                 +sizeof(Cat  )+sizeof(Size)+sizeof(RESERVED)
+                 +sizeof(Kind )+sizeof(Size)+sizeof(RESERVED)
+                 +sizeof(Instruction::Sort)
+            )
+            <<cid+1 // Jump to main block
+            ;
+
+    }
 
     inline IR& operator<<(Symbol&& symb)
-    { this->symb.irs.push_tail(*(Instruction*)&symb); return *this;}
+    { this->symb.push_tail(symb); return *this;}
     inline IR& operator<<(Type&& type)
-    { this->type.irs.push_tail(*(Instruction*)&type); return *this;}
+    { this->type.push_tail(type); return *this;}
 
     inline void push(Symbol&& symb)
-    { this->symb.irs.push_tail(*(Instruction*)&symb); }
+    { this->symb.push_tail(symb); }
     inline void push(Type&& type)
-    { this->type.irs.push_tail(*(Instruction*)&type); }
+    { this->type.push_tail(type); }
 
     inline ID block_cid()
     { return blocks.rbegin()->first; }
-    inline void set_current(ID id)
+
+    // save blocks whose ids \\in [~, id)
+    inline void save(ID id)
     {
-        this->current = id;
-        for(auto iter=this->blocks.begin()
+        auto iter=this->blocks.begin();
+        for(
         ;   iter->first<id
         ;   ++iter)
-            iter->second->save(*this);
-
-        this->blocks.erase(this->blocks.begin(), this->blocks.find(id));
-
+        {
+            std::cout<<"saving id="<<iter->first<<std::endl;
+            iter->second->save(this->obfs);
+        }
+        this->blocks.erase(this->blocks.begin(), iter);
     }
 };
 
-using Block = IR::Block_IR;
+using Block = IR::Block;
+using Block_Ins = IR::Block_Ins;
 using Blockp = Block*;
-
-inline Blockp move(Blockp& block)
+using Block_Insp = Block_Ins*;
+inline Block_Insp move(Block_Insp& block)
 {
     auto ret = block;
     block = nullptr;
     return ret;
 }
-inline Blockp concat(Blockp& left, Blockp& right)
+inline Block_Insp concat(Block_Insp& left, Block_Insp& right)
 {
-    Blockp ret;
+    Block_Insp ret;
     if(nullptr==right)
     { ret = left; left = nullptr; return ret; }
     
     if(nullptr==left)
     { ret = right; right = nullptr; return ret; }
 
-    left->irs + right->irs;
+    left->ls + right->ls;
     ret = left;
     delete right;
     left = right = nullptr;

@@ -21,6 +21,7 @@ using string = std::string;
 template<typename T> using stack = std::stack<T>; 
 template<typename T> using vector = std::vector<T>;
 template<typename K, typename V> using map = std::map<K, V>;
+template<typename K, typename V> using pair = std::pair<K, V>;
 
 using ID     = Byte4; /* unique identifier */
 using IDs    = vector<ID>; 

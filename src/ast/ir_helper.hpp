@@ -8,6 +8,19 @@ namespace ast{
 namespace ir{
 
 namespace instruction{
+
+inline Instruction BImm(ID dst, Bool  b)
+{
+    auto ins = Instruction(Instruction::BImm, dst);
+    ins.src.Bimm = b;
+    return ins;
+}
+inline Instruction CImm(ID dst, Char  c)
+{
+    auto ins = Instruction(Instruction::CImm, dst);
+    ins.src.Cimm = c;
+    return ins;
+}
 inline Instruction IImm(ID dst, Int   i)
 {
     auto ins = Instruction(Instruction::IImm, dst);
@@ -44,7 +57,11 @@ inline Instruction F2I(ID dst, ID src)
 inline Instruction Br(ID cond, ID fst, ID snd)
 { return Instruction(Instruction::Br, cond, fst, snd); }
 inline Instruction Jump(ID block)
-{ return Instruction(Instruction::Br, 0, block, 0x706D754A /* Jump */ ); }
+{ 
+    auto ins = Instruction(Instruction::Jump, block);
+    ins.src.RESERVED = RESERVED;
+    return ins; 
+}
 
 }
 namespace symbol{

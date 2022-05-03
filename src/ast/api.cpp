@@ -6,14 +6,20 @@ using Name = tc::ast::Name;
 
 void test(API& context);
 void test_let_x_101(API& context);
-void test_br(API& context);
-
+void test_if(API& context);
+void test_while(API& context);
 
 int main()
 {
     API context("test.hex"); // output filename
-    test_br(context);
-    
+    try
+    {
+        test_if(context);
+    }
+    catch(const char* str)
+    {
+        std::cerr << str << '\n';
+    }
 }
 
 void test_if(API& context)
@@ -23,12 +29,18 @@ void test_if(API& context)
     ,   context.Let(Name("Y"), context.I(1))
     ,   context.Let(Name("N"), context.I(0))
     );
+    context.set_main(_if);
+}
+
+void test_while(API& context)
+{
+
 }
 
 void test_let_x_101(API& context)
 {
     auto stmt = context.Let(Name("x"), context.I(101));
-    stmt->block->save(context.ir);
+    // stmt->block->save(context.ir);
 }
 
 void test(API& context)

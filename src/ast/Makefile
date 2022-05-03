@@ -17,7 +17,7 @@ test_ir_parser : ir_parser.out
 ir_parser.out : ir_parser.cpp
 	${CC} $< ${STD} -o $@
 
-ast.o : impl.cpp
+ast.o : impl.cpp ir_parser.hpp
 	${CC} $< ${STD} -c -o $@
 
 clean : 

@@ -47,8 +47,12 @@ struct Data
         { def[0]=Data(); }
         ~Namespace(){ delete sym; }
         /* constructor ensure def.rbegin() exists */
-        ID tid(){ return def.rbegin()->first  ; }
-        ID nid(){ return def.rbegin()->first+1; }
+        ID nid()
+        {
+            auto id = def.rbegin()->first+1;
+            def.insert(pair<ID, Data>(id, Data()));
+            return id;
+        }
 
         /* 0 -> NotFound */
         ID operator[](string& name)

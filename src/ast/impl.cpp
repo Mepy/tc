@@ -177,9 +177,7 @@ Stmt*	API::Let(Name name, Expr* expr, Typep type) // =nullptr
 
     
 
-    auto stmt = new stmt::Var(Stmt::Let, id, expr, type);
-
-    stmt->block = move(expr->block);
+    auto stmt = new stmt::Var(Stmt::Let, id, expr, type, move(expr->block));
     
 	return stmt;
 }
@@ -199,98 +197,109 @@ Stmt*	API::Var(Name name, Expr* expr, Typep type) // =nullptr
     data.expr = expr;
 	data.expr->type = new type::Typ(Type::Ref, type);
 
-	auto stmt = new stmt::Var(Stmt::Var, id, expr, type);
-
-    stmt->block = move(expr->block);
-    stmt->block->push(ins::Alloc(id, expr->id));
+	auto block = move(expr->block);
+	block->push(ins::Alloc(id, expr->id));
+	auto stmt = new stmt::Var(Stmt::Var, id, expr, type, block);
 
 	return stmt;
 }
 
-Stmt*	API::If(Expr* cond, Stmt* fst, Stmt* snd) // =nullptr
+void X(Stmt* stmt)
 {
-	if(nullptr==snd)
-		snd = new stmt::Empty(Stmt::Empty);
-	
-	Typing(cond, this->b);
-
-
-	auto& blocks = this->ir.blocks;
-
-	auto old_id = this->ir.current;
-	auto old_block = blocks[old_id];
-
-	auto cid = this->ir.block_cid();
-
-	auto cond_id = cid+1;
-
-	old_block->push(ins::Jump(cond_id));
-	auto cond_block = blocks[cond_id] = move(cond->block);
-	
-
-	auto fst_id = cid+2;
-	auto fst_block = blocks[fst_id] = move(fst->block);
-	
-	if(nullptr!=snd)
+	if(stmt->block_beg==stmt->block_end)
 	{
-		auto snd_id = cid+3;
-		auto snd_block = blocks[snd_id] = move(snd->block);
-		auto new_id = cid+4;
-		auto new_block = blocks[new_id] = new Block(ir::Kind::INST);
-		
-		cond_block->push(ins::Br(cond->id, fst_id, snd_id));
-		fst_block->push(ins::Jump(new_id));
-		snd_block->push(ins::Jump(new_id));
-		this->ir.set_current(new_id);
+		// only one block
 	}
 	else
 	{
-		auto new_id = cid+3;
-		cond_block->push(ins::Br(cond->id, fst_id, new_id));
-		fst_block->push(ins::Jump(new_id));
-		this->ir.set_current(new_id);
+		
 	}
+}
 
-	return new stmt::If(cond, fst, snd);
+Stmt*	API::If(Expr* cond, Stmt* fst, Stmt* snd) // =nullptr
+{
+	Typing(cond, this->b);
+	std::cout<<"If "<<std::endl;
+	auto& blocks = this->ir.blocks;
+
+	auto cid = this->ir.block_cid();
+
+	auto cond_block = move(cond->block);
+	
+	auto fst_id = cid+1;
+	blocks[fst_id] = move(fst->block_beg);
+	
+	ID         end_id   ;
+	Block_Insp end_block;
+	if(nullptr!=snd)
+	{
+		auto snd_id = cid+2;
+		blocks[snd_id] = move(snd->block_beg);
+		
+		end_id = cid+3;
+		blocks[end_id] = end_block = new Block_Ins();
+		
+		cond_block->push(ins::Br(cond->id, fst_id, snd_id));
+		fst->block_end->push(ins::Jump(end_id));
+		snd->block_end->push(ins::Jump(end_id));
+	}
+	else
+	{
+		end_id = cid+2;
+		blocks[end_id] = end_block = new Block_Ins();
+		cond_block->push(ins::Br(cond->id, fst_id, end_id));
+		fst->block_end->push(ins::Jump(end_id));
+	}
+	std::cout<<"hey end_id = "<<end_id<<std::endl;
+	this->ir.save(end_id);
+
+	return new stmt::If(cond, fst, snd, cond_block, end_block);
 }
 
 Stmt*	API::While(Expr* cond, Stmt* body) // nullptr
 {	
+	// cond->id == Expr's id
+	// cond_id == Block's id
+
 	Typing(cond, this->b);
 
 	auto& blocks = this->ir.blocks;
 
-	auto old_id = this->ir.current;
-	auto old_block = blocks[old_id];
 
 	auto cid = this->ir.block_cid();
+	auto beg_block = new Block_Ins();
+
 	auto cond_id = cid+1;
-	auto cond_block = blocks[cond_id] = move(cond->block);
+	auto cond_block = move(cond->block);
+	
+	beg_block->push(ins::Jump(cond_id));
 
-	old_block->push(ins::Jump(cond_id));
-
-	auto body_id = cid+2;
-	Block* body_block;
+	ID         end_id   ;
+	Block_Insp end_block;
 	if(nullptr==body)
-		body_block = blocks[body_id] = new Block(ir::Kind::INST);
+	{
+		end_id = cid+2;
+		cond_block->push(ins::Br(cond->id, cond_id, end_id));
+	}
 	else
-		body_block = blocks[body_id] = move(body->block);
+	{
+		auto body_id = cid+2;
+		blocks[body_id] = move(body->block_beg);
+		body->block_end->push(ins::Jump(cond_id));
 
-	body_block->push(ins::Jump(cond_id));
+		end_id = cid+3;
+		cond_block->push(ins::Br(cond->id, body_id, end_id));
+	}
+	blocks[end_id] = end_block = new Block_Ins();
 
-	auto new_id = cid+3;
-	blocks[new_id] = new Block(ir::Kind::INST);
+	this->ir.save(end_id);
 
-	cond_block->push(ins::Br(cond->id, body_id, new_id));
-
-	this->ir.set_current(new_id);
-
-	return new stmt::While(cond, body);
+	return new stmt::While(cond, body, beg_block, end_block);
 }
 
 Stmt*	API::Empty()
 {
-	return new stmt::Empty(Stmt::Empty);
+	return nullptr;
 }
 
 Stmt*	API::Break()
@@ -307,6 +316,7 @@ Stmt*	API::Ret(Expr* expr) // =nullptr
 {
 	if(nullptr==expr)
 		expr = new expr::U(this->u);
+
 	return new stmt::Exp(Stmt::Ret, expr);
 }
 
@@ -591,8 +601,8 @@ Expr*	API::B(Bool b)
     auto expr = new expr::B(b, type);
     auto id = this->expr.nid();
     ir.push(sym::Const(type->id));
-    expr->block->push(ins::IImm(id, b));
-
+    expr->block->push(ins::BImm(id, b));
+	
 	return expr;
 }
 
@@ -718,6 +728,13 @@ Expr*	API::BinOp(Expr* lhs, Oper oper, Expr* rhs)
 Expr*	API::New(Expr* expr, Expr* size) // =nullptr
 {
 	
+}
+
+void    API::set_main(Stmt* stmt)
+{
+	auto cid = this->ir.block_cid();
+	auto main = cid+1;
+	this->ir.main = move(stmt->block_beg);
 }
 
 }}
