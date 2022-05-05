@@ -23,14 +23,18 @@ Var    |  "let" "@" expr_name [":" Type]? "=" Expr ";"
 Var    |  "var" expr_name [":" Type]? "=" Expr ";" 
 If     |  "if" "(" Expr ")" Stmt ["else" Stmt]?
 While  |  "while" "(" Expr )" Stmt
-Break  |  "break" ";"
-Cont   |  "continue" ";"
+Break  |  "break" [integer]? ";"
+       /* no integer, just break
+        * exists integer n, break n while-body
+        * [TODO] Cont is similar.
+        */
+Cont   |  "continue" [integer]? ";"
 Ret    |  "return" [Expr]? ";" /* if no Expr, just fill with u0 "unit" */
 Exp    |  Expr ";" /* just Expr */
 Del    |  "del" Expr ";" /* Ptr T */
 
 Alias  |  "type" type_name "=" Type ";"
-ADT    |  "type" type_name "=" [ "|" expr_name [Type] ] ";"
+ADT    |  "type" type_name "=" [ "|" expr_name [Type | "$"] ] ";"
        /* TypeDef(type_name)
         * - Alias(Type)
         * - ADT
@@ -81,8 +85,9 @@ Fun    |  ("fun" | "\") [ ["@"]? expr_name [":" Type]?] "=>"
         * ExprFunStmt(Stmt) -> Stmt
         */
           /* TyCk : { [@? Type] -> Typeof(Stmt::Block|Expr)  } */
-App    |  ("$" | Expr) "(" [Expr] ")" /* "$" means Self, recursively call */
+App    |  ("$" | Expr) ["@"]? (" [Expr] ")" /* "$" means Self, recursively call */
        /* AppBeg(if "$" then NULL else Expr) 
+        * AppForceRetRef() /* "@" */
         * AppArg [Expr] for many times
         * ExprAppEnd
         */
@@ -114,21 +119,9 @@ Arr       |  Expr "**" integer   /* TyCk : T         ->  T[N] */
 Ele       |  Expr  "[" Expr "]"  /* TyCk : T[N], i64 ->     T */
 EleRef    |  Expr "@[" Expr "]"  /* TyCk : T[N], i64 -> Ref T */
 EleAddr   |  Expr "&[" Expr "]"  /* TyCk : T[N], i64 -> Ptr T */
-New       |  "new" Expr "**" [Expr]? 
-           /* if Expr = NULL, let it = 1 */
-           /* TyCk : (Expr1:Type Expr2:I64) -> Ptr Type */
-           /* if error, just terminate now  */
-           /* Expr1 is a default value to init the array
-            *  "new" Expr ["**" Expr]?
-            * TyCk :   T        I64    -> Ptr T
-            * "^" instead of "**" from Python, means power
-            * without "**" is OK, if no currying
-            * ambiguity : 
-            *   new 0 ** 2 should be New(0, 2)
-            *   instead of New(Arr(0, 2), NULL) 
-            *   if ** occurs, it must be New's seperator
-            *   new (0 ** 2) -> New(Arr(0, 2), NULL)
-            */
+New       |  "new" Expr
+           /* TyCk : T[N] -> Ptr T */
+           /* TyCk : T    -> Ptr T */
 
 UnOp   |  unary Expr 
             /* unary operator

@@ -63,6 +63,15 @@ inline Instruction Jump(ID block)
     return ins; 
 }
 
+inline Instruction Get(ID dst, ID pointer, ID offset=0)
+{ return Instruction(Instruction::Get, dst, pointer, offset); }
+
+inline Instruction Set(ID pointer, ID src, ID offset=0)
+{ return Instruction(Instruction::Set, pointer, src, offset); }
+
+inline Instruction PtrAdd(ID dst, ID pointer, ID offset)
+{ return Instruction(Instruction::PAdd, dst, pointer, offset); }
+
 }
 namespace symbol{
 
@@ -80,24 +89,14 @@ inline Symbol Clos (ID block){ return Symbol(Symbol::Clos , block); }
 }
 namespace type{
 
-inline Type Unit (){ return Type(Type::Unit , 0); }
-inline Type Bool (){ return Type(Type::Bool , 1); }
-inline Type Char (){ return Type(Type::Char , 2); }
-inline Type Int  (){ return Type(Type::Int  , 3); }
-inline Type Float(){ return Type(Type::Float, 4); }
+inline Type Unit (){ return Type(Type::Unit , 1); }
+inline Type Bool (){ return Type(Type::Bool , 2); }
+inline Type Char (){ return Type(Type::Char , 3); }
+inline Type Int  (){ return Type(Type::Int  , 4); }
+inline Type Float(){ return Type(Type::Float, 5); }
 
-inline Type ADT(bool is_recur, ID id)
-{ return Type(is_recur ?Type::ADTR :Type::ADT , id); }
-
-}
-
-namespace block{
-
-using Block_ID = parser::Block_ID;
-inline Block_ID* tcon()
-{ return new Block_ID(Kind::TCON); }
-inline Block_ID* tsum()
-{ return new Block_ID(Kind::TSUM); }
+inline Type ADT(ID id)
+{ return Type(Type::ADT, id); }
 
 }
 

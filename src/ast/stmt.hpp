@@ -1,101 +1,119 @@
 #ifndef tc_ast_stmt_hpp
 #define tc_ast_stmt_hpp
 
-#include "node.hpp"
-#include "rc.hpp"
+#include "head.hpp"
+#include "token.hpp"
 
 namespace tc{
 namespace ast{
 namespace stmt{
-struct Block : public Stmt
+
+struct Shape
+{
+    using Flag = enum { Undefined,
+        Block, If, While, 
+        Break, Cont, 
+        Ret, Exp, Del,
+        Let, Var, Check,
+        Alias, ADT
+    };
+    Flag flag;
+    Shape(Flag flag=Undefined):flag(flag){}
+};
+
+struct _block : public Shape
 {
     Stmts stmts;
-    Block(){}
-    ~Block(){
-        del(stmts);
-    }
+    _block():Shape(Block){}
 };
 
-// Empty, Break, Cont
-struct Empty : public Stmt
+struct _let : public Shape
 {
-    Empty(Flag flag):Stmt(flag){}
-    ~Empty(){}
-};
-
-// Ret, Exp, Del
-struct Exp : public Stmt
-{
-    Exprp expr;
-    Exp(Flag flag, Exprp expr, Block_Insp block)
-    :Stmt(flag, block, block), expr(expr){}
-    ~Exp(){
-        del(expr);
-    }
-};
-
-struct Check : public Stmt
-{
-    Exprp expr; 
-    Typep type;
-    Check(Typep type):type(type){}
-    ~Check(){
-        del(expr);
-        decr(type);
-    }
-};
-
-// Let, Var
-struct Var : public Stmt
-{
-    ID id; /* expr_name -> ID */
+    Name name;
     Typep type;
     Exprp expr;
-    Var(Flag flag, ID id, Exprp expr, Typep type, Block_Insp block)
-    :Stmt(flag, block, block), id(id), expr(expr), type(type){}
-    ~Var(){
-        del(expr);
-        decr(type);
-    }
+    _let(Name name, Typep type, Exprp expr)
+    :Shape(Let), name(name), type(type), expr(expr){}
 };
 
-struct If : public Stmt
+struct _var : public Shape
+{
+    Name name;
+    Typep type;
+    Exprp expr;
+    _var(Name name, Typep type, Exprp expr)
+    :Shape(Var), name(name), type(type), expr(expr){}
+};
+
+struct _if : public Shape
 {
     Exprp cond;
     Stmtp fst;
     Stmtp snd;
-    If(Exprp cond, Stmtp fst, Stmtp snd, Block_Insp beg, Block_Insp end)
-    :Stmt(Stmt::If, beg, end), cond(cond), fst(fst), snd(snd){}
-    ~If(){
-        del(cond);
-        del(fst);
-        del(snd);
-    }
+    _if(Exprp cond, Stmtp fst, Stmtp snd)
+    :Shape(If), cond(cond), fst(fst), snd(snd){}
 };
 
-struct While : public Stmt
+struct _while : public Shape
 {
     Exprp cond;
     Stmtp body;
-    While(Exprp cond, Stmtp body, Block_Insp beg, Block_Insp end)
-    :Stmt(Stmt::While, beg, end), cond(cond), body(body){}
-    ~While(){
-        del(cond);
-        del(body);
-    }
+    _while(Exprp cond, Stmtp body)
+    :Shape(While), cond(cond), body(body){}
 };
 
-// As for Alias and ADT, they are erased in compile-time,
-// therefore not a AST node structure
-
-struct TypeDef : public Stmt
+struct _break : public Shape
 {
-    ID id;
-    TypeDef(ID id)
-    :Stmt(Flag::TypeDef), id(id){}
-    ~TypeDef(){}
+    Size size;
+    _break(Size size)
+    :Shape(Break), size(size){}
+};
+
+struct _cont : public Shape
+{
+    Size size;
+    _cont(Size size)
+    :Shape(Cont), size(size){}
+};
+
+struct _ret : public Shape
+{
+    Exprp expr;
+    _ret(Exprp expr)
+    :Shape(Ret), expr(expr){}
+};
+
+struct _exp : public Shape
+{
+    Exprp expr;
+    _exp(Exprp expr)
+    :Shape(Exp), expr(expr){}
+};
+
+struct _del : public Shape
+{
+    Exprp expr;
+    _del(Exprp expr)
+    :Shape(Exp), expr(expr){}
+};
+
+struct _alias :  public Shape
+{
+    Name  name;
+    Typep type;
+    _alias(Name name, Typep type)
+    :Shape(Alias), name(name), type(type){}
+};
+
+struct _check : public Shape
+{
+    Exprp expr;
+    Typep type;
+    _check(Exprp expr, Typep type)
+    :Shape(Check), expr(expr), type(type){}
 };
 
 }}}
+
 
 #endif

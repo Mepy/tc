@@ -1,6 +1,8 @@
 #ifndef tc_ast_api_hpp
 #define tc_ast_api_hpp
 
+#include "head.hpp"
+#include "token.hpp"
 #include "context.hpp"
 
 namespace tc{
@@ -12,27 +14,26 @@ struct API : public Context
     void  BlockBegin();
     void  BlockStmt(Stmt* stmt);
     Stmt* BlockEnd();
-    Stmt* Let(Name name, Expr* expr, Type* type=NULL);
-    Stmt* Var(Name name, Expr* expr, Type* type=NULL);
-    Stmt* If(Expr* cond, Stmt* fst, Stmt* snd=NULL);
-    void  WhileBeg();
+    Stmt* Let(Name name, Expr* expr, Type* type=nullptr);
+    Stmt* Var(Name name, Expr* expr, Type* type=nullptr);
+    Stmt* If(Expr* cond, Stmt* fst, Stmt* snd=nullptr);
     Stmt* While(Expr* cond, Stmt* stmt);
     Stmt* Empty();
-    Stmt* Break();
-    Stmt* Cont();
-    Stmt* Ret(Expr* expr=NULL);
+    Stmt* Break(Size size=1);
+    Stmt* Cont(Size size=1);
+    Stmt* Ret(Expr* expr=nullptr);
     Stmt* Exp(Expr* expr);
     Stmt* Del(Expr* expr);
     
     void  TypeDef(Name name);
     Stmt* Alias(Type* type);
     void  ADTBranchBegin(Name cons);
-    void  ADTBranchType(Type* type);
+    void  ADTBranchType(Type* type=nullptr);
     void  ADTBranchEnd();
     Stmt* ADT();
 
     // compile-time type check
-    Stmt* Check(Expr* expr, Type* type=NULL);
+    Stmt* Check(Expr* expr, Type* type=nullptr);
 
     /* Type */
     Type* U();
@@ -54,8 +55,10 @@ struct API : public Context
     Expr* ExprVar(Name name);
     Expr* ExprVarRef(Name name);
 
-    void  AppBeg(Expr* func=NULL);
-    void  AppArg(Expr* para);
+    
+    void  AppBeg(Expr* func=nullptr);
+    void  AppForceRetRef();
+    void  AppArg(Expr* arg);
     Cell* CellAppEnd();
     Expr* ExprAppEnd();
 
@@ -76,8 +79,8 @@ struct API : public Context
     Expr* F(Float f);
 
     void  ExprFunBeg();
-    void  ExprFunRefArg(Name name, Type* type=NULL);
-    void  ExprFunArg(Name name, Type* type=NULL);
+    void  ExprFunRefArg(Name name, Type* type=nullptr);
+    void  ExprFunArg(Name name, Type* type=nullptr);
     Expr* ExprFunExpr(Expr* expr);
     Expr* ExprFunStmt(Stmt* stmt);
 
@@ -95,15 +98,18 @@ struct API : public Context
     Expr* UnOp(Oper oper, Expr* Expr);
     Expr* BinOp(Expr* lhs, Oper oper, Expr* rhs);
 
-    Expr* New(Expr* expr, Expr* size=NULL);
+    Expr* New(Expr* expr);
 
 
-    API(std::string path);
+    API();
     ~API();
-public: /* ONLY for DEBUG, do NOT use */
-    void set_main(Stmt* stmt);
 private:
-    Type* Typing(Expr* expr, Type* type=NULL);
+    bool  Typing(Expr* expr, Type* type=nullptr);
+    bool  TypeEq(Expr* lhs, Expr* rhs);
+    Expr* Dereference(Expr* expr);
+    Type* TypeInfer(Type* type=nullptr); // return Infer type;
+    Expr* Element(Expr* array, Expr* index);
+    Expr* Binary(expr::Shape::Flag flag, Expr* lhs, Expr* rhs, Type* type);
 };
 
 }}

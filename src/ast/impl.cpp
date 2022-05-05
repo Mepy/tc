@@ -4,500 +4,359 @@
 #include "expr.hpp"
 
 #include <iostream>
+#include "context.hpp"
 #include "ir_helper.hpp"
+
 namespace tc{
 namespace ast{
 
-using Ins = ir::Instruction;
+namespace Th = type::helper;
+namespace Eh = expr::helper;
 
-namespace ins = ir::instruction;
-namespace sym = ir::symbol;
-namespace typ = ir::type;
+// [TODO] : AST ~> IR
 
-// [MM] : WARNING
-void unify(Typep& t1, Typep& t2) 
+API::API()
 {
-	if(t1==t2)
-		return;
+	this->type.insert(Type(1, Th::u(), ir::type::Unit ()));
+	this->type.insert(Type(2, Th::b(), ir::type::Bool ()));
+	this->type.insert(Type(3, Th::c(), ir::type::Char ()));
+	this->type.insert(Type(4, Th::i(), ir::type::Int  ()));
+	this->type.insert(Type(5, Th::f(), ir::type::Float()));
 
-	if(Type::Infer==t1->flag)
-	{
-		if(Type::Infer!=t2->flag)
-			t1 = t2;
-		else // Both Infer
-		{
-			auto ty1 = (type::Typ*)t1;
-			auto ty2 = (type::Typ*)t2;
+	this->expr.insert(Expr(1, Eh::u(), this->U()));
 
-			if(nullptr==ty1->type)
-			{
-				if(nullptr==ty2->type)
-					t2 = t1;
-				else
-					t1 = t2 = ty2->type;
-			}
-			else // nullptr!=ty1->type
-			{
-				if(nullptr==ty2->type)
-					t2 = t1 = ty1->type;
-				else // nullptr!=ty2->type
-				{
-					unify(ty1->type, ty2->type);
-					t1 = t2; 
-				}
-			}
-		}
-	}
-	else
-	{
-		if(Type::Infer==t2->flag)
-			t2 = t1;
-		else if(t1->flag!=t2->flag)
-			throw "Not Typed.\n"; // [TODO] throw better msg
-		else switch(t1->flag)
-		{
-			case Type::Infer: // tc Compiler bugs here
-				throw "TC COMPILER DEBUG please.\n";
-			case Type::U:case Type::B:case Type::C:
-        	case Type::I:case Type::F: break;
+	this->type.insert(Type(6, Th::adt(), ir::type::ADT(6)));
 
-			case Type::ADT: 
-				if(t1->id==t2->id)
-					break;
-				else
-					throw "Not Typed.\n";
-			case Type::Ref:
-			case Type::Ptr:
-			{
-				auto ty1 = (type::Typ*)t1;
-				auto ty2 = (type::Typ*)t2;
-				unify(ty1->type, ty2->type);
-				break;
-			}
-			case Type::Arr:
-			{
-				auto ty1 = (type::Arr*)t1;
-				auto ty2 = (type::Arr*)t2;
-				if(ty1->size!=ty2->size)
-					throw "Not Typed Array Size.\n";
-				
-				unify(ty1->type, ty2->type);
-				break;
-			}
-			case Type::Fun:
-			{
-				auto ty1 = (type::Fun*)t1;
-				auto ty2 = (type::Fun*)t2;
-				auto& params1 = ty1->params;
-				auto& params2 = ty2->params;
-
-				if(params1.size()!=params2.size())
-					throw "Not Typed Fun Params Size.\n";
-				
-				unify(ty1->retype, ty2->retype);
-
-				for(auto it1=params1.begin(), it2=params2.begin()
-				;   it1!=params1.end()
-				;   ++it1, ++it2)
-					unify(*it1, *it2);
-
-				break;
-			}
-			
-
-        	default: break;
-		}
-	}
-
-}
-
-API::API(std::string path)
-:Context(path)
-{
-	this->u = new type::Atom(Type::U, 0);
-	this->ir.push(ir::type::Unit ());
-    this->b = new type::Atom(Type::B, 1);
-	this->ir.push(ir::type::Bool ());
-    this->c = new type::Atom(Type::C, 2);
-	this->ir.push(ir::type::Char ());
-	this->i = new type::Atom(Type::I, 3);
-	this->ir.push(ir::type::Int  ());
-	this->f = new type::Atom(Type::F, 4);
-	this->ir.push(ir::type::Float());
-
-	this->unit = new expr::U(this->u);
-	this->unit->id = 0;
-	this->ir.push(sym::Const(0));
-
-	this->adt = new type::ADT();
+	this->adt = &(this->type[6]);
 }
 API::~API()
 {
-	decr(u);
-    decr(b);
-    decr(c);
-    decr(i);
-    decr(f);
 
-	decr(adt);
 }
 
 void	API::BlockBegin()
 {
-	auto block = new stmt::Block();
-	block->flag = Stmt::Block;
-	// this->nodes.push(block);
-
 	this->type.scope_beg();
 	this->expr.scope_beg();
+	this->blocks.push(new Stmt(new stmt::_block()));
 }
 
-void	API::BlockStmt(Stmt* stmt)
+void	API::BlockStmt(Stmtp stmt)
 {
-	auto block = (stmt::Block*)(this->nodes.top());
-	if( ! (stmt->flag==Stmt::Empty) )
-		block->stmts.push_back(stmt);
+	if(nullptr!=stmt)
+	{
+		auto block = this->blocks.top();
+		auto shape = ((stmt::_block*)(block->shape));
+		shape->stmts.push_back(stmt);
+	}
 }
 
-Stmt*	API::BlockEnd()
+Stmtp	API::BlockEnd()
 {
-	auto stmt = (Stmt*)(this->nodes.top());
-	this->nodes.pop();
+	auto block = this->blocks.top();
+	this->blocks.pop();
 	this->type.scope_end();
 	this->expr.scope_end();
-	return stmt;
+	return block;
 }
 
-Stmt*	API::Let(Name name, Expr* expr, Typep type) // =nullptr
+Stmtp	API::Let(Name name, Exprp expr, Typep type) // = nullptr
 {
-	std::cout<<"let "<<name<<" = "<<((expr::I*)expr)->i<<std::endl;
 	if(nullptr==type)
-		type = 
-			new type::Typ(Type::Infer, type);
+	{
+		auto id = this->type.nid();
+		this->type.insert(Type(id, new type::Typ(type::Shape::Infer, 0)));
+		type = &(this->type[id]);
+	}
 
     Typing(expr, type);
 
-    auto id = expr->id;
-	this->expr[id].names.push_back(name);
+	this->expr.give(expr->id, name);
 
-    auto stmt = new stmt::Var(Stmt::Let, id, expr, type, move(expr->block));
-    
-	return stmt;
+	return new Stmt(new stmt::_let(name, type, expr));
 }
 
-Stmt*	API::Var(Name name, Expr* expr, Typep type) // =nullptr
+Stmtp	API::Var(Name name, Exprp expr, Typep type) // = nullptr
 {
 	if(nullptr==type)
-		type = 
-			new type::Typ(Type::Ref, 
-				new type::Typ(Type::Infer, type));
+	{
+		auto id = this->type.nid();
+		this->type.insert(Type(id, new type::Typ(type::Shape::Infer, 0)));
+		type = &(this->type[id]);
+	}
     Typing(expr, type);
 
-    auto id = this->expr.nid();
+	auto tid = this->type.nid();
+	this->type.insert(Type(tid, new type::Typ(type::Shape::Ref, 0)));
 
-	auto& data = this->expr[id];
-    data.names.push_back(name);
-    data.expr = expr;
-	data.expr->type = new type::Typ(Type::Ref, type);
+	this->expr.give(expr->id, name);
 
-	auto block = move(expr->block);
-	block->push(ins::Alloc(id, expr->id));
-	auto stmt = new stmt::Var(Stmt::Var, id, expr, type, block);
-
-	return stmt;
+	return new Stmt(new stmt::_var(name, type, expr));
 }
 
-
-Stmt*	API::If(Expr* cond, Stmt* fst, Stmt* snd) // =nullptr
+Stmtp	API::If(Exprp cond, Stmtp fst, Stmtp snd) // = nullptr
 {
-	Typing(cond, this->b);
-	std::cout<<"If "<<std::endl;
-	auto& blocks = this->ir.blocks;
+	Typing(cond, this->B());
 
-	auto cid = this->ir.block_cid();
-
-	auto cond_block = move(cond->block);
-	
-	auto fst_id = cid+1;
-	blocks[fst_id] = move(fst->block_beg);
-	
-	ID         end_id   ;
-	Block_Insp end_block;
-	if(nullptr!=snd)
-	{
-		auto snd_id = cid+2;
-		blocks[snd_id] = move(snd->block_beg);
-		
-		end_id = cid+3;
-		blocks[end_id] = end_block = new Block_Ins();
-		
-		cond_block->push(ins::Br(cond->id, fst_id, snd_id));
-		fst->block_end->push(ins::Jump(end_id));
-		snd->block_end->push(ins::Jump(end_id));
-	}
-	else
-	{
-		end_id = cid+2;
-		blocks[end_id] = end_block = new Block_Ins();
-		cond_block->push(ins::Br(cond->id, fst_id, end_id));
-		fst->block_end->push(ins::Jump(end_id));
-	}
-	this->ir.save(end_id);
-
-	return new stmt::If(cond, fst, snd, cond_block, end_block);
+	return new Stmt(new stmt::_if(cond, fst, snd));
 }
 
-// [TODO] while-list
-void    API::WhileBeg()
-{
-
-}
-
-Stmt*	API::While(Expr* cond, Stmt* body) // nullptr
+Stmtp	API::While(Exprp cond, Stmtp body) // nullptr
 {	
-	// cond->id == Expr's id
-	// cond_id == Block's id
+	Typing(cond, this->B());
 
-	Typing(cond, this->b);
-
-	auto& blocks = this->ir.blocks;
-
-
-	auto cid = this->ir.block_cid();
-	auto beg_block = new Block_Ins();
-
-	auto cond_id = cid+1;
-	auto cond_block = move(cond->block);
-	
-	beg_block->push(ins::Jump(cond_id));
-
-	ID         end_id   ;
-	Block_Insp end_block;
-	if(nullptr==body)
-	{
-		end_id = cid+2;
-		cond_block->push(ins::Br(cond->id, cond_id, end_id));
-	}
-	else
-	{
-		auto body_id = cid+2;
-		blocks[body_id] = move(body->block_beg);
-		body->block_end->push(ins::Jump(cond_id));
-
-		end_id = cid+3;
-		cond_block->push(ins::Br(cond->id, body_id, end_id));
-	}
-	blocks[end_id] = end_block = new Block_Ins();
-
-	this->ir.save(end_id);
-
-	return new stmt::While(cond, body, beg_block, end_block);
+	return new Stmt(new stmt::_while(cond, body));
 }
 
-Stmt*	API::Empty()
+Stmtp	API::Empty()
 {
 	return nullptr;
 }
 
-// [TODO] : while-list
-Stmt*	API::Break()
+Stmtp	API::Break(Size size)
 {
-	return new stmt::Empty(Stmt::Break);
+	return new Stmt(new stmt::_break(size));
 }
 
-// [TODO] : while-list
-Stmt*	API::Cont()
+Stmtp	API::Cont(Size size)
 {
-	return new stmt::Empty(Stmt::Cont);
+	return new Stmt(new stmt::_cont(size));
 }
 
-// [TODO] : return type
-Stmt*	API::Ret(Expr* expr) // =nullptr
+Stmtp	API::Ret(Exprp expr) // = nullptr
 {
-	auto type = Typing(expr);
+	if(this->funcs_retyck.empty())
+		throw "API:Ret not in function's body;";
 
-	Block_Insp block;
-	if(nullptr==expr)
-	{
-		block = new Block_Ins();
-		block->push(ins::Return(0));
-	}
-	else
-	{
-		block = move(expr->block);
-		block->push(ins::Return(expr->id));
-	}
-	return new stmt::Exp(Stmt::Ret, expr, block);
+	auto fun = this->funcs_retyck.top();
+	auto shape = (type::Fun*)(fun->type->shape);
+
+	auto& type = this->type[shape->retype];
+	Typing(expr, &type);
+
+	return new Stmt(new stmt::_ret(expr));
 }
 
-Stmt*	API::Exp(Expr* expr)
+Stmtp	API::Exp(Exprp expr)
 {
-	return new stmt::Exp(Stmt::Exp, expr, move(expr->block));
+	return new Stmt(new stmt::_exp(expr));
 }
 
-Stmt*	API::Del(Expr* expr)
+Stmtp	API::Del(Exprp expr)
 {
-	auto type = Typing(expr);
+	auto type = expr->type;
 
-	if(type->flag!=Type::Ptr)
-		throw "Del Not-A-Pointer";
+	if(type::Shape::Ptr!=type->shape->flag)
+		throw "API::Del Not-A-Pointer";
 	
-	auto block = move(expr->block);
-	block->push(ins::Delete(expr->id));
-
-	return new stmt::Exp(Stmt::Del, expr, block);
+	return new Stmt(new stmt::_del(expr));
 }
 
 void	API::TypeDef(Name name)
 {
 	this->type_name = name;
-	auto id = this->ir.type.size;
-	this->adt->id = id;
-	this->type.sym->insert(pair<string, ID>(name, id));
-	
-	this->type.def[id] = type::Data(name, this->adt);
-	this->ir.adt.type = id;
 }
 
-Stmt*	API::Alias(Typep type)
+Stmtp	API::Alias(Typep type)
 {
-	auto  tid   = type->id; 
+	this->type.give(type->id, this->type_name);
 
-	auto& names = this->type[tid].names;
-	names.push_back(this->type_name);
-	auto& id = this->type.sym->operator[](this->type_name);
-
-	this->type.def.erase(id);
-	id = tid; 
-
-	return nullptr;
+	return new Stmt(new stmt::_alias(this->type_name, type));;
 }
 
 void	API::ADTBranchBegin(Name cons)
 {
-	auto id = this->expr.nid(cons);
-	this->ir.adt.tsum->push(id);
+	auto shape = (type::ADT*)(this->adt->shape);
+
+	auto eid = this->expr.nid();
+	auto tid = this->type.nid();
+	this->type.insert(Type(tid, new type::Fun(this->adt->id)));
+	auto type = &(this->type[tid]);
+
+	this->expr.insert(Expr(eid, Eh::ctor(), type, ir::symbol::Ctor(0)));
+	this->expr.give(eid, cons);
+	
+	shape->cons.push_back(eid);
 }
 
-void	API::ADTBranchType(Typep type)
+void	API::ADTBranchType(Typep type) // = nullptr
 {
-	if(this->adt==type)
-		this->ir.adt.is_recur = true;
+	if(nullptr==type)
+		type = this->adt;
 
-	this->ir.adt.tcon->push(type->id);
+	auto con_id = ((type::ADT*)(this->adt->shape))->cons.back();
+	auto con_type = this->expr[con_id].type;
+	auto shape = (type::Fun*)(con_type->shape);
+
+	shape->params.push_back(type->id);
+
+	if(this->adt==type&&ir::Type::ADTR!=this->adt->type.sort)
+		this->adt->type.sort = ir::Type::ADTR;
 }
 
 void	API::ADTBranchEnd()
 {
-	auto cid     = this->ir.block_cid();
-	auto tcon_id = cid + 1;
-	auto block = 
-		move(this->ir.adt.tcon
-		,	 ir::block::tcon());
-	block->push(this->adt->id);
+	auto con_id = ((type::ADT*)(this->adt->shape))->cons.back();
+	auto con_type = this->expr[con_id].type;
+	auto shape = (type::Fun*)(con_type->shape);
 
-	this->ir.blocks[tcon_id] = block;
-	this->ir.push(sym::Ctor(tcon_id));
+	if(0==shape->params.size()) // Not a function-like constructor
+	{
+		delete shape;
+		con_type->shape = Th::infer(this->adt->id);
+	}
 }
 
-Stmt*	API::ADT()
+Stmtp	API::ADT()
 {
-	auto cid     = this->ir.block_cid();
-	auto tsum_id = cid + 1;
-	this->ir.blocks[tsum_id] = 
-		move(this->ir.adt.tsum
-		,	 ir::block::tsum());
+	this->type.give(this->adt->id, this->type_name);
 
-	this->ir.push(typ::ADT(this->ir.adt.is_recur, tsum_id));
-	this->ir.adt.clear();
+	auto stmt = new Stmt(new stmt::_alias(this->type_name, this->adt));;
 
-	this->adt = new type::ADT(); // replace the old one
+	// replace the old adt
+	auto id = this->type.nid();
+	this->type.insert(Type(id, Th::adt(), ir::type::ADT(id)));
+	this->adt = &(this->type[id]);
 
-	return nullptr;
+	return stmt;
 }
 
-Stmt*   API::Check(Expr* expr, Typep type)
+Stmtp   API::Check(Exprp expr, Typep type)
 {
 	Typing(expr, type);
-	return nullptr;
+
+	return new Stmt(new stmt::_check(expr, type));
 }
 
 /* type */
 
-// [MM] [TODO]
-/* return NOT nullptr */
-Typep	API::Typing(Expr* expr, Typep type) 
+bool	API::TypeEq(Expr* lhs, Expr* rhs)
 {
-	auto& ty = expr->type;
-	if(nullptr!=type)
-		unify(ty, type);
-	
-	return ty;
+	try{ this->unify(*(lhs->type), *(rhs->type)); }
+	catch(const char* msg)
+	{
+		std::cout<<"Unification Error : \n"
+		<<msg<<std::endl;
+		return false;
+	}
+
+	// unify will modify expr->type
+	// ensure expr->type has such property : 
+	// Either Infer 0
+	// Or     Known T
+	{
+	auto shape = ((type::Typ*)(lhs->type->shape));
+	if(type::Shape::Infer==shape->flag&&shape->id!=0)
+		lhs->type = &(this->type[shape->id]);
+	}
+	{
+	auto shape = ((type::Typ*)(rhs->type->shape));
+	if(type::Shape::Infer==shape->flag&&shape->id!=0)
+		rhs->type = &(this->type[shape->id]);
+	}
+
+	return true;
+}
+// [TODO] : Check this function
+bool	API::Typing(Exprp expr, Typep type) 
+{
+	try{ this->unify(*(expr->type), *type); }
+	catch(const char* msg)
+	{
+		std::cout<<"Unification Error : \n"
+		<<msg<<std::endl;
+		return false;
+	}
+	// unify will modify expr->type
+	// ensure expr->type has such property : 
+	// Either Infer 0
+	// Or     Known T
+	auto shape = ((type::Typ*)(expr->type->shape));
+	if(type::Shape::Infer==shape->flag&&shape->id!=0)
+		expr->type = &(this->type[shape->id]);
+
+	return true;
 }
 
 Typep	API::U()
 {
-	return incr(this->u);
+	return &(this->type[1]);
 }
 
 Typep	API::B()
 {
-	return incr(this->b);
+	return &(this->type[2]);
 }
 
 Typep	API::C()
 {
-	return incr(this->c);
+	return &(this->type[3]);
 }
 
 Typep	API::I()
 {
-	return incr(this->i);
+	return &(this->type[4]);
 }
 
 Typep	API::F()
 {
-	return incr(this->f);
+	return &(this->type[5]);
 }
 
+// [Improve] : name == this->type_name
 Typep	API::TypeVar(Name name)
 {
-	return incr(
+	if(name==this->type_name)
+		return this->adt;
+	return &(
 		this->type[ // find data
 			this->type[name] // find id
-			].type);
+			]);
 }
 
 Typep	API::TypeRef(Typep type)
 {
-	return new type::Typ(Type::Ref, type);
+	auto id = this->type.nid();
+	this->type.insert(Type(id, Th::ref(type->id)));
+	return &(this->type[id]);
 }
 
 Typep	API::TypePtr(Typep type)
 {
-	return new type::Typ(Type::Ptr, type);
+	auto id = this->type.nid();
+	this->type.insert(Type(id, Th::ptr(type->id)));
+	return &(this->type[id]);
 }
 
 Typep	API::TypeArr(Typep type, Size size)
 {
-	return new type::Arr(type, size);
+	auto id = this->type.nid();
+	this->type.insert(Type(id, Th::array(type->id, size)));
+	return &(this->type[id]);
 }
 
 void	API::TypeFunBeg()
 {
-	auto type = new type::Fun();
-	this->nodes.push(type);
+	auto id = this->type.nid();
+	this->type.insert(Type(id, Th::fun()));
+	auto type = &(this->type[id]);
+
+	this->func_types.push(type);
 }
 void	API::TypeFunArg(Typep type)
 {
-	auto fun = (type::Fun*)(this->nodes.top());
-	fun->params.push_back(type);
+	auto fun = this->func_types.top();
+	auto shape = ((type::Fun*)(fun->shape));
+	shape->params.push_back(type->id);
 }
 Typep	API::TypeFunEnd(Typep rety)
 {
-	auto fun = (type::Fun*)(this->nodes.top());
-	this->nodes.pop();
-	fun->retype = rety;
+	auto fun = this->func_types.top();
+	auto shape = ((type::Fun*)(fun->shape));
+	shape->retype = rety->id;
+
+	this->func_types.pop();
+
 	return fun;
 }
 
@@ -505,239 +364,754 @@ Typep	API::TypeFunEnd(Typep rety)
 
 Cell*	API::CellVar(Name name)
 {
-    // TODO memory management for type
 	auto id = this->expr[name];
-	auto& data = this->expr[id];
-    auto type = data.expr->type;
-	if(Type::Ref==type->flag)
-	{
-		auto cell = new expr::Var(id);
-		cell->type = incr(type);
-		return (Cell*)cell;
-	}
-	else
-		throw "CellVar Not-A-Ref";
-}
+	if(0==id)
+		throw "API::CellVar Name Not Found;";
+	auto cell = &(this->expr[id]);
+	auto type = cell->type;
 
-Expr*	API::ExprVar(Name name)
-{
-    // [MM] : type
-	auto id = this->expr[name];
-	auto& data = this->expr[id];
-	auto type = data.expr->type;
-	auto expr = new expr::Var(id);
-
-	if(Type::Ref==type->flag)
-		expr->type = ((type::Typ*)type)->type;
-	else
-		expr->type = type;
+	if(type::Shape::Ref!=type->shape->flag)
+		throw "API::CellVar Not A Ref;";
 	
-	return expr;
+	return (Cell*)cell;
 }
 
-Expr*	API::ExprVarRef(Name name)
+Exprp   API::Dereference(Exprp ref)
 {
-    // [MM] : type
+	auto r_id = ref->id;
+	auto r_type = ref->type;
+	auto shape = ((type::Typ*)(r_type->shape));
+	auto v_type = &(this->type[shape->id]);
+	auto v_id = this->expr.nid();
+	this->expr.insert(Expr(v_id, Eh::get(r_id), v_type));
+	return &(this->expr[v_id]);
+}
+Exprp	API::ExprVar(Name name)
+{
 	auto id = this->expr[name];
-	auto& data = this->expr[id];
-	auto type = data.expr->type;
-	auto expr = new expr::Var(id);
 
-	if(Type::Ref==type->flag)
-		expr->type = type;
+	if(0==id)
+		throw "API::ExprVar Name Not Found;";
+
+	auto expr = &(this->expr[id]);
+
+	if(type::Shape::Ref==expr->type->shape->flag)
+		return this->Dereference(expr); // auto dereference
 	else
-		throw "VarRef Not-A-Ref";
-	
-	return expr;
+		return expr;
 }
 
-void	API::AppBeg(Expr* func) // = nullptr
+Exprp	API::ExprVarRef(Name name)
+{
+	auto id = this->expr[name];
+	if(0==id)
+		throw "API::ExprVarRef Name Not Found;";
+
+	auto expr = &(this->expr[id]);
+	auto type = expr->type;
+
+	if(type::Shape::Ref==type->shape->flag)
+		throw "API::ExprVarRef Not A Ref;";
+	
+	return expr;	
+}
+
+void	API::AppBeg(Exprp func) // = nullptr
 {
 	if(nullptr==func)
-		func = this->fun;
+		func = this->funcs.top();
 	
-	
-}
 
-void	API::AppArg(Expr* para)
+	if(type::Shape::Fun!=func->type->shape->flag)
+		throw "API::AppBeg Not A Fun Type;";
+
+	auto shape = ((type::Fun*)(func->type->shape));
+	auto retype_id = shape->retype;
+
+	auto retype = &(this->type[retype_id]);
+
+	auto id = this->expr.nid();
+	this->expr.insert(Expr(id, Eh::call(func->id), retype));
+	auto call = &(this->expr[id]);
+
+	this->calls.push(call);
+}
+void    API::AppForceRetRef()
 {
-	
+	auto call = this->calls.top();
+	auto call_shape = ((expr::Call*)(call->shape));
+	auto func_id = call_shape->func;
+
+	auto func = &(this->expr[func_id]);
+	auto shape = (type::Fun*)(func->type->shape);
+	auto retype = &(this->type[shape->retype]);
+
+	if(type::Shape::Ref!=retype->shape->flag)
+		throw "API::AppForceRetRef Return Not A Ref;";
+
+	call_shape->flag = expr::Shape::CallRef;
+}
+void	API::AppArg(Exprp arg)
+{
+	auto call = this->calls.top();
+	auto shape = ((expr::Call*)(call->shape));
+	shape->args.push_back(arg->id);
 }
 
 Cell*	API::CellAppEnd()
 {
+	auto call = this->calls.top();
+	auto call_shape = ((expr::Call*)(call->shape));
+	auto func_id = call_shape->func;
 
-}
-
-Expr*	API::ExprAppEnd()
-{
+	auto func = &(this->expr[func_id]);
+	auto shape = (type::Fun*)(func->type->shape);
+	auto retype = &(this->type[shape->retype]);
 	
-}
-
-// TODO
-Cell*	API::CellEle(Cell* cell, Expr* index)
-{
-	auto cell_ty = (((Expr*)cell)->type);
-	if(Type::Infer==cell_ty->flag)
-		;
+	if(type::Shape::Ref!=retype->shape->flag)
+		throw "API::CellAppEnd Not A Ref;";
 	
+	call_shape->flag = expr::Shape::CallRef;
+
+	return (Cell*)call;
+}
+// nullptr -> Infer 0
+// ...     -> Infer 0 
+//          | Known
+Typep   API::TypeInfer(Typep ty)
+{
+	if(nullptr==ty)
+	{
+		auto tid = this->type.nid();
+		this->type.insert(Type(tid, Th::infer(0)));
+		auto type = &(this->type[tid]);
+
+		return type;
+	}
+
+	auto shape = ((type::Typ*)(ty->shape));
+	if(type::Shape::Infer==shape->flag&&shape->id!=0)
+		return &(this->type[shape->id]);
+	else
+		return ty;
 }
 
-Expr*	API::ExprEle(Expr* expr, Expr* index)
+Exprp  API::Element(Expr* array, Expr* index)
 {
-	
+	Typing(index, this->I());
+
+	auto array_type = array->type;
+
+	switch(array_type->shape->flag)
+	{
+	case type::Shape::Array:
+	{
+		// [TODO] : static array bound check if possible
+		auto tid = ((type::Array*)(array_type->shape))->id;
+		auto type = &(this->type[tid]);
+
+		auto eid = this->expr.nid();
+		this->expr.insert(Expr(eid, Eh::element(array->id, index->id), type));
+		auto expr = &(this->expr[eid]);
+		return expr;
+	}
+	case type::Shape::Ptr:
+	{
+		auto tid = ((type::Typ*)(array_type->shape))->id;
+		auto type = &(this->type[tid]);
+		auto eid = this->expr.nid();
+		this->expr.insert(Expr(eid, Eh::element(array->id, index->id), type));
+		auto expr = &(this->expr[eid]);
+		return expr;
+	}
+	case type::Shape::Infer: // Infer Select : Ptr T
+	{
+		auto tid = this->type.nid();
+		this->type.insert(Type(tid, Th::infer()));
+		auto type = &(this->type[tid]);
+		auto shape = ((type::Typ*)(array_type->shape));
+		shape->flag = type::Shape::Ptr;
+		shape->id   = tid;
+
+		auto eid = this->expr.nid();
+		this->expr.insert(Expr(eid, Eh::element(array->id, index->id), type));
+		auto expr = &(this->expr[eid]);
+		return expr;
+	}
+	case type::Shape::Ref:
+		throw "API::Element Ref as Array, Auto Dereferencing Unsupport Yet;";
+	default:
+		throw "API::Element Not A Array-like Type;";
+	}
 }
 
-Expr*	API::ExprEleRef(Expr* expr, Expr* index)
+Exprp	API::ExprAppEnd()
 {
-	
+	auto call = this->calls.top();
+
+	auto call_shape = ((expr::Call*)(call->shape));
+	auto func_id = call_shape->func;
+
+	auto func = &(this->expr[func_id]);
+	auto shape = (type::Fun*)(func->type->shape);
+	auto retype = &(this->type[shape->retype]);
+
+
+	if(type::Shape::Ref    ==retype->shape->flag
+	&& expr::Shape::CallRef==   call_shape->flag)		
+		return this->Dereference(call); // auto dereference
+	else
+		return call;
 }
 
-Expr*	API::ExprEleAddr(Expr* expr, Expr* index)
+Cell*	API::CellEle(Cell* cell, Exprp index)
 {
-	
+	auto expr = this->Element((Exprp)cell, index);
+
+	expr->shape->flag = expr::Shape::EleRef;
+
+	expr->type = this->TypeRef(expr->type);
+
+	return (Cell*)expr;
 }
 
-Expr*	API::B(Bool b)
+Exprp	API::ExprEle(Exprp array, Exprp index)
 {
-	auto type = B();
-    auto expr = new expr::B(b, type);
+	return this->Element(array, index);
+}
+
+Exprp	API::ExprEleRef(Exprp array, Exprp index)
+{
+	auto expr = this->Element(array, index);
+
+	expr->shape->flag = expr::Shape::EleRef;
+
+	expr->type = this->TypeRef(expr->type);
+
+	return expr;
+}
+
+Exprp	API::ExprEleAddr(Exprp array, Exprp index)
+{
+	auto expr = this->Element(array, index);
+	expr->shape->flag = expr::Shape::EleAddr;
+	return expr;
+}
+
+Exprp	API::B(Bool b)
+{
+	auto type = this->B();
     auto id = this->expr.nid();
-    ir.push(sym::Const(type->id));
-    expr->block->push(ins::BImm(id, b));
+	this->expr.insert(Expr(id, Eh::b(b), type));
+	auto expr = &(this->expr[id]);
+
+	return expr;
+}
+
+Exprp	API::C(Char c)
+{
+	auto type = this->C();
+    auto id = this->expr.nid();
+	this->expr.insert(Expr(id, Eh::c(c), type));
+	auto expr = &(this->expr[id]);
 	
 	return expr;
 }
 
-Expr*	API::C(Char c)
+Exprp	API::S(Str s)
 {
-	return new expr::C(c, C());
-}
+	auto tid = this->type.nid();
+	this->type.insert(Type(tid, Th::array(3, s.length()+1)));
+	// 3 == this->C().id
+	auto type = &(this->type[tid]);
 
-Expr*	API::S(Str s)
-{
-	return new expr::S(s, 
-		new type::Arr(C(), s.length()+1));
-}
-
-Expr*	API::I(Int i)
-{
-    auto type = I();
-    auto expr = new expr::I(i, type);
-    auto id = this->expr.nid();
-    ir.push(sym::Const(type->id));
-    expr->block->push(ins::IImm(id, i));
-    
+    auto eid = this->expr.nid();
+	this->expr.insert(Expr(eid, Eh::s(s), type));
+	auto expr = &(this->expr[eid]);
+	
 	return expr;
 }
 
-Expr*	API::F(Float f)
+Exprp	API::I(Int i)
 {
-	return new expr::F(f, F());
+	auto type = this->I();
+    auto id = this->expr.nid();
+	this->expr.insert(Expr(id, Eh::i(i), type));
+	auto expr = &(this->expr[id]);
+	
+	return expr;
+}
+
+Exprp	API::F(Float f)
+{
+	auto type = this->F();
+    auto id = this->expr.nid();
+	this->expr.insert(Expr(id, Eh::f(f), type));
+	auto expr = &(this->expr[id]);
+	
+	return expr;
 }
 
 
 void	API::ExprFunBeg()
 {
-	this->fun = new expr::Fun(); 
+	auto tid = this->type.nid();
+	this->type.insert(Type(tid, Th::fun()));
+	auto type = &(this->type[tid]);
+
+	auto eid = this->expr.nid();
+	this->expr.insert(Expr(eid, Eh::func(), type));
+	auto func = &(this->expr[eid]);
 	
-	return;
+	this->funcs.push(func);
+	this->funcs_retyck.push(func);
 }
 
-void	API::ExprFunRefArg(Name name, Typep type) // =nullptr
+void	API::ExprFunRefArg(Name name, Typep type) // = nullptr
 {
-	if(nullptr==type)
-		type = 
-			new type::Typ(Type::Infer, type);
-	
-	type = new type::Typ(Type::Ref, type);
+	type = this->TypeInfer(type);
+	type = this->TypeRef(type);
 
-    auto id = this->expr.nid();
-
-	auto& data = this->expr[id];
-    data.names.push_back(name);
-    data.expr = new expr::Param(type); /* nulllptr means it is an argument */
-
-	this->ir.func_params.push(id);
-	
-
+	this->ExprFunArg(name, type);
 }
 
-void	API::ExprFunArg(Name name, Typep type) // =nullptr
+void	API::ExprFunArg(Name name, Typep type) // = nullptr
 {
-	
+	type = this->TypeInfer(type);
+
+	auto id = this->expr.nid();
+
+	this->expr.insert(Expr(id, Eh::param(), type));
+
+	auto func = this->funcs.top();
+	auto shape = ((expr::Func*)(func->shape));
+
+	shape->params.push_back(id);
 }
 
-Expr*	API::ExprFunExpr(Expr* expr)
+Exprp	API::ExprFunExpr(Exprp expr)
 {
-	
+	return this->ExprFunStmt(this->Ret(expr));
 }
 
-Expr*	API::ExprFunStmt(Stmt* stmt)
+Exprp	API::ExprFunStmt(Stmtp stmt)
 {
-	
+	auto func = this->funcs.top();
+
+	this->funcs.pop();
+	this->funcs_retyck.pop();
+
+	auto shape = ((expr::Func*)(func->shape));
+
+	shape->body = stmt;
+
+	return func;
 }
 
-Expr*	API::ExprPtr(Cell* cell)
+Exprp	API::ExprPtr(Cell* cell)
 {
+	auto _cell = ((Exprp)(cell));
+	auto cell_type =_cell->type;
+	auto shape = ((type::Typ*)(cell_type->shape));
+
+	if(type::Shape::Ref!=shape->flag)
+		throw "API::ExprPtr of Not A Ref.";
 	
+	auto type = &(this->type[shape->id]);
+
+	auto eid = this->expr.nid();
+
+	this->expr.insert(Expr(eid, Eh::addr(_cell->id), type));
+
+	auto expr = &(this->expr[eid]);
+
+	return expr;
 }
 
-void	API::MatchBeg(Expr* expr)
+void	API::MatchBeg(Exprp expr)
 {
-	
+	auto id = this->expr.nid();
+
+	this->expr.insert(Expr(id, Eh::match(expr->id), this->TypeInfer()));
+
+	auto match = &(this->expr[id]);
+
+	this->matches.push(match);
 }
 
 void	API::MatchBranchBeg(Name name)
 {
+	auto match = this->matches.top();
+
+	auto shape = ((expr::Match*)(match->shape));
+
+	auto id = this->expr[name];
+	auto constructor = &(this->expr[id]);
+
+	if(expr::Shape::Constructor!=constructor->shape->flag)
+		throw "API::MatchBranchBeg Not A Constructor.";
+
+	auto tid = this->type.nid();
+
+	this->type.insert(Type(tid, Th::branch(match->type->id)));
 	
+	auto branch_type = &(this->type[tid]);
+
+	((type::Fun*)(branch_type->shape))->params = ((type::Fun*)(constructor->type->shape))->params;
+
+	auto branch_id = this->expr.nid();
+
+	this->expr.insert(Expr(branch_id, Eh::branch(), branch_type));
+	shape->branches.push_back(id);
+
+	auto branch = &(this->expr[branch_id]);
+
+	this->funcs_retyck.push(branch);
 }
 
 void	API::MatchBranchArg(Name name)
 {
+	//	if(name=='_') // [TODO] : _
+	//		return ;
+	auto branch = this->funcs_retyck.top();
+	auto shape = ((expr::Func*)(branch->shape));
+	auto index = shape->params.size();
+	auto tid = ((type::Fun*)(branch->type->shape))->params[index];
+	auto type = &(this->type[tid]);
 	
+	this->ExprFunArg(name, type);
 }
 
-void	API::MatchBranchExpr(Expr* expr)
+void	API::MatchBranchExpr(Exprp expr)
 {
-	
+	this->MatchBranchStmt(this->Ret(expr));
 }
 
-void	API::MatchBranchStmt(Stmt* stmt)
+void	API::MatchBranchStmt(Stmtp stmt)
 {
-	
+	this->ExprFunStmt(stmt);
 }
 
-Expr*	API::MatchEnd()
+Exprp	API::MatchEnd()
 {
-	
+	auto match = this->matches.top();
+	this->matches.pop();
+	return match;
 }
 
-Expr*	API::Asgn(Cell* cell, Oper oper, Expr* expr)
+Exprp	API::Asgn(Cell* cell, Oper oper, Exprp expr)
 {
 	
+	auto ref = (Exprp)cell;
+	auto shape = ((type::Typ*)(ref->type->shape));
+
+	if(type::Shape::Ref!=shape->flag)
+		throw "API::Asgn Cell Not A Ref Type;";
+
+	if(type::Shape::Ref==expr->type->shape->flag)
+		expr = this->Dereference(expr);
+
+	if(Oper::Undefined!=oper)
+		expr = this->BinOp(this->Dereference(ref), oper, expr);
+
+
+	auto id = this->expr.nid();
+
+	this->expr.insert(Expr(id, Eh::set(ref->id, expr->id), expr->type));
+
+	return &(this->expr[id]);
 }
 
-Expr*	API::UnOp(Oper oper, Expr* Expr)
+Exprp	API::UnOp(Oper oper, Exprp expr)
 {
-	
+	auto i = this->I();
+	auto f = this->F();
+	switch(oper)
+	{
+	case Pos:
+	case Neg:
+	{
+		switch(expr->type->shape->flag)
+		{
+		case type::Shape::F:
+		{
+			auto id = this->expr.nid();
+			this->expr.insert(Expr(id
+			, 	new expr::Unary(
+					expr::Shape::Flag((oper-Pos)+int(expr::Shape::Pos))
+					, expr->id)
+			, f));
+			return &(this->expr[id]);
+		}
+		case type::Shape::Infer:
+			Typing(expr, i);
+			std::cout<<"WARNING : Select Int for + - T;"<<std::endl;
+		case type::Shape::I:
+		{
+			auto id = this->expr.nid();
+			this->expr.insert(Expr(id
+			, 	new expr::Unary(
+					expr::Shape::Flag((oper-Pos)+int(expr::Shape::Pos))
+					, expr->id)
+			, i));
+			return &(this->expr[id]);
+		}
+		default:
+			throw "API::UnOp + - Neither Int Nor Float;";
+		}
+	}
+	default:
+		throw "API::UnOp Unknown Op;";
+	}
 }
 
-Expr*	API::BinOp(Expr* lhs, Oper oper, Expr* rhs)
+Exprp   API::Binary(expr::Shape::Flag flag, Exprp lhs, Exprp rhs, Typep type)
 {
-	
+	auto id = this->expr.nid();
+
+	this->expr.insert(Expr(id, new expr::Binary(flag, lhs->id, rhs->id), type));
+
+	return &(this->expr[id]);
 }
 
-Expr*	API::New(Expr* expr, Expr* size) // =nullptr
+Exprp	API::BinOp(Exprp lhs, Oper oper, Exprp rhs)
 {
-	
+	auto b = this->B();
+	auto i = this->I();
+	auto f = this->F();
+	switch(oper)
+	{
+	case PtrAdd:
+		Typing(rhs, i);
+		// if lhs : Infer T
+		if(false==Typing(lhs, this->TypePtr(this->TypeInfer())))
+			throw "API::BinOp &+ Not a Ptr T;";
+		return this->Binary(expr::Shape::PtrAdd, lhs, rhs, lhs->type);
+	case PtrSub:
+		Typing(rhs, i);
+		if(false==Typing(lhs, this->TypePtr(this->TypeInfer())))
+			throw "API::BinOp &- Not a Ptr T;";
+		return this->Binary(expr::Shape::PtrSub, lhs, rhs, lhs->type);
+	case AddPtr:
+		Typing(lhs, i); 
+		if(false==Typing(lhs, this->TypePtr(this->TypeInfer())))
+			throw "API::BinOp +& Not a Ptr T;";
+		return this->Binary(expr::Shape::PtrAdd, rhs, lhs, rhs->type);
+	case Mod:
+	case LShift: 
+	case RShift:
+	case BNot:
+	case BAnd:
+	case BOr:
+	case BXOr:
+		Typing(lhs, i);
+		Typing(rhs, i);
+		return this->Binary(
+			expr::Shape::Flag((oper-Mod)+int(expr::Shape::Mod))
+			, lhs, rhs, i
+		);
+	case LNot:
+	case LAnd:
+	case LOr :
+	case LXOr:
+		Typing(lhs, b);
+		Typing(rhs, b);
+		return this->Binary(
+			expr::Shape::Flag((oper-LNot)+int(expr::Shape::LNot))
+			, lhs, rhs, i
+		);
+	case FAdd:
+	case FSub:
+	case FMul:
+	case FDiv:
+		Typing(lhs, f);
+		Typing(rhs, f);
+		return this->Binary(
+			expr::Shape::Flag((oper-FAdd)+int(expr::Shape::FAdd))
+			, lhs, rhs, f
+		);
+	case Eq:
+	case Neq:
+		if(false==TypeEq(lhs, rhs))
+			throw "API::BinOp ==, != Type NOT Equal;";
+		return this->Binary(
+			expr::Shape::Flag((oper-Eq)+int(expr::Shape::Eq))
+			, lhs, rhs, lhs->type
+		);
+	case Lt:
+	case Gt:
+	case Leq:
+	case Geq:
+	{
+		if(false==TypeEq(lhs, rhs))
+			throw "API::BinOp <, <=, >, >= Type NOT Equal;";
+		
+		switch(lhs->type->shape->flag)
+		{
+		case type::Shape::F:
+			return this->Binary(
+				expr::Shape::Flag((oper-Lt)+int(expr::Shape::Lt))
+				, lhs, rhs, f
+			);
+		case type::Shape::Infer: // Select Infer Int Op Int
+			std::cout<<"WARNING : Select Int for <, <=, >, >=;"<<std::endl;
+			Typing(lhs, i);
+		case type::Shape::I:
+			return this->Binary(
+				expr::Shape::Flag((oper-Lt)+int(expr::Shape::Lt))
+				, lhs, rhs, i
+			);
+		default :
+			throw "API::BinOp <, <=, >, >= Neither Int Nor Float;";
+		}
+	}
+	case Mul:
+	case Div:
+	{
+		if(false==TypeEq(lhs, rhs))
+			throw "API::BinOp * / Type NOT Equal;";
+		switch(lhs->type->shape->flag)
+		{
+		case type::Shape::F:
+			return this->Binary(
+				expr::Shape::Flag((oper-Mul)+int(expr::Shape::FMul))
+				, lhs, rhs, f
+			);
+		case type::Shape::Infer:
+			Typing(lhs, i);
+			std::cout<<"WARNING : Select Int for * / ;"<<std::endl;
+		case type::Shape::I:
+			return this->Binary(
+				expr::Shape::Flag((oper-Mul)+int(expr::Shape::IMul))
+				, lhs, rhs, i
+			);
+		default:
+			throw "API::BinOp * / Neither Int Nor Float;";
+		}
+	}
+	case Sub:
+	{
+		switch(rhs->type->shape->flag)
+		{
+		case type::Shape::F:
+			TypeEq(lhs, rhs);
+			return this->Binary(expr::Shape::FSub, lhs, rhs, f);
+		case type::Shape::I:
+		{
+			switch(lhs->type->shape->flag)
+			{
+			case type::Shape::Ptr:
+				return this->Binary(expr::Shape::PtrSub, lhs, rhs, lhs->type);
+			case type::Shape::Infer:
+				Typing(lhs, i);
+				std::cout<<"WARNING : Select Int for T - Int ;"<<std::endl;
+			case type::Shape::I:
+				return this->Binary(expr::Shape::ISub, lhs, rhs, i);
+			default:
+				throw "API::BinOP - ;";
+			}
+		}
+		case type::Shape::Infer:
+		{
+			switch(lhs->type->shape->flag)
+			{
+			case type::Shape::Ptr:
+				Typing(rhs, i);
+				return this->Binary(expr::Shape::PtrSub, lhs, rhs, lhs->type);
+			case type::Shape::Infer:
+				Typing(lhs, i);
+				Typing(rhs, i);
+				std::cout<<"WARNING : Select Int for T - T ;"<<std::endl;
+			case type::Shape::I:
+				return this->Binary(expr::Shape::ISub, lhs, rhs, i);
+			default:
+				throw "API::BinOP - ;";
+			}
+		}
+		default:
+			throw "API::BinOP - ;";
+		}
+	} 
+	case Add:
+	{
+		switch(lhs->type->shape->flag)
+		{
+		case type::Shape::Ptr:
+			Typing(rhs, i);
+			return this->Binary(expr::Shape::PtrAdd, lhs, rhs, lhs->type);
+		case type::Shape::F:
+			TypeEq(lhs, rhs);
+			return this->Binary(expr::Shape::FAdd, lhs, rhs, f);
+		case type::Shape::I:
+		{
+			switch(rhs->type->shape->flag)
+			{
+			case type::Shape::Ptr:
+				return this->Binary(expr::Shape::PtrAdd, rhs, lhs, rhs->type);
+			case type::Shape::Infer:
+				Typing(rhs, i);
+			case type::Shape::I:
+				return this->Binary(expr::Shape::IAdd, lhs, rhs, i);
+			default:
+				throw "API::BinOP + ;";
+			}
+		}
+		case type::Shape::Infer:
+		{
+			switch(rhs->type->shape->flag)
+			{
+			case type::Shape::F:
+				Typing(lhs, f);
+				return this->Binary(expr::Shape::FAdd, lhs, rhs, f);
+			case type::Shape::Ptr:
+				return this->Binary(expr::Shape::PtrAdd, rhs, lhs, rhs->type);
+			case type::Shape::Infer:
+				Typing(rhs, i);
+				std::cout<<"WARNING : Select Int for T + T ;"<<std::endl;
+			case type::Shape::I:
+				Typing(lhs, i);
+				std::cout<<"WARNING : Select Int for T + I ;"<<std::endl;
+				return this->Binary(expr::Shape::IAdd, lhs, rhs, i);
+			default:
+				throw "API::BinOP + ;";
+			}
+		}
+		default:
+			throw "API::BinOP + ;";
+		}
+	}
+	default:
+		throw "API::BinOp Unknown Op;";
+
+	}
 }
 
-void    API::set_main(Stmt* stmt)
+Exprp	API::New(Exprp init)
 {
-	auto cid = this->ir.block_cid();
-	auto main = cid+1;
-	this->ir.main = move(stmt->block_beg);
+	auto eid = this->expr.nid();
+
+	auto i_type = init->type;
+	switch(i_type->shape->flag)
+	{
+	case type::Shape::Array:
+	{
+		auto shape = ((type::Array*)(i_type->shape));
+		auto tid = shape->id;
+		auto _type = &(this->type[tid]);
+
+		auto type = this->TypePtr(_type);
+
+		this->expr.insert(Expr(eid, Eh::new_array(init->id), type));
+		break;
+	}
+	default:
+		auto type = this->TypePtr(i_type);
+		this->expr.insert(Expr(eid, Eh::new_expr(init->id), type));
+		break;
+	}
+	auto expr = &(this->expr[eid]);
+
+	return expr;
 }
 
 }}

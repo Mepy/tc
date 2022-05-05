@@ -32,10 +32,6 @@ enum Kind : Byte4 { /* Block 's */
     CSTR = 0x52545343, /* CSTR */ // c string immediate
 };
 
-/* for ty : { Instruction, Symbol, Type }
- *     sizeof(ty) = 16
- */
-
 struct Instruction
 {
     enum Sort : Byte4 {
@@ -54,6 +50,9 @@ struct Instruction
         FMul  = 0x6C2A4D46, /* FM*l */
         FDiv  = 0x762F4446, /* FD/v */
         FMod  = 0x64254D46, /* FM%d */
+
+        PAdd  = 0x642B4150, /* PA+d */ 
+        PSub  = 0x622D5350, /* PS-b */
 
         /* used by Pointer */
         ULt   = 0x3F203C55, /* U< ? */

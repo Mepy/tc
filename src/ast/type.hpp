@@ -1,61 +1,94 @@
 #ifndef tc_ast_type_hpp
 #define tc_ast_type_hpp
 
-#include "node.hpp"
-#include "rc.hpp"
+#include "head.hpp"
 
 namespace tc{
 namespace ast{
 namespace type{
-// U, B, C, I, F
-struct Atom : public Type
+
+struct Shape
 {
-    Atom(Flag flag, ID id=0):Type(flag, id){}
-    ~Atom(){}
+    using Flag = enum { Undefined,
+        Infer, U, B, C, I, F, ADT, Ref, Ptr, Array, Fun
+    };
+    Flag flag;
+    Shape(Flag flag=Undefined):flag(flag){}
+};
+using Shapep = Shape*;
+
+// U, B, C, I, F
+struct Atom : public Shape
+{
+    Atom(Flag flag):Shape(flag){}
 };
 
-struct ADT : public Type
-{
-    map<ID, Types> cons;
-    ADT(ID id=0):Type(Flag::ADT, id){}
-    ~ADT(){
-        decr(cons);
-    }
-};
+namespace helper{
+
+inline Shapep u(){ return new Atom(Shape::U); }
+inline Shapep b(){ return new Atom(Shape::B); }
+inline Shapep c(){ return new Atom(Shape::C); }
+inline Shapep i(){ return new Atom(Shape::I); }
+inline Shapep f(){ return new Atom(Shape::F); }
+
+}
 
 // Infer, Ref, Ptr
-struct Typ : public Type
+struct Typ : public Shape
 {
-    Typep type;
-    Typ(Flag flag, Typep type)
-    :Type(flag), type(type){}
-    ~Typ(){
-        decr(type);
-    }
+    ID id;
+    Typ(Flag flag, ID id):Shape(flag), id(id){}
 };
 
-struct Arr : public Type
+namespace helper{
+
+inline Shapep infer(ID id=0){ return new Typ(Shape::Infer, id); }
+inline Shapep ref  (ID id  ){ return new Typ(Shape::Ref  , id); }
+inline Shapep ptr  (ID id  ){ return new Typ(Shape::Ptr  , id); }
+
+}
+
+struct Array : public Shape
 {
-    Typep type;
+    ID id;
     Size  size;
-    Arr(Typep type, Size size)
-    :Type(Flag::Arr)
-    ,type(type), size(size){}
-    ~Arr(){
-        decr(type);
-    }
+    Array(ID id, Size size)
+    :Shape(Shape::Array), id(id), size(size){}
 };
 
-struct Fun : public Type
+namespace helper{
+
+inline Shapep array(ID id, Size size){ return new Array(id, size); }
+
+}
+
+struct Fun : public Shape
 {
-    Types params;
-    Typep retype;
-    Fun():Type(Flag::Fun){}
-    ~Fun(){
-        decr(params);
-        decr(retype);
-    }
+    IDs params;
+    ID  retype;
+    Fun(ID retype=0):Shape(Flag::Fun), retype(retype){}
 };
+
+namespace helper{
+
+inline Shapep fun (){ return new Fun(); }
+inline Shapep ctor(ID adt){ return new Fun(adt); } // constructor
+inline Shapep branch(ID retype){ return new Fun(retype); }
+
+}
+
+struct ADT : public Shape
+{
+    IDs cons;
+    ADT():Shape(Shape::ADT){}
+};
+
+
+namespace helper{
+
+inline Shapep adt(){ return new ADT(); }
+
+}
 
 }}}
 

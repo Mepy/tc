@@ -12,7 +12,7 @@ void test_type(API& context);
 
 int main()
 {
-    API context("test.hex"); // output filename
+    API context;
     try
     {
         test_type(context);
@@ -43,7 +43,7 @@ void test_type(API& context)
     context.ADTBranchType(
         context.TypeVar(Name("Nat"))
     );
-    
+
     context.ADTBranchEnd();
     context.ADT();
 
@@ -53,7 +53,7 @@ void test_type(API& context)
     context.TypeDef(Name("Nickname"));
     context.Alias(context.TypeVar(Name("Nat")));
 
-    auto& names = context.type[5].names; // Nat, Nickname
+    auto& names = context.type[6].names; // Nat, Nickname
     for(auto& name:names)
         std::cout<<name<<" ";
     std::cout<<std::endl;
@@ -65,7 +65,6 @@ void test_if(API& context)
     ,   context.Let(Name("Y"), context.I(1))
     ,   context.Let(Name("N"), context.I(0))
     );
-    context.set_main(_if);
 }
 
 void test_while(API& context)

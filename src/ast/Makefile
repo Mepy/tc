@@ -1,24 +1,19 @@
 CC = g++
 STD = -std=c++11
 
-test_api : api.out
-	./$<
+test      : context.o ast.o test.o
+	${CC} $^ -o $@ && ./$@ && rm ./$@
 
-api.out : api.o ast.o
-	${CC} $^ -o $@
+build     : context.o ast.o
 
-api.o : api.cpp api.hpp ir_parser.hpp
+test.o    : api.cpp api.hpp
 	${CC} $< ${STD} -c -o $@
 
-test_ir_parser : ir_parser.out
-	./$<
-	
-
-ir_parser.out : ir_parser.cpp
-	${CC} $< ${STD} -o $@
-
-ast.o : impl.cpp ir_parser.hpp
+context.o : context.cpp context.hpp
 	${CC} $< ${STD} -c -o $@
 
-clean : 
-	rm *.o *.out *.ir *.hex
+ast.o     : impl.cpp api.hpp
+	${CC} $< ${STD} -c -o $@
+
+clean     : 
+	rm *.o

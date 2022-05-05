@@ -1,212 +1,183 @@
 #ifndef tc_ast_expr_hpp
 #define tc_ast_expr_hpp
 
-#include "node.hpp"
+#include "head.hpp"
+#include "token.hpp"
+
 namespace tc{
 namespace ast{
 namespace expr{
-struct U : public Expr
+
+struct Shape
 {
-    U(Typep type):Expr(Flag::U, incr(type)){}
-    ~U(){ }
+    using Flag = enum { Undefined,
+        Func, CallVal, CallRef, Match, Branch,
+        EleVal, EleRef, EleAddr,
+        U, B, C, S, I, F, Constructor, Param,
+        Get, NewExpr, NewArray, Addr, 
+        
+        // Unary
+        Pos, Neg,
+
+        // Binary
+        // (Ref T, T) -> T
+        Set, 
+
+        // (Ptr T, Int) -> Ptr T
+        PtrAdd, PtrSub, 
+
+        // (Int, Int) -> Int
+        Mod, LShift, RShift, BNot, BAnd, BOr, BXor, 
+
+        // (Bool, Bool) -> Bool
+        LNot, LAnd, LOr, LXor,
+
+        // (Float, Float) -> Float
+        FAdd, FSub, FMul, FDiv,
+
+        // (T, T) -> Bool
+        Eq, Neq,
+
+        // (Int, Int) & (Float, Float) -> Bool
+        Lt, Gt, Leq, Geq,
+
+        //    { (Int  , Int  ) -> Int   } 
+        // && { (Float, Float) -> Float }
+        IMul, IDiv,
+
+        // Sub
+        //    (Ptr T, Int  ) -> Ptr T
+        // && (Int  , Int  ) -> Int
+        // && (Float, Float) -> Float
+        ISub,
+
+        // Add
+        //    (Ptr T, Int  ) -> Ptr T
+        // && (Float, Float) -> Float
+        // && (Int  , Ptr T) -> Ptr T
+        // && (Int  , Int  ) -> Int
+        IAdd, 
+    
+        
+        
+    };
+    Flag flag;
+    Shape(Flag flag=Undefined):flag(flag){}
+};
+using Shapep = Shape*;
+
+struct Nullary : public Shape
+{
+    Nullary(Flag flag):Shape(flag){}
 };
 
-struct B : public Expr
+struct B : public Shape
 {
     Bool b;
-    B(Bool b, Typep type):Expr(Flag::B, incr(type)), b(b){}
-    ~B(){ }
+    B(Bool b):Shape(Flag::B), b(b){}
 };
-struct C : public Expr
+struct C : public Shape
 {
     Char c;
-    C(Char c, Typep type):Expr(Flag::C, incr(type)), c(c){}
-    ~C(){ }
+    C(Char c):Shape(Flag::C), c(c){}
 };
-struct S : public Expr
+struct S : public Shape
 {
     Str s;
-    S(Str s, Typep type):Expr(Flag::S, incr(type)), s(s){}
-    ~S(){ }
+    S(Str s):Shape(Flag::S), s(s){}
 };
-struct I : public Expr
+struct I : public Shape
 {
     Int i;
-    I(Int i, Typep type):Expr(Flag::I, incr(type)), i(i){}
-    ~I(){ }
+    I(Int i):Shape(Flag::I), i(i){}
 };
-struct F : public Expr
+struct F : public Shape
 {
     Float f;
-    F(Float f, Typep type):Expr(Flag::F, incr(type)), f(f){}
-    ~F(){ }
+    F(Float f):Shape(Flag::F), f(f){}
 };
 
-struct Param : public Expr 
-{ 
-    Param(Typep type=nullptr):Expr(Flag::Param, type, nullptr){ }
-    ~Param(){ }
-};
-
-struct App : public Expr
+namespace helper
 {
-    Exprp func;
-    Exprs args;
-    App():Expr(Flag::App), func(nullptr){}
-    ~App(){
-        del(func);
-        del(args);
-    }
+
+inline Shapep u(){ return new Nullary(Shape::U); }
+inline Shapep b(Bool  b){ return new B(b); }
+inline Shapep c(Char  c){ return new C(c); }
+inline Shapep s(Str   s){ return new S(s); }
+inline Shapep i(Int   i){ return new I(i); }
+inline Shapep f(Float f){ return new F(f); }
+
+inline Shapep ctor(){ return new Nullary(Shape::Constructor); }
+inline Shapep param(){ return new Nullary(Shape::Param); }
+
+}
+
+struct Unary : public Shape
+{
+    ID expr;
+    Unary(Flag flag, ID expr)
+    :Shape(flag), expr(expr){}
 };
 
-struct LabelTuple : public Expr
+namespace helper
 {
-    ID    label; /* Data::ID of constructor */
-    Exprs tuple;
-    LabelTuple(Typep type, ID label)
-    :Expr(Flag::LabelTuple, type), label(label){}
-    ~LabelTuple(){
-        del(tuple);
-    }
+
+inline Shapep get(ID ptr){ return new Unary(Shape::Get, ptr); }
+inline Shapep addr(ID cell){ return new Unary(Shape::Addr, cell); }
+inline Shapep new_expr (ID init){ return new Unary(Shape::NewExpr , init); }
+inline Shapep new_array(ID init){ return new Unary(Shape::NewArray, init); }
+
+}
+
+struct Binary : public Shape
+{
+    ID lhs;
+    ID rhs;
+    Binary(Flag flag, ID lhs, ID rhs)
+    :Shape(flag), lhs(lhs), rhs(rhs){}
 };
 
-struct Match : public Expr
+namespace helper
 {
-    Exprp expr;
-    map<ID, struct Fun*> branches;
-    Match():Expr(Flag::Match){}
-    ~Match(){
-        del(expr);
-        del(branches);
-    }
+
+inline Shapep element(ID base, ID offset)
+{ return new Binary(Shape::EleVal, base, offset); }
+inline Shapep set(ID cell, ID value)
+{ return new Binary(Shape::Set, cell, value); }
+
+}
+
+struct Func : public Shape
+{
+    IDs params;
+    Stmtp body;
+    Func(Flag flag=Flag::Func):Shape(flag){}
 };
 
-struct Asgn : public Expr
+struct Call : public Shape
 {
-    Cell* cell;
-    Exprp expr;
-    Asgn():Expr(Flag::Asgn){}
-    ~Asgn(){
-        del(cell);
-        del(expr);
-    }
+    ID      func;
+    IDs     args;
+    Call(ID func)
+    :Shape(Flag::CallVal), func(func){}
 };
 
-struct Addr : public Expr
+struct Match : public Shape
 {
-    Cell* cell;
-    Addr():Expr(Flag::Addr){}
-    ~Addr(){
-        del(cell);
-    }
+    ID      expr;
+    IDs branches;
+    Match(ID expr)
+    :Shape(Flag::Match), expr(expr){}
 };
 
-struct Val : public Expr
-{
-    Exprp expr;
-    Val():Expr(Flag::Val){}
-    ~Val(){
-        del(expr);
-    }
-};
+namespace helper{
 
-struct ValRef : public Expr
-{
-    Exprp expr;
-    ValRef():Expr(Flag::ValRef){}
-    ~ValRef(){
-        del(expr);
-    }
-};
+inline Shapep func(){ return new Func(); }
+inline Shapep call(ID func){ return new Call(func); }
+inline Shapep match(ID expr){ return new Match(expr); }
+inline Shapep branch(){ return new Func(Shape::Branch); }
 
-struct Var : public Expr
-{
-    ID id;
-    Var(ID id):Expr(Flag::Var), id(id){}
-    ~Var(){}
-};
-
-struct VarRef : public Expr
-{
-    ID id;
-    VarRef(ID id):Expr(Flag::VarRef), id(id){}
-    ~VarRef(){}
-};
-
-struct Ele : public Expr
-{
-    Exprp array;
-    Exprp index;
-    Ele():Expr(Flag::Ele){}
-    ~Ele(){
-        del(array);
-        del(index);
-    }
-};
-
-struct EleRef : public Expr
-{
-    Exprp array;
-    Exprp index;
-    EleRef():Expr(Flag::EleRef){}
-    ~EleRef(){
-        del(array);
-        del(index);
-    }
-};
-
-struct EleAddr : public Expr
-{
-    Exprp array;
-    Exprp index;
-    EleAddr():Expr(Flag::EleAddr){}
-    ~EleAddr(){
-        del(array);
-        del(index);
-    }
-};
-
-// Fun, Cons : Constructor
-struct Fun : public Expr
-{
-    IDs   params;
-    Stmt* stmt ;
-    Fun(Flag flag=Flag::Fun):Expr(flag), stmt(nullptr){}
-    ~Fun(){ 
-        del(stmt);
-    }
-};
-
-struct New : public Expr
-{
-    Exprp init;
-    Exprp size;
-    New():Expr(Flag::New){}
-    ~New(){
-        del(init);
-        del(size);
-    }
-};
-
-struct UnOp : public Expr
-{
-    Exprp expr;
-    UnOp():Expr(Flag::UnOp){}
-    ~UnOp(){
-        del(expr);
-    }
-};
-
-struct BinOp : public Expr
-{
-    Exprp lhs;
-    Exprp rhs;
-    BinOp():Expr(Flag::BinOp){}
-    ~BinOp(){
-        del(lhs);
-        del(rhs);
-    }
-};
+}
 
 }}}
 
