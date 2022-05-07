@@ -1,6 +1,6 @@
 #ifndef tc_ast_context_hpp
 #define tc_ast_context_hpp
-
+#include <iostream>
 #include "head.hpp"
 #include "token.hpp"
 #include "node.hpp"
@@ -51,7 +51,8 @@ struct Namespace
     ~Namespace(){ delete sym; }
 
     ID nid(){ return def.size(); }
-    void give(ID id, Name& name)
+    void bind(ID id, Name&& name){ bind(id, name); }
+    void bind(ID id, Name& name)
     {
         sym->insert(pair<string, ID>(name, id));
         def[id].names.push_back(name);
@@ -95,7 +96,7 @@ struct Type : public Namespace<ast::Type>
             auto shape = ((type::Typ*)(type->shape));
             auto id    = shape->id;
             if(0!=id)
-                type = &(this->def[type->id]);
+                type = &(this->def[id]);
             else
                 break;
         }

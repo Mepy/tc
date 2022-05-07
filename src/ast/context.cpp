@@ -1,5 +1,5 @@
 #include "context.hpp"
-
+#include <iostream>
 namespace tc{
 namespace ast{
 
@@ -96,8 +96,6 @@ ast::Type &Context::unify_N_N(ast::Type &t1, ast::Type &t2)
     case type::Shape::C:
     case type::Shape::I:
     case type::Shape::F:
-        break;
-
     case type::Shape::ADT:
         throw "Not Typed.\n"; // t1.id < t2.id
 
@@ -108,7 +106,7 @@ ast::Type &Context::unify_N_N(ast::Type &t1, ast::Type &t2)
         auto &id2 = t2.typ_id();
         auto &ty1 = this->type[id1];
         auto &ty2 = this->type[id2];
-        id1 = unify(ty1, ty2).id;
+        id1= unify(ty1, ty2).id;
         break;
     }
     case type::Shape::Array:
@@ -143,13 +141,11 @@ ast::Type &Context::unify_N_N(ast::Type &t1, ast::Type &t2)
 
         for (auto it1 = params1.begin(), it2 = params2.begin(); it1 != params1.end(); ++it1, ++it2)
             *it1 = unify(this->type[*it1], this->type[*it2]).id;
-
         break;
     }
     default:
         break;
     }
-
     // t1.id < t2.id
     delete t2.shape;
     t2.shape = type::helper::infer(t1.id);

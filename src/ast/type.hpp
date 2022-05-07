@@ -71,7 +71,7 @@ struct Fun : public Shape
 
 namespace helper{
 
-inline Shapep fun (){ return new Fun(); }
+inline Shapep fun (ID retype=0){ return new Fun(retype); }
 inline Shapep ctor(ID adt){ return new Fun(adt); } // constructor
 inline Shapep branch(ID retype){ return new Fun(retype); }
 

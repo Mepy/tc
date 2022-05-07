@@ -23,6 +23,12 @@ API::API()
 	this->type.insert(Type(4, Th::i(), ir::type::Int  ()));
 	this->type.insert(Type(5, Th::f(), ir::type::Float()));
 
+	this->type.bind(1, Name("Unit" ));
+	this->type.bind(2, Name("Bool" ));
+	this->type.bind(3, Name("Char" ));
+	this->type.bind(4, Name("Int" ));
+	this->type.bind(5, Name("Float" ));
+
 	this->expr.insert(Expr(1, Eh::u(), this->U()));
 
 	this->type.insert(Type(6, Th::adt(), ir::type::ADT(6)));
@@ -71,7 +77,7 @@ Stmtp	API::Let(Name name, Exprp expr, Typep type) // = nullptr
 
     Typing(expr, type);
 
-	this->expr.give(expr->id, name);
+	this->expr.bind(expr->id, name);
 
 	return new Stmt(new stmt::_let(name, type, expr));
 }
@@ -89,7 +95,7 @@ Stmtp	API::Var(Name name, Exprp expr, Typep type) // = nullptr
 	auto tid = this->type.nid();
 	this->type.insert(Type(tid, new type::Typ(type::Shape::Ref, 0)));
 
-	this->expr.give(expr->id, name);
+	this->expr.bind(expr->id, name);
 
 	return new Stmt(new stmt::_var(name, type, expr));
 }
@@ -130,10 +136,10 @@ Stmtp	API::Ret(Exprp expr) // = nullptr
 
 	auto fun = this->funcs_retyck.top();
 	auto shape = (type::Fun*)(fun->type->shape);
-
-	auto& type = this->type[shape->retype];
-	Typing(expr, &type);
-
+	
+	auto tid = shape->retype;
+	auto type = &(this->type[tid]);
+	Typing(expr, type);
 	return new Stmt(new stmt::_ret(expr));
 }
 
@@ -159,7 +165,7 @@ void	API::TypeDef(Name name)
 
 Stmtp	API::Alias(Typep type)
 {
-	this->type.give(type->id, this->type_name);
+	this->type.bind(type->id, this->type_name);
 
 	return new Stmt(new stmt::_alias(this->type_name, type));;
 }
@@ -174,7 +180,7 @@ void	API::ADTBranchBegin(Name cons)
 	auto type = &(this->type[tid]);
 
 	this->expr.insert(Expr(eid, Eh::ctor(), type, ir::symbol::Ctor(0)));
-	this->expr.give(eid, cons);
+	this->expr.bind(eid, cons);
 	
 	shape->cons.push_back(eid);
 }
@@ -209,7 +215,7 @@ void	API::ADTBranchEnd()
 
 Stmtp	API::ADT()
 {
-	this->type.give(this->adt->id, this->type_name);
+	this->type.bind(this->adt->id, this->type_name);
 
 	auto stmt = new Stmt(new stmt::_alias(this->type_name, this->adt));;
 
@@ -230,7 +236,7 @@ Stmtp   API::Check(Exprp expr, Typep type)
 
 /* type */
 
-bool	API::TypeEq(Expr* lhs, Expr* rhs)
+bool	API::TypeEq(Exprp lhs, Exprp rhs)
 {
 	try{ this->unify(*(lhs->type), *(rhs->type)); }
 	catch(const char* msg)
@@ -263,8 +269,7 @@ bool	API::Typing(Exprp expr, Typep type)
 	try{ this->unify(*(expr->type), *type); }
 	catch(const char* msg)
 	{
-		std::cout<<"Unification Error : \n"
-		<<msg<<std::endl;
+		std::cout<<"Unification Error : "<<msg<<std::endl;
 		return false;
 	}
 	// unify will modify expr->type
@@ -386,6 +391,13 @@ Exprp   API::Dereference(Exprp ref)
 	this->expr.insert(Expr(v_id, Eh::get(r_id), v_type));
 	return &(this->expr[v_id]);
 }
+Exprp   API::AutoDererence(Exprp expr)
+{
+	if(type::Shape::Ref==expr->type->shape->flag)
+		return Dereference(expr);
+	else
+		return expr;
+}
 Exprp	API::ExprVar(Name name)
 {
 	auto id = this->expr[name];
@@ -395,10 +407,7 @@ Exprp	API::ExprVar(Name name)
 
 	auto expr = &(this->expr[id]);
 
-	if(type::Shape::Ref==expr->type->shape->flag)
-		return this->Dereference(expr); // auto dereference
-	else
-		return expr;
+	return this->AutoDererence(expr);
 }
 
 Exprp	API::ExprVarRef(Name name)
@@ -410,7 +419,7 @@ Exprp	API::ExprVarRef(Name name)
 	auto expr = &(this->expr[id]);
 	auto type = expr->type;
 
-	if(type::Shape::Ref==type->shape->flag)
+	if(type::Shape::Ref!=type->shape->flag)
 		throw "API::ExprVarRef Not A Ref;";
 	
 	return expr;	
@@ -496,8 +505,11 @@ Typep   API::TypeInfer(Typep ty)
 		return ty;
 }
 
-Exprp  API::Element(Expr* array, Expr* index)
+Exprp  API::Element(Exprp array, Exprp index)
 {
+	array = this->AutoDererence(array);
+	index = this->AutoDererence(index);
+
 	Typing(index, this->I());
 
 	auto array_type = array->type;
@@ -538,8 +550,6 @@ Exprp  API::Element(Expr* array, Expr* index)
 		auto expr = &(this->expr[eid]);
 		return expr;
 	}
-	case type::Shape::Ref:
-		throw "API::Element Ref as Array, Auto Dereferencing Unsupport Yet;";
 	default:
 		throw "API::Element Not A Array-like Type;";
 	}
@@ -655,14 +665,18 @@ Exprp	API::F(Float f)
 
 void	API::ExprFunBeg()
 {
+	this->expr.scope_beg();
+
+	auto retype = this->TypeInfer();
+
 	auto tid = this->type.nid();
-	this->type.insert(Type(tid, Th::fun()));
+	this->type.insert(Type(tid, Th::fun(retype->id)));
 	auto type = &(this->type[tid]);
 
 	auto eid = this->expr.nid();
 	this->expr.insert(Expr(eid, Eh::func(), type));
 	auto func = &(this->expr[eid]);
-	
+
 	this->funcs.push(func);
 	this->funcs_retyck.push(func);
 }
@@ -683,10 +697,15 @@ void	API::ExprFunArg(Name name, Typep type) // = nullptr
 
 	this->expr.insert(Expr(id, Eh::param(), type));
 
-	auto func = this->funcs.top();
-	auto shape = ((expr::Func*)(func->shape));
+	if(name!="_")
+		this->expr.bind(id, name);
 
-	shape->params.push_back(id);
+	auto func = this->funcs_retyck.top();
+
+	((expr::Func*)(func->shape))
+		->params.push_back(id);
+	((type::Fun*)(func->type->shape))
+		->params.push_back(type->id);
 }
 
 Exprp	API::ExprFunExpr(Exprp expr)
@@ -696,6 +715,7 @@ Exprp	API::ExprFunExpr(Exprp expr)
 
 Exprp	API::ExprFunStmt(Stmtp stmt)
 {
+	this->expr.scope_end();
 	auto func = this->funcs.top();
 
 	this->funcs.pop();
@@ -730,6 +750,8 @@ Exprp	API::ExprPtr(Cell* cell)
 
 void	API::MatchBeg(Exprp expr)
 {
+	this->expr.scope_beg();
+
 	auto id = this->expr.nid();
 
 	this->expr.insert(Expr(id, Eh::match(expr->id), this->TypeInfer()));
@@ -776,7 +798,12 @@ void	API::MatchBranchArg(Name name)
 	auto branch = this->funcs_retyck.top();
 	auto shape = ((expr::Func*)(branch->shape));
 	auto index = shape->params.size();
-	auto tid = ((type::Fun*)(branch->type->shape))->params[index];
+	auto& params = ((type::Fun*)(branch->type->shape))->params;
+
+	if(index>=params.size())
+		throw "API::MatchBranch Too Many Arguments.";
+
+	auto tid = params[index];
 	auto type = &(this->type[tid]);
 	
 	this->ExprFunArg(name, type);
@@ -808,11 +835,8 @@ Exprp	API::Asgn(Cell* cell, Oper oper, Exprp expr)
 	if(type::Shape::Ref!=shape->flag)
 		throw "API::Asgn Cell Not A Ref Type;";
 
-	if(type::Shape::Ref==expr->type->shape->flag)
-		expr = this->Dereference(expr);
-
 	if(Oper::Undefined!=oper)
-		expr = this->BinOp(this->Dereference(ref), oper, expr);
+		expr = this->BinOp(ref, oper, expr);
 
 
 	auto id = this->expr.nid();
@@ -876,6 +900,12 @@ Exprp   API::Binary(expr::Shape::Flag flag, Exprp lhs, Exprp rhs, Typep type)
 
 Exprp	API::BinOp(Exprp lhs, Oper oper, Exprp rhs)
 {
+	// auto dereference if needed
+	lhs = AutoDererence(lhs);
+	rhs = AutoDererence(rhs);
+
+
+
 	auto b = this->B();
 	auto i = this->I();
 	auto f = this->F();
@@ -1021,7 +1051,7 @@ Exprp	API::BinOp(Exprp lhs, Oper oper, Exprp rhs)
 			case type::Shape::Infer:
 				Typing(lhs, i);
 				Typing(rhs, i);
-				std::cout<<"WARNING : Select Int for T - T ;"<<std::endl;
+				std::cout<<"WARNING : Select Int for T - T   ;"<<std::endl;
 			case type::Shape::I:
 				return this->Binary(expr::Shape::ISub, lhs, rhs, i);
 			default:
@@ -1067,10 +1097,10 @@ Exprp	API::BinOp(Exprp lhs, Oper oper, Exprp rhs)
 				return this->Binary(expr::Shape::PtrAdd, rhs, lhs, rhs->type);
 			case type::Shape::Infer:
 				Typing(rhs, i);
-				std::cout<<"WARNING : Select Int for T + T ;"<<std::endl;
+				std::cout<<"WARNING : Select Int for T + T   ;"<<std::endl;
 			case type::Shape::I:
 				Typing(lhs, i);
-				std::cout<<"WARNING : Select Int for T + I ;"<<std::endl;
+				std::cout<<"WARNING : Select Int for T + Int ;"<<std::endl;
 				return this->Binary(expr::Shape::IAdd, lhs, rhs, i);
 			default:
 				throw "API::BinOP + ;";

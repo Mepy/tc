@@ -9,18 +9,47 @@ void test_let_x_101(API& context);
 void test_if(API& context);
 void test_while(API& context);
 void test_type(API& context);
+void test_func_ref(API& context);
 
 int main()
 {
     API context;
     try
     {
-        test_type(context);
+        test_func_ref(context);
     }
     catch(const char* str)
     {
         std::cerr << str << '\n';
     }
+}
+
+void test_func_ref(API& context)
+{
+    /* // func_ref.tc
+     * let foo = \ @x => @x + 1     ;
+     * let bar = \ @x => @x@[1]     ;
+     * check bar : { @&Int -> @Int };
+     */
+    context.ExprFunBeg();
+    context.ExprFunRefArg(Name("x")); // , context.TypeVar(Name("Int")) : Int
+    context.Let(Name("foo"),context.ExprFunExpr(context.BinOp(
+        context.ExprVarRef(Name("x")), tc::ast::Oper::Add, context.I(1)
+    )));
+
+    context.ExprFunBeg();
+    context.ExprFunRefArg(Name("x"));
+    context.Let(Name("bar"),context.ExprFunExpr(context.ExprEleRef(
+        context.ExprVarRef(Name("x")), context.I(1)
+    )));
+
+    context.TypeFunBeg();
+    context.TypeFunArg(
+        context.TypeRef(context.TypePtr(context.TypeVar(Name("Int"))))
+    );
+    context.Check(context.ExprVar(Name("bar")), context.TypeFunEnd(
+       context.TypeRef(context.TypeVar(Name("Int")))
+    ));
 }
 
 void test_type(API& context)
