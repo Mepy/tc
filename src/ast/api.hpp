@@ -104,12 +104,12 @@ struct API : public Context
     API();
     ~API();
 
-    void  save(string path);
+    void  save(string path, Expr* expr);
 private:
     bool  Typing(Expr* expr, Type* type=nullptr);
     bool  TypeEq(Expr* lhs, Expr* rhs);
     Expr* Dereference(Expr* expr);
-    Expr* AutoDererence(Expr* expr);
+    Expr* AutoDereference(Expr* expr);
     Type* TypeInfer(Type* type=nullptr); // return Infer type;
     Expr* Element(Expr* array, Expr* index);
     Expr* Binary(expr::Shape::Flag flag, Expr* lhs, Expr* rhs, Type* type);

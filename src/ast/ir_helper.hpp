@@ -72,6 +72,9 @@ inline Instruction Set(ID pointer, ID src, ID offset=0)
 inline Instruction PtrAdd(ID dst, ID pointer, ID offset)
 { return Instruction(Instruction::PAdd, dst, pointer, offset); }
 
+inline Instruction IAdd(ID dst, ID src1, ID src2)
+{ return Instruction(Instruction::IAdd, dst, src1, src2); }
+
 }
 namespace symbol{
 

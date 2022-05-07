@@ -96,13 +96,14 @@ struct Instruction
     };
     Sort sort;
     ID dst;    // ID Destinate
-    union {
+    union Src {
         ID    id[2]; // ID Source 
         Bool  Bimm;
         Char  Cimm;
         Int   Iimm;
         Float Fimm;
         Byte8 RESERVED;
+        Src():RESERVED(tc::ast::RESERVED){}
     } src;
     /* switch sort
      * case BImm ~ FImm : I(F)imm = imm
@@ -149,8 +150,6 @@ struct Instruction
         src.id[0] = src0;
         src.id[1] = src1;
     }
-
-
 };
 
 struct Symbol

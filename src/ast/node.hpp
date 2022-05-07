@@ -13,6 +13,8 @@ namespace tc{
 namespace ast{
 
 using Names = list<Name>;
+using Inst  = ir::Instruction;
+using Insts = list<Inst>;
 
 struct Stmt
 {
@@ -47,10 +49,17 @@ struct Expr
     Names        names;
     
     ir::Symbol  symbol;
+    Insts        insts;
 
     Expr(ID id):id(id){}
-    Expr(ID id, expr::Shape* shape, Typep type, ir::Symbol symbol=ir::Symbol())
-    :id(id), shape(shape), type(type), symbol(symbol){}
+    Expr(ID id, expr::Shape* shape, Typep type)
+    :id(id), shape(shape), type(type){}
+    Expr(ID id, expr::Shape* shape, Typep type, Inst&& inst, ir::Symbol symbol=ir::Symbol())
+    :id(id), shape(shape), type(type), symbol(symbol)
+    { insts.push_back(inst); }
+
+    void inst_front(Exprp front)
+    { insts.splice(insts.begin(), front->insts); }
 
 };
 inline bool operator<(const Expr& l, const Expr& r){ return l.id<r.id; }

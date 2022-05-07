@@ -14,7 +14,7 @@ struct Shape
         Func, CallVal, CallRef, Match, Branch,
         EleVal, EleRef, EleAddr,
         U, B, C, S, I, F, Constructor, Param,
-        Get, NewExpr, NewArray, Addr, 
+        Get, NewExpr, NewArray, Addr, Ref,
         
         // Unary
         Pos, Neg,
@@ -126,6 +126,7 @@ inline Shapep get(ID ptr){ return new Unary(Shape::Get, ptr); }
 inline Shapep addr(ID cell){ return new Unary(Shape::Addr, cell); }
 inline Shapep new_expr (ID init){ return new Unary(Shape::NewExpr , init); }
 inline Shapep new_array(ID init){ return new Unary(Shape::NewArray, init); }
+inline Shapep ref(ID value){ return new Unary(Shape::Ref, value); }
 
 }
 

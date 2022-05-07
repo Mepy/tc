@@ -10,18 +10,31 @@ void test_if(API& context);
 void test_while(API& context);
 void test_type(API& context);
 void test_func_ref(API& context);
+void test_insts(API& context);
 
 int main()
 {
     API context;
     try
     {
-        test_func_ref(context);
+        test_insts(context);
     }
     catch(const char* str)
     {
         std::cerr << str << '\n';
     }
+}
+
+void test_insts(API& context)
+{
+    /* // insts.tc
+     * let @x  = 1234;
+     *      x += 5678;
+     */
+    context.Var(Name("x"), context.I(1234));
+    auto expr = context.Asgn(context.CellVar(Name("x")), tc::ast::Oper::Add, context.I(5678));
+
+    context.save("test.hex", expr);
 }
 
 void test_func_ref(API& context)

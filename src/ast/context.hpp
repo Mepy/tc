@@ -1,9 +1,10 @@
 #ifndef tc_ast_context_hpp
 #define tc_ast_context_hpp
-#include <iostream>
+
 #include "head.hpp"
 #include "token.hpp"
 #include "node.hpp"
+#include "ir.hpp"
 
 namespace tc{
 namespace ast{
@@ -115,6 +116,8 @@ struct Type : public Namespace<ast::Type>
 };
 
 }
+
+
 
 struct Context
 {

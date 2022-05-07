@@ -12,6 +12,7 @@ namespace ast{
 
 namespace Th = type::helper;
 namespace Eh = expr::helper;
+namespace Ih = ir::instruction;
 
 // [TODO] : AST ~> IR
 
@@ -49,12 +50,12 @@ void	API::BlockBegin()
 
 void	API::BlockStmt(Stmtp stmt)
 {
-	if(nullptr!=stmt)
-	{
-		auto block = this->blocks.top();
-		auto shape = ((stmt::_block*)(block->shape));
-		shape->stmts.push_back(stmt);
-	}
+	if(nullptr==stmt)
+		return;
+
+	auto block = this->blocks.top();
+	auto shape = ((stmt::_block*)(block->shape));
+	shape->stmts.push_back(stmt);
 }
 
 Stmtp	API::BlockEnd()
@@ -84,18 +85,15 @@ Stmtp	API::Let(Name name, Exprp expr, Typep type) // = nullptr
 
 Stmtp	API::Var(Name name, Exprp expr, Typep type) // = nullptr
 {
-	if(nullptr==type)
-	{
-		auto id = this->type.nid();
-		this->type.insert(Type(id, new type::Typ(type::Shape::Infer, 0)));
-		type = &(this->type[id]);
-	}
+	type = this->TypeInfer(type);
     Typing(expr, type);
 
-	auto tid = this->type.nid();
-	this->type.insert(Type(tid, new type::Typ(type::Shape::Ref, 0)));
-
-	this->expr.bind(expr->id, name);
+	auto ref_type = this->TypeRef(type);
+	
+	auto id = this->expr.nid();
+	this->expr.insert(Expr(id, Eh::ref(expr->id), ref_type, Ih::Alloc(id, expr->id)));
+	auto ref = &(this->expr[id]);
+	this->expr.bind(ref->id, name);
 
 	return new Stmt(new stmt::_var(name, type, expr));
 }
@@ -179,7 +177,7 @@ void	API::ADTBranchBegin(Name cons)
 	this->type.insert(Type(tid, new type::Fun(this->adt->id)));
 	auto type = &(this->type[tid]);
 
-	this->expr.insert(Expr(eid, Eh::ctor(), type, ir::symbol::Ctor(0)));
+	this->expr.insert(Expr(eid, Eh::ctor(), type));
 	this->expr.bind(eid, cons);
 	
 	shape->cons.push_back(eid);
@@ -388,10 +386,14 @@ Exprp   API::Dereference(Exprp ref)
 	auto shape = ((type::Typ*)(r_type->shape));
 	auto v_type = &(this->type[shape->id]);
 	auto v_id = this->expr.nid();
-	this->expr.insert(Expr(v_id, Eh::get(r_id), v_type));
-	return &(this->expr[v_id]);
+	this->expr.insert(Expr(v_id, Eh::get(r_id), v_type, Ih::Get(v_id, r_id)));
+	auto expr = &(this->expr[v_id]);
+
+	expr->inst_front(ref);
+
+	return expr;
 }
-Exprp   API::AutoDererence(Exprp expr)
+Exprp   API::AutoDereference(Exprp expr)
 {
 	if(type::Shape::Ref==expr->type->shape->flag)
 		return Dereference(expr);
@@ -407,7 +409,7 @@ Exprp	API::ExprVar(Name name)
 
 	auto expr = &(this->expr[id]);
 
-	return this->AutoDererence(expr);
+	return this->AutoDereference(expr);
 }
 
 Exprp	API::ExprVarRef(Name name)
@@ -507,8 +509,8 @@ Typep   API::TypeInfer(Typep ty)
 
 Exprp  API::Element(Exprp array, Exprp index)
 {
-	array = this->AutoDererence(array);
-	index = this->AutoDererence(index);
+	array = this->AutoDereference(array);
+	index = this->AutoDereference(index);
 
 	Typing(index, this->I());
 
@@ -646,9 +648,8 @@ Exprp	API::I(Int i)
 {
 	auto type = this->I();
     auto id = this->expr.nid();
-	this->expr.insert(Expr(id, Eh::i(i), type));
+	this->expr.insert(Expr(id, Eh::i(i), type, Ih::IImm(id, i)));
 	auto expr = &(this->expr[id]);
-	
 	return expr;
 }
 
@@ -826,9 +827,9 @@ Exprp	API::MatchEnd()
 	return match;
 }
 
-Exprp	API::Asgn(Cell* cell, Oper oper, Exprp expr)
+Exprp	API::Asgn(Cell* cell, Oper oper, Exprp value)
 {
-	
+
 	auto ref = (Exprp)cell;
 	auto shape = ((type::Typ*)(ref->type->shape));
 
@@ -836,14 +837,18 @@ Exprp	API::Asgn(Cell* cell, Oper oper, Exprp expr)
 		throw "API::Asgn Cell Not A Ref Type;";
 
 	if(Oper::Undefined!=oper)
-		expr = this->BinOp(ref, oper, expr);
+		value = this->BinOp(ref, oper, value);
 
 
 	auto id = this->expr.nid();
 
-	this->expr.insert(Expr(id, Eh::set(ref->id, expr->id), expr->type));
+	this->expr.insert(Expr(id, Eh::set(ref->id, value->id), value->type, Ih::Set(ref->id, value->id)));
 
-	return &(this->expr[id]);
+	auto expr = &(this->expr[id]);
+
+	expr->inst_front(value);
+
+	return expr;
 }
 
 Exprp	API::UnOp(Oper oper, Exprp expr)
@@ -893,16 +898,28 @@ Exprp   API::Binary(expr::Shape::Flag flag, Exprp lhs, Exprp rhs, Typep type)
 {
 	auto id = this->expr.nid();
 
-	this->expr.insert(Expr(id, new expr::Binary(flag, lhs->id, rhs->id), type));
+	switch(flag)
+	{
+	case expr::Shape::Flag::IAdd:
+		this->expr.insert(Expr(id, new expr::Binary(flag, lhs->id, rhs->id), type, Ih::IAdd(id, lhs->id, rhs->id)));
+		break;
+	default:
+		this->expr.insert(Expr(id, new expr::Binary(flag, lhs->id, rhs->id), type));
+	}
 
-	return &(this->expr[id]);
+	auto expr = &(this->expr[id]);
+
+	expr->inst_front(rhs);
+	expr->inst_front(lhs);
+
+	return expr;
 }
 
 Exprp	API::BinOp(Exprp lhs, Oper oper, Exprp rhs)
 {
 	// auto dereference if needed
-	lhs = AutoDererence(lhs);
-	rhs = AutoDererence(rhs);
+	lhs = AutoDereference(lhs);
+	rhs = AutoDereference(rhs);
 
 
 
@@ -1109,6 +1126,7 @@ Exprp	API::BinOp(Exprp lhs, Oper oper, Exprp rhs)
 		default:
 			throw "API::BinOP + ;";
 		}
+
 	}
 	default:
 		throw "API::BinOp Unknown Op;";
