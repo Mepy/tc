@@ -74,6 +74,21 @@ inline Instruction PtrAdd(ID dst, ID pointer, ID offset)
 
 inline Instruction IAdd(ID dst, ID src1, ID src2)
 { return Instruction(Instruction::IAdd, dst, src1, src2); }
+inline Instruction ISub(ID dst, ID src1, ID src2)
+{ return Instruction(Instruction::ISub, dst, src1, src2); }
+inline Instruction IMul(ID dst, ID src1, ID src2)
+{ return Instruction(Instruction::IMul, dst, src1, src2); }
+inline Instruction IDiv(ID dst, ID src1, ID src2)
+{ return Instruction(Instruction::IDiv, dst, src1, src2); }
+inline Instruction IMod(ID dst, ID src1, ID src2)
+{ return Instruction(Instruction::IMod, dst, src1, src2); }
+
+inline Instruction ILt(ID dst, ID src1, ID src2)
+{ return Instruction(Instruction::ILt, dst, src1, src2); }
+inline Instruction FLt(ID dst, ID src1, ID src2)
+{ return Instruction(Instruction::FLt, dst, src1, src2); }
+inline Instruction PLt(ID dst, ID src1, ID src2)
+{ return Instruction(Instruction::ULt, dst, src1, src2); }
 
 }
 namespace symbol{

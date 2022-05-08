@@ -104,6 +104,7 @@ struct API : public Context
     API();
     ~API();
 
+    void  save(string path);
     void  save(string path, Expr* expr);
 private:
     bool  Typing(Expr* expr, Type* type=nullptr);

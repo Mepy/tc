@@ -11,18 +11,41 @@ void test_while(API& context);
 void test_type(API& context);
 void test_func_ref(API& context);
 void test_insts(API& context);
+void test_fact(API& context);
 
 int main()
 {
     API context;
     try
     {
-        test_insts(context);
+        test_fact(context);
     }
     catch(const char* str)
     {
         std::cerr << str << '\n';
     }
+}
+
+void test_fact(API& context)
+{
+    /* // fact.tc
+     * let fact = \ n => 
+     *     if ( n<2 ) return 1 
+     *     else return n * fact(n-1)
+     *     ;
+     */
+
+    context.ExprFunBeg();
+    context.ExprFunArg(Name("n"));
+    
+    auto cond = context.BinOp(context.ExprVar(Name("n")), tc::ast::Oper::Lt, context.I(2));
+    auto fst = context.Ret(context.I(1));
+    auto n = context.ExprVar(Name("n"));
+    context.AppBeg();
+    context.AppArg(context.BinOp(context.ExprVar(Name("n")), tc::ast::Oper::Sub, context.I(1)));
+    auto snd = context.Ret(context.BinOp(n, tc::ast::Oper::Mul, context.ExprAppEnd()));
+    auto let = context.Let(Name("fact"), context.ExprFunStmt(context.If(cond, fst, snd)));
+
 }
 
 void test_insts(API& context)

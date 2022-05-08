@@ -95,6 +95,8 @@ Stmtp	API::Var(Name name, Exprp expr, Typep type) // = nullptr
 	auto ref = &(this->expr[id]);
 	this->expr.bind(ref->id, name);
 
+	ref->inst_front(expr);
+
 	return new Stmt(new stmt::_var(name, type, expr));
 }
 
@@ -898,17 +900,32 @@ Exprp   API::Binary(expr::Shape::Flag flag, Exprp lhs, Exprp rhs, Typep type)
 {
 	auto id = this->expr.nid();
 
-	switch(flag)
-	{
-	case expr::Shape::Flag::IAdd:
-		this->expr.insert(Expr(id, new expr::Binary(flag, lhs->id, rhs->id), type, Ih::IAdd(id, lhs->id, rhs->id)));
-		break;
-	default:
-		this->expr.insert(Expr(id, new expr::Binary(flag, lhs->id, rhs->id), type));
-	}
+	
+	this->expr.insert(Expr(id, new expr::Binary(flag, lhs->id, rhs->id), type));
 
 	auto expr = &(this->expr[id]);
-
+	auto& insts = expr->insts;
+	switch(flag)
+	{
+	case expr::Shape::Flag::IAdd: insts.push_back(Ih::IAdd(id, lhs->id, rhs->id)); break;
+	case expr::Shape::Flag::ISub: insts.push_back(Ih::ISub(id, lhs->id, rhs->id)); break;
+	case expr::Shape::Flag::IMul: insts.push_back(Ih::IMul(id, lhs->id, rhs->id)); break;
+	case expr::Shape::Flag::IDiv: insts.push_back(Ih::IDiv(id, lhs->id, rhs->id)); break;
+	case expr::Shape::Flag::Mod : insts.push_back(Ih::IMod(id, lhs->id, rhs->id)); break;
+	case expr::Shape::Flag::Lt  : 
+	{
+		switch(type->shape->flag)
+		{
+		case type::Shape::I: insts.push_back(Ih::ILt(id, lhs->id, rhs->id)); break;
+		case type::Shape::F: insts.push_back(Ih::FLt(id, lhs->id, rhs->id)); break;
+		default: /* Ptr T */ insts.push_back(Ih::PLt(id, lhs->id, rhs->id)); break;
+		}
+		expr->type = this->B();
+		break;
+	}
+	default:
+		break;
+	}
 	expr->inst_front(rhs);
 	expr->inst_front(lhs);
 
@@ -995,6 +1012,11 @@ Exprp	API::BinOp(Exprp lhs, Oper oper, Exprp rhs)
 		
 		switch(lhs->type->shape->flag)
 		{
+		case type::Shape::Ptr:
+			return this->Binary(
+				expr::Shape::Flag((oper-Lt)+int(expr::Shape::Lt))
+				, lhs, rhs, lhs->type
+			);
 		case type::Shape::F:
 			return this->Binary(
 				expr::Shape::Flag((oper-Lt)+int(expr::Shape::Lt))
