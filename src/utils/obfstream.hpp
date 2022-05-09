@@ -23,6 +23,8 @@ public:
 
     inline obfstream& seek(std::__1::streampos pos)
     { os.seekp(pos); return *this; }
+    inline std::__1::streampos tell()
+    { return os.tellp(); }
 };
 
 }}

@@ -141,7 +141,7 @@ Typep	API::TypePtr(Typep type)
 	return &(this->type[id]);
 }
 
-Typep	API::TypeArr(Typep type, Size size)
+Typep	API::TypeArr(Typep type, Byte8 size)
 {
 	auto id = this->type.nid();
 	this->type.insert(Type(id, Th::array(type->id, size)));

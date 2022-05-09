@@ -26,8 +26,8 @@ enum Kind : Byte4 { /* Block 's */
 
     TYPE = 0x45505954, /* TYPE */ // Type info, 
     TFUN = 0x4E465554, /* TFUN */ // for function's type, just ids of types
-    TCON = 0x4E4F4354, /* TCON */ // for construtors' type, just ids of types
-    TSUM = 0x4D555354, /* TSUM */ // for adt's constructors, just ids of constructors
+    TADT = 0x54444154, /* TADT */ // for adt's constructors, just ids of constructors
+    TARR = 0x5D4E5B54, /* T[N] */ // for array type
 
     CSTR = 0x52545343, /* CSTR */ // c string immediate
 };
@@ -217,19 +217,18 @@ struct Type
     };
     Sort sort;
     ID     id;
-    Byte8 len; /* Array's */
     /* switch(sort)
      * case Unit~Float : Atom type
      * case Ptr   : id = id of T ~> &T
-     * case Array : id = id of T ~> T[len]
-     * case Func  : id = id of block whose Sort = TIDS
-     *              block[0:size-2] = params type
-     *              block[size-1]   = return type
+     * case Array : id = id of block whost Sort = T[N]
+     *              id of T, len ~> T[len]
+     * case Func  : id = id of block whose Sort = TFUN
+     *              block[0]        = return type
+     *              block[1:size-1] = params type
      * case ADT   : id = id of block whose Sort = TSUM
      */
-
-    Type(Sort sort=SUNO, ID id=0, Byte8 len=0)
-    :sort(sort), id(id), len(len){}
+    Type(Sort sort=SUNO, ID id=0)
+    :sort(sort), id(id){}
 };
 
 }}}

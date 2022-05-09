@@ -1,5 +1,4 @@
 #include "api.hpp"
-#include "ir_parser.hpp"
 #include <iostream>
 using API = tc::ast::API;
 using Name = tc::ast::Name;

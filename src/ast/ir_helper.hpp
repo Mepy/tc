@@ -9,6 +9,9 @@ namespace ir{
 
 namespace instruction{
 
+inline Instruction IDs(ID id0, ID id1=0, ID id2=0, ID id3=0)
+{ return Instruction(Instruction::Sort(id0), id1, id2, id3); }
+
 inline Instruction BImm(ID dst, Bool  b)
 {
     auto ins = Instruction(Instruction::BImm, dst);
@@ -109,11 +112,11 @@ inline Symbol Clos (ID block){ return Symbol(Symbol::Clos , block); }
 }
 namespace type{
 
-inline Type Unit (){ return Type(Type::Unit , 1); }
-inline Type Bool (){ return Type(Type::Bool , 2); }
-inline Type Char (){ return Type(Type::Char , 3); }
-inline Type Int  (){ return Type(Type::Int  , 4); }
-inline Type Float(){ return Type(Type::Float, 5); }
+inline Type Unit (){ return Type(Type::Unit , 0); }
+inline Type Bool (){ return Type(Type::Bool , 1); }
+inline Type Char (){ return Type(Type::Char , 2); }
+inline Type Int  (){ return Type(Type::Int  , 3); }
+inline Type Float(){ return Type(Type::Float, 4); }
 
 inline Type ADT(ID id)
 { return Type(Type::ADT, id); }

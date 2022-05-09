@@ -50,15 +50,15 @@ inline Shapep ptr  (ID id  ){ return new Typ(Shape::Ptr  , id); }
 
 struct Array : public Shape
 {
-    ID id;
-    Size  size;
-    Array(ID id, Size size)
+    ID      id;
+    Byte8 size;
+    Array(ID id, Byte8 size)
     :Shape(Shape::Array), id(id), size(size){}
 };
 
 namespace helper{
 
-inline Shapep array(ID id, Size size){ return new Array(id, size); }
+inline Shapep array(ID id, Byte8 size){ return new Array(id, size); }
 
 }
 

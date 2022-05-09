@@ -45,7 +45,7 @@ struct API : public Context
     Type* TypeVar(Name name);
     Type* TypeRef(Type* type);
     Type* TypePtr(Type* type);
-    Type* TypeArr(Type* type, Size size);
+    Type* TypeArr(Type* type, Byte8 size);
 
     void  TypeFunBeg();
     void  TypeFunArg(Type* type); /*  para  type */

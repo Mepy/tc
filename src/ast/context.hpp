@@ -13,8 +13,15 @@ namespace ir{
 struct Block
 {
     ID       id;
+    Kind   kind;
     Insts insts;
-    Block(ID id=0):id(id){}
+
+    // For those kind!=Kind::INST
+    Size   size;
+    Byte8 extra;
+    
+    Block(ID id):id(id){}
+    Block(Kind kind, Size size, Byte8 extra, ID id=0):id(id), kind(kind), size(size), extra(extra){}
 };
 inline bool operator<(const Block& lhs, const Block& rhs){ return lhs.id<rhs.id; }
 }
@@ -173,10 +180,10 @@ struct Context
     ast::Type& unify_I_U(ast::Type& t1, ast::Type& t2);
     ast::Type& unify_I_I(ast::Type& t1, ast::Type& t2);
 
-    ir::Block* new_block()
+    ir::Block* new_block(ir::Kind kind=ir::Kind::INST, Size size=0, Byte8 extra=RESERVED)
     {
         auto id = this->block.size();
-        this->block.insert(ir::Block(id));
+        this->block.insert(ir::Block(kind, size, extra, id));
         auto block = &(this->block[id]);
         return block;
     }
