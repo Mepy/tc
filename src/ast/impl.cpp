@@ -18,23 +18,24 @@ namespace Ih = ir::instruction;
 
 API::API()
 {
-	this->type.insert(Type(1, Th::u(), ir::type::Unit ()));
-	this->type.insert(Type(2, Th::b(), ir::type::Bool ()));
-	this->type.insert(Type(3, Th::c(), ir::type::Char ()));
-	this->type.insert(Type(4, Th::i(), ir::type::Int  ()));
-	this->type.insert(Type(5, Th::f(), ir::type::Float()));
+	this->type.insert(Type(0, Th::u(), ir::type::Unit ()));
+	this->type.insert(Type(1, Th::b(), ir::type::Bool ()));
+	this->type.insert(Type(2, Th::c(), ir::type::Char ()));
+	this->type.insert(Type(3, Th::i(), ir::type::Int  ()));
+	this->type.insert(Type(4, Th::f(), ir::type::Float()));
 
-	this->type.bind(1, Name("Unit" ));
-	this->type.bind(2, Name("Bool" ));
-	this->type.bind(3, Name("Char" ));
-	this->type.bind(4, Name("Int" ));
-	this->type.bind(5, Name("Float" ));
+	this->type.bind(0, Name("Unit" ));
+	this->type.bind(1, Name("Bool" ));
+	this->type.bind(2, Name("Char" ));
+	this->type.bind(3, Name("Int"  ));
+	this->type.bind(4, Name("Float"));
 
-	this->expr.insert(Expr(1, Eh::u(), this->U()));
+	this->expr.insert(Expr(0, Eh::u(), this->U()));
+	this->expr.bind(0, Name("unit"));
 
-	this->type.insert(Type(6, Th::adt(), ir::type::ADT(6)));
+	this->type.insert(Type(5, Th::adt(), ir::type::ADT(6)));
 
-	this->adt = &(this->type[6]);
+	this->adt = &(this->type[5]);
 }
 API::~API()
 {

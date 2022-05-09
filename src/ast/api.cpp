@@ -141,25 +141,25 @@ void test_if(API& context)
 void test_while(API& context) 
 {
     /* // while.tc
+     * let b1 = true;
      * let b2 = true;
      * let b3 = true;
-     * let b4 = true;
-     * while(b2) while(b3)
-     *    if(b4) break 2; 
+     * while(b1) while(b2)
+     *    if(b3) break 2; 
      *    else continue 2;
      *  
      */
     context.BlockBegin();
+    context.BlockStmt(context.Let(Name("b1"), context.B(true)));
     context.BlockStmt(context.Let(Name("b2"), context.B(true)));
     context.BlockStmt(context.Let(Name("b3"), context.B(true)));
-    context.BlockStmt(context.Let(Name("b4"), context.B(true)));
     context.WhileBeg(); // outer
     context.WhileBeg(); // inner
 
     auto while_while = 
-        context.While(context.ExprVar(Name("b2")), context.While(context.ExprVar(Name("b3")), 
+        context.While(context.ExprVar(Name("b1")), context.While(context.ExprVar(Name("b2")), 
         context.If(
-            context.ExprVar(Name("b4"))
+            context.ExprVar(Name("b3"))
         ,   context.Break(2)
         ,   context.Cont (2)
         )

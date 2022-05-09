@@ -58,8 +58,7 @@ struct Namespace
 
     Sym* sym;
     Def  def;
-    Namespace():sym(new Sym())
-    { def.insert(Data(0)); }
+    Namespace():sym(new Sym()){}
     ~Namespace(){ delete sym; }
 
     ID nid(){ return def.size(); }
