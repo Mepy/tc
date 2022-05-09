@@ -8,6 +8,17 @@
 
 namespace tc{
 namespace ast{
+
+namespace ir{
+struct Block
+{
+    ID       id;
+    Insts insts;
+    Block(ID id=0):id(id){}
+};
+inline bool operator<(const Block& lhs, const Block& rhs){ return lhs.id<rhs.id; }
+}
+
 namespace context{
 
 using SymBase = map<string, ID>;
@@ -115,18 +126,24 @@ struct Type : public Namespace<ast::Type>
     ~Type(){}
 };
 
+using Block = Def<ir::Block>;
+
 }
 
 
 
 struct Context
 {
-    context::Type type;
-    context::Expr expr;
+    context::Type   type;
+    context::Expr   expr;
+    context::Block block; // IR block
 
     // for { stmts; }'s           recursive
     stack<Stmtp> blocks;
     
+    // for while's break n & continue n
+    vector<Stmtp> whiles;
+
     // for match e with | ...'s   recursive
     stack<Exprp> matches;
 
@@ -142,6 +159,8 @@ struct Context
     // for { A1 ... An -> R }'s   recursive
     stack<Typep> func_types; 
 
+    
+
     Name type_name;
     Typep adt;
 
@@ -155,6 +174,13 @@ struct Context
     ast::Type& unify_I_U(ast::Type& t1, ast::Type& t2);
     ast::Type& unify_I_I(ast::Type& t1, ast::Type& t2);
 
+    ir::Block* new_block()
+    {
+        auto id = this->block.size();
+        this->block.insert(ir::Block(id));
+        auto block = &(this->block[id]);
+        return block;
+    }
 };
 
 }}

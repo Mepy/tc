@@ -17,6 +17,7 @@ struct API : public Context
     Stmt* Let(Name name, Expr* expr, Type* type=nullptr);
     Stmt* Var(Name name, Expr* expr, Type* type=nullptr);
     Stmt* If(Expr* cond, Stmt* fst, Stmt* snd=nullptr);
+    void  WhileBeg();
     Stmt* While(Expr* cond, Stmt* stmt);
     Stmt* Empty();
     Stmt* Break(Size size=1);

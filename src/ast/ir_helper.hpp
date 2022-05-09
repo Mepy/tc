@@ -12,6 +12,8 @@ namespace instruction{
 inline Instruction BImm(ID dst, Bool  b)
 {
     auto ins = Instruction(Instruction::BImm, dst);
+    ins.src.id[0] = 0;
+    ins.src.id[1] = b?0x45555254:0x534C4146; // b?"TRUE":"FALS"
     ins.src.Bimm = b;
     return ins;
 }

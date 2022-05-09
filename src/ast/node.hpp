@@ -14,13 +14,28 @@ namespace ast{
 
 using Names = list<Name>;
 using Inst  = ir::Instruction;
-using Insts = list<Inst>;
+struct Insts : public list<Inst>
+{
+    void concat_front(Insts& front)
+    { this->splice(this->begin(), front); }
+    void concat_back(Insts& back)
+    { this->splice(this->end(), back); }
+    void eat(Insts& insts)
+    { this->concat_front(insts); }
+};
+
+namespace ir{ struct Block; }
 
 struct Stmt
 {
     stmt::Shape* shape;
 
-    Stmt(stmt::Shape* shape):shape(shape){}
+    ir::Block*    beg;
+    ir::Block*    end;
+    Insts       insts;
+
+    Stmt(stmt::Shape* shape)
+    :shape(shape), beg(nullptr), end(nullptr){}
 };
 
 struct Type
@@ -59,7 +74,7 @@ struct Expr
     { insts.push_back(inst); }
 
     void inst_front(Exprp front)
-    { insts.splice(insts.begin(), front->insts); }
+    { this->insts.concat_front(front->insts); }
 
 };
 inline bool operator<(const Expr& l, const Expr& r){ return l.id<r.id; }

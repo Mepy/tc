@@ -1,22 +1,31 @@
 CC = g++
+LD = ld
 STD = -std=c++11
+MakeOBJ = ${CC} $< ${STD} -c -o $@
+OBJ = context.o impl.o stmt.o save.o
 
-test      : test.o context.o ast.o save.o
+test      : test.o ${OBJ}
 	${CC} $^ -o $@ && ./$@ && rm ./$@
 
-build     : context.o ast.o save.o
+build     : ast.o
+
+ast.o     : ${OBJ}
+	${LD} -r $^ -o $@
 
 test.o    : api.cpp api.hpp
-	${CC} $< ${STD} -c -o $@
+	${MakeOBJ}
 
 context.o : context.cpp context.hpp
-	${CC} $< ${STD} -c -o $@
+	${MakeOBJ}
 
-ast.o     : impl.cpp api.hpp
-	${CC} $< ${STD} -c -o $@
+impl.o    : impl.cpp api.hpp context.hpp
+	${MakeOBJ}
+
+stmt.o    : stmt.cpp api.hpp context.hpp
+	${MakeOBJ}
 
 save.o    : save.cpp api.hpp
-	${CC} $< ${STD} -c -o $@
+	${MakeOBJ}
 
 clean     : 
 	rm *.o *.hex

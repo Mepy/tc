@@ -25,7 +25,12 @@ void    API::save(string path)
     std::cout<<"module > "<<path<<std::endl;
 
     Obfs obfs(path);
-    
+
+    obfs<<Magic<<Version
+        <<ir::Cat::EXEC<<0<<RESERVED
+        ;
+
+    /* TYPE
     obfs<<ir::Kind::TYPE<<this->type.def<<RESERVED;
     for(auto& type : this->type.def)
     switch(type.shape->flag)
@@ -36,6 +41,14 @@ void    API::save(string path)
     case type::Shape::I: obfs<<Th::Int  (); break;
     case type::Shape::F: obfs<<Th::Float(); break;
     default: break;
+    }
+    */
+    
+    for(auto& block : this->block)
+    { // [TODO] add Kind into Type Block
+        obfs<<ir::Kind::INST<<((Byte4)(block.insts.size()))<<RESERVED;
+        for(auto& inst : block.insts)
+            obfs<<inst;
     }
 }
 

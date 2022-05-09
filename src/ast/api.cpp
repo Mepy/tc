@@ -18,7 +18,7 @@ int main()
     API context;
     try
     {
-        test_fact(context);
+        test_while(context);
     }
     catch(const char* str)
     {
@@ -54,10 +54,14 @@ void test_insts(API& context)
      * let @x  = 1234;
      *      x += 5678;
      */
-    context.Var(Name("x"), context.I(1234));
-    auto expr = context.Asgn(context.CellVar(Name("x")), tc::ast::Oper::Add, context.I(5678));
-
-    context.save("test.hex", expr);
+    context.BlockBegin();
+    context.BlockStmt(
+        context.Var(Name("x"), context.I(1234))
+    );
+    context.BlockStmt(context.Exp(
+        context.Asgn(context.CellVar(Name("x")), tc::ast::Oper::Add, context.I(5678))
+    ));
+    context.save("test.hex");
 }
 
 void test_func_ref(API& context)
@@ -130,11 +134,41 @@ void test_if(API& context)
     ,   context.Let(Name("Y"), context.I(1))
     ,   context.Let(Name("N"), context.I(0))
     );
+    context.save("test.hex");
 }
 
-void test_while(API& context)
+// while if break else continue
+void test_while(API& context) 
 {
+    /* // while.tc
+     * let b2 = true;
+     * let b3 = true;
+     * let b4 = true;
+     * while(b2) while(b3)
+     *    if(b4) break 2; 
+     *    else continue 2;
+     *  
+     */
+    context.BlockBegin();
+    context.BlockStmt(context.Let(Name("b2"), context.B(true)));
+    context.BlockStmt(context.Let(Name("b3"), context.B(true)));
+    context.BlockStmt(context.Let(Name("b4"), context.B(true)));
+    context.WhileBeg(); // outer
+    context.WhileBeg(); // inner
 
+    auto while_while = 
+        context.While(context.ExprVar(Name("b2")), context.While(context.ExprVar(Name("b3")), 
+        context.If(
+            context.ExprVar(Name("b4"))
+        ,   context.Break(2)
+        ,   context.Cont (2)
+        )
+    ));
+
+    context.BlockStmt(while_while);
+    context.BlockEnd();
+
+    context.save("while.hex");
 }
 
 void test_let_x_101(API& context)
