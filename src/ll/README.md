@@ -5,3 +5,7 @@ First install **llvm** (**clang++** included) in the folder ```/usr/local/llvm``
 Use ```make demo``` to demo whether you have install it correctly.
 
 Read [LLVM Programmer's Manual](https://llvm.org/docs/ProgrammersManual.html), and refer to [API Documents](https://llvm.org/doxygen/).
+
+## Implementation milestone
+- initial settings
+- alloc, set, get, printf
