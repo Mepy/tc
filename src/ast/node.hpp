@@ -57,20 +57,24 @@ inline bool operator<(const Type& l, const Type& r){ return l.id<r.id; }
 
 struct Expr
 {
+    using Sort = ir::Symbol::Sort;
     ID              id;
     expr::Shape* shape;
     Typep         type;
 
     Names        names;
     
-    ir::Symbol  symbol;
+    
     Insts        insts;
 
+    Sort          sort;
+
+
     Expr(ID id):id(id){}
-    Expr(ID id, expr::Shape* shape, Typep type)
-    :id(id), shape(shape), type(type){}
-    Expr(ID id, expr::Shape* shape, Typep type, Inst&& inst, ir::Symbol symbol=ir::Symbol())
-    :id(id), shape(shape), type(type), symbol(symbol)
+    Expr(ID id, expr::Shape* shape, Typep type, Sort sort=Sort::SUNO)
+    :id(id), shape(shape), type(type), sort(sort){}
+    Expr(ID id, expr::Shape* shape, Typep type, Inst&& inst, Sort sort=Sort::SUNO)
+    :id(id), shape(shape), type(type), sort(sort)
     { insts.push_back(inst); }
 
     void inst_front(Exprp front)

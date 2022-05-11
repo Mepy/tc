@@ -11,18 +11,70 @@ void test_type(API& context);
 void test_func_ref(API& context);
 void test_insts(API& context);
 void test_fact(API& context);
+void test_swap(API& context);
+void test_imm(API& context);
 
 int main()
 {
     API context;
     try
     {
-        test_while(context);
+        test_imm(context);
     }
     catch(const char* str)
     {
         std::cerr << str << '\n';
     }
+}
+void test_imm(API& context)
+{
+    /* // imm.tc
+    let b = true;
+    let c = 'c';
+    let i =  1 ;
+    let f = 0.0;
+    let h = "Hello!\n"; // h.len < 8
+    let s = "To be, or not to be, that is the question:\n";
+     */
+    context.BlockBegin();
+    context.BlockStmt(context.Let("b", context.B(true)));
+    context.BlockStmt(context.Let("c", context.C('c')));
+    context.BlockStmt(context.Let("i", context.I(1)));
+    context.BlockStmt(context.Let("f", context.F(0.0)));
+    context.BlockStmt(context.Let("h", context.S("Hello!\n")));
+    context.BlockStmt(
+        context.Let("s", context.S(
+            "To be, or not to be, that is the question:\n"
+        ))
+    );
+    auto stmt = context.BlockEnd();
+    context.save(stmt);
+    context.save("imm.hex");
+}
+void test_swap(API& context)
+{
+    /* // swap.tc
+    let swap = fun @x @y:Int =>{
+        let t = x;
+            x = y;
+            y = t;
+    };
+    */
+    context.ExprFunBeg();
+    context.ExprFunRefArg("x");
+    context.ExprFunRefArg("y", context.TypeVar("Int"));
+    context.BlockBegin();
+    context.BlockStmt(
+        context.Let("t", context.ExprVar("x"))
+    );
+    context.BlockStmt(context.Exp(
+        context.Asgn(context.CellVar("x"), tc::ast::Oper::Undefined, context.ExprVar("y"))
+    ));
+    context.BlockStmt(context.Exp(
+        context.Asgn(context.CellVar("y"), tc::ast::Oper::Undefined, context.ExprVar("t"))
+    ));
+    context.Let("swap", context.ExprFunStmt(context.BlockEnd()));
+    context.save("swap.hex");
 }
 
 void test_fact(API& context)
@@ -101,30 +153,36 @@ void test_type(API& context)
      * type False =
      *     ;
      * type Nickname = Nat;
+     * let @n = zero;
      */
+    
     context.TypeDef(Name("Nat"));
-
+    
     context.ADTBranchBegin(Name("zero"));
     context.ADTBranchEnd();
-    context.ADTBranchBegin(Name("succ"));
     
+    context.ADTBranchBegin(Name("succ"));
     context.ADTBranchType(
         context.TypeVar(Name("Nat"))
     );
-
     context.ADTBranchEnd();
+    
     context.ADT();
-
+    
+    
     context.TypeDef(Name("False"));
     context.ADT();
-
+    
     context.TypeDef(Name("Nickname"));
     context.Alias(context.TypeVar(Name("Nat")));
+    context.Var(Name("x"), context.ExprVar(Name("zero")));
 
     auto& names = context.type[6].names; // Nat, Nickname
     for(auto& name:names)
         std::cout<<name<<" ";
     std::cout<<std::endl;
+
+    context.save("type.hex");
 }
 void test_if(API& context)
 {

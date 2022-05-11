@@ -26,14 +26,14 @@ inline void save_type(Context* context, Obfs& obfs)
     obfs<<ir::Kind::TYPE;
     auto pos = obfs.tell();
 
-    obfs<<0<<RESERVED;
+    obfs<<0;
 
     Size size = 0;
     for(auto& type : context->type.def)
         if(type::Shape::Infer==type.shape->flag)
         {
             auto& id = ((type::Typ*)(type.shape))->id;
-            id = ID(context->type[id].shape->flag);
+            id = context->type.def[id].id;
         }
         else
         {
@@ -42,6 +42,7 @@ inline void save_type(Context* context, Obfs& obfs)
             {
             case type::Shape::Fun:
             {
+                ty->type.sort = ir::Type::Sort::Func;
                 auto shape = ((type::Fun*)(ty->shape));
                 auto& params = shape->params;
                 auto retype = shape->retype;
@@ -52,14 +53,15 @@ inline void save_type(Context* context, Obfs& obfs)
                 {
                     auto block = context->new_block(ir::Kind::TFUN
                         , 1, Byte8(retype));
-                    ty->type.id = block->id;
+                    ty->type.id = block->id + 2;
                     break;
                 }
                 case 1:
                 {
                     auto block = context->new_block(ir::Kind::TFUN
                         , 2, (Byte8(params[0])<<32)+Byte8(retype));
-                    ty->type.id = block->id;
+                    ty->type.id = block->id + 2;
+
                     break;
                 }
                 default:
@@ -84,11 +86,12 @@ inline void save_type(Context* context, Obfs& obfs)
                         ); break;
                     default: break;
                     }
-                    ty->type.id = block->id;
+                    ty->type.id = block->id + 2;
                 }
                 }
+                break;
             }
-            
+
             case type::Shape::ADT:
             {
                 auto shape = ((type::ADT*)(ty->shape));
@@ -98,20 +101,21 @@ inline void save_type(Context* context, Obfs& obfs)
                 {
                 case 0:
                 {
-                    auto block = context->new_block(ir::Kind::TADT, 0);
-                    ty->type.id = block->id;
+                    auto block = context->new_block(ir::Kind::TADT, 0
+                    , 0x44494F5620454854L); // "THE VOID"
+                    ty->type.id = block->id + 2;
                     break;
                 }
                 case 1:
                 {
-                    auto block = context->new_block(ir::Kind::TADT, 0
+                    auto block = context->new_block(ir::Kind::TADT, 1
                     , Byte8(cons[0]));
-                    ty->type.id = block->id;
+                    ty->type.id = block->id + 2;
                     break;
                 }
                 default:
                 {
-                    auto block = context->new_block(ir::Kind::TADT, 0
+                    auto block = context->new_block(ir::Kind::TADT, c_size
                     , *(Byte8*)&cons[0]);
                     Size index=2;
                     for( ; index+3<c_size; index+=4)
@@ -130,7 +134,7 @@ inline void save_type(Context* context, Obfs& obfs)
                         ); break;
                     default: break;
                     }
-                    ty->type.id = block->id;
+                    ty->type.id = block->id + 2;
                     break;
                 }
                 }
@@ -141,25 +145,52 @@ inline void save_type(Context* context, Obfs& obfs)
             {
                 auto shape = ((type::Array*)(ty->shape));
                 auto block = context->new_block(ir::Kind::TARR, shape->id, shape->size);
-                ty->type.id = block->id;
+                ty->type.id = block->id + 2;
+                break;
             }
 
-            case type::Shape::Ref:
+            case type::Shape::Ref: // [TODO]
                 ty->type.sort = ir::Type::Sort::Ptr;
             case type::Shape::Ptr:
+            {
+                
+                auto id = ((type::Typ*)(ty->shape))->id;
+                id = ((type::Typ*)(context->type.def[id].shape))->id;
+                ty->type.id   = id;
                 break;
+            }
             default: break;
             }
-            
             obfs<<type.type;
-            type.shape->flag = type::Shape::Flag(size);
+            delete ty->shape;
+            ty->shape = Th::infer(size);
             ++size;
         }
-    if(1==size%2)
+    if(0==size%2)
         obfs<<Byte8(0);
     auto cur = obfs.tell();
     obfs.seek(pos)<<size;
     obfs.seek(cur);
+}
+
+inline void save_symb(Context* context, Obfs& obfs)
+{
+    Size size = context->expr.def.size();
+    obfs<<ir::Kind::SYMB<<size;
+
+    for(auto& expr : context->expr.def)
+    {
+        obfs<<expr.sort;
+        auto type = expr.type;
+        auto id = type->id;
+        
+        auto nid = ((type::Typ*)(context->type.def[id].shape))->id;
+        if(0!=nid)
+            id = nid;
+        obfs<<id;
+    }
+    if(0==size%2)
+        obfs<<Byte8(0);
 }
 
 // [TODO]
@@ -178,9 +209,10 @@ void    API::save(string path)
         <<ir::Cat::EXEC;
     auto pos = obfs.tell();
     obfs<<Byte4(0)<<RESERVED;
-
+    
     save_type(this, obfs);
-
+    save_symb(this, obfs);
+    
     for(auto& block : this->block)
     {
         obfs<<block.kind;
@@ -192,6 +224,7 @@ void    API::save(string path)
         case ir::Kind::TFUN:
         case ir::Kind::TADT:
         case ir::Kind::TARR:
+        case ir::Kind::CSTR:
             obfs<<block.size<<block.extra;
             break;
         default: break;
@@ -200,7 +233,6 @@ void    API::save(string path)
             obfs<<inst;
     }
     obfs.seek(pos)<<Byte4(this->block.size()+2);
-    
 }
 
 void	API::save(string path, Exprp expr)
@@ -208,6 +240,16 @@ void	API::save(string path, Exprp expr)
 	std::cout<<"expr > "<<path<<std::endl;
 	Obfs obfs(path);
     tc::ast::save(obfs, expr->insts);
+}
+
+void	API::save(Stmtp root)
+{
+    if(nullptr!=root->beg)
+        return;
+
+    std::cout<<"save"<<std::endl;
+    auto block = this->new_block();
+    block->insts.eat(root->insts);
 }
 
 }}

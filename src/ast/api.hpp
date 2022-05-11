@@ -106,6 +106,7 @@ struct API : public Context
     ~API();
 
     void  save(string path);
+    void  save(Stmt* root);
     void  save(string path, Expr* expr);
 private:
     bool  Typing(Expr* expr, Type* type=nullptr);

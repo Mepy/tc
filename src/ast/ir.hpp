@@ -25,7 +25,7 @@ enum Kind : Byte4 { /* Block 's */
     CLOS = 0x534F4C43, /* CLOS */ // for closure's function info 
 
     TYPE = 0x45505954, /* TYPE */ // Type info, 
-    TFUN = 0x4E465554, /* TFUN */ // for function's type, just ids of types
+    TFUN = 0x4E554654, /* TFUN */ // for function's type, just ids of types
     TADT = 0x54444154, /* TADT */ // for adt's constructors, just ids of constructors
     TARR = 0x5D4E5B54, /* T[N] */ // for array type
 
@@ -40,6 +40,8 @@ struct Instruction
         CImm  = 0x6D6D4943, /* CImm */
         IImm  = 0x6D6D4949, /* IImm */
         FImm  = 0x6D6D4946, /* FImm */
+        SImm  = 0x6D6D4953, /* SImm */
+        CStr  = 0x72745343, /* CStr */
         IAdd  = 0x642B4149, /* IA+d */ 
         ISub  = 0x622D5349, /* IS-b */
         IMul  = 0x6C2A4D49, /* IM*l */
@@ -107,6 +109,7 @@ struct Instruction
     } src;
     /* switch sort
      * case BImm ~ FImm : I(F)imm = imm
+     * case CStr        : src.id[0] = id of block Sort = CSTR
      * case IAdd ~ Neq : calculate src.id[0] sort src.id[1] 
      * case Br   : dst = id of condition
      *             src.id[0] = id of block when true

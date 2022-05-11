@@ -13,6 +13,7 @@ namespace ast{
 namespace Th = type::helper;
 namespace Eh = expr::helper;
 namespace Ih = ir::instruction;
+namespace Sh = ir::symbol;
 
 void	API::BlockBegin()
 {
@@ -94,7 +95,7 @@ Stmtp	API::Var(Name name, Exprp expr, Typep type) // = nullptr
 	auto ref_type = this->TypeRef(type);
 	
 	auto id = this->expr.nid();
-	this->expr.insert(Expr(id, Eh::ref(expr->id), ref_type, Ih::Alloc(id, expr->id)));
+	this->expr.insert(Expr(id, Eh::ref(expr->id), ref_type, Ih::Alloc(id, expr->id), ir::Symbol::Const));
 	auto ref = &(this->expr[id]);
 	this->expr.bind(ref->id, name);
 
@@ -321,14 +322,17 @@ void	API::ADTBranchType(Typep type) // = nullptr
 void	API::ADTBranchEnd()
 {
 	auto con_id = ((type::ADT*)(this->adt->shape))->cons.back();
-	auto con_type = this->expr[con_id].type;
+	auto& con    = this->expr[con_id];
+	auto con_type = con.type;
 	auto shape = (type::Fun*)(con_type->shape);
-
+	
 	if(0==shape->params.size()) // Not a function-like constructor
 	{
 		delete shape;
 		con_type->shape = Th::infer(this->adt->id);
+		con.sort = ir::Symbol::Const;
 	}
+	else con.sort = ir::Symbol::Ctor;
 }
 
 Stmtp	API::ADT()

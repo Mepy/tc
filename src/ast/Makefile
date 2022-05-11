@@ -2,7 +2,7 @@ CC = g++
 LD = ld
 STD = -std=c++11
 MakeOBJ = ${CC} $< ${STD} -c -o $@
-OBJ = context.o impl.o stmt.o save.o
+OBJ = context.o impl.o stmt.o type.o expr.o save.o 
 
 test      : test.o ${OBJ}
 	${CC} $^ -o $@ && ./$@ && rm ./$@
@@ -19,6 +19,12 @@ context.o : context.cpp context.hpp
 	${MakeOBJ}
 
 impl.o    : impl.cpp api.hpp context.hpp
+	${MakeOBJ}
+
+type.o    : type.cpp api.hpp context.hpp
+	${MakeOBJ}
+
+expr.o    : expr.cpp api.hpp context.hpp
 	${MakeOBJ}
 
 stmt.o    : stmt.cpp api.hpp context.hpp

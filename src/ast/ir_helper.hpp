@@ -9,8 +9,11 @@ namespace ir{
 
 namespace instruction{
 
-inline Instruction IDs(ID id0, ID id1=0, ID id2=0, ID id3=0)
+inline Instruction IDs(ID id0=0, ID id1=0, ID id2=0, ID id3=0)
 { return Instruction(Instruction::Sort(id0), id1, id2, id3); }
+
+inline Instruction Func(ID fun, ID params, ID body)
+{ return Instruction(Instruction::Func, fun, params, body); }
 
 inline Instruction BImm(ID dst, Bool  b)
 {
@@ -23,6 +26,8 @@ inline Instruction BImm(ID dst, Bool  b)
 inline Instruction CImm(ID dst, Char  c)
 {
     auto ins = Instruction(Instruction::CImm, dst);
+    ins.src.id[0] = 0;
+    ins.src.id[1] = 0x52414843; // "CHAR"
     ins.src.Cimm = c;
     return ins;
 }
@@ -37,6 +42,16 @@ inline Instruction FImm(ID dst, Float f)
     auto ins = Instruction(Instruction::FImm, dst);
     ins.src.Fimm = f;
     return ins;
+}
+inline Instruction SImm(ID dst, Str   s)
+{
+    auto ins = Instruction(Instruction::SImm, dst);
+    ins.src.Iimm = *(Int*)s.c_str();;
+    return ins;
+}
+inline Instruction CStr(ID dst, ID block)
+{
+    return Instruction(Instruction::CStr, dst, block, 0);
 }
 inline Instruction Alloc(ID dst, ID src)
 { return Instruction(Instruction::Alloc, dst, src, 0x6B617453 /* Stak */); }
@@ -118,8 +133,8 @@ inline Type Char (){ return Type(Type::Char , 2); }
 inline Type Int  (){ return Type(Type::Int  , 3); }
 inline Type Float(){ return Type(Type::Float, 4); }
 
-inline Type ADT(ID id)
-{ return Type(Type::ADT, id); }
+inline Type ADT(ID id){ return Type(Type::ADT, id); }
+inline Type Fun(ID id){ return Type(Type::ADT, id); }
 
 }
 

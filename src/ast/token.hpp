@@ -24,6 +24,7 @@ struct ExtdBase
 struct Name : public ExtdBase, string
 {
     Name(){}
+    Name(const char* name):string(name){}
     Name(string name):string(name){}
     ~Name(){}
 };
