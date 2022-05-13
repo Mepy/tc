@@ -48,11 +48,13 @@ Check  |  "check" Expr Type ";"
        ;
 
 Type      ::=
+/* Use TypeVar instead
 U          |  u0  /* "Unit"   */
 B          |  b1  /* "Bool"   */
 C          |  c8  /* "Char"   */
 I          |  i64 /* "Int"    */
 F          |  f64 /* "Double" */
+*/
 TypeVar    |  type_name /*       */
 TypeRef    |  "@" Type /* @T, Ref T */
 TypePtr    |  "&" Type /* &T, Ptr T */

@@ -55,9 +55,9 @@ void test_match(API& context)
     context.ExprFunArg("bol");
     context.MatchBeg(context.ExprVar("bol"));
     context.MatchBranchBeg("tru");
-    context.MatchBranchExpr(context.B(true));
+    context.MatchBranchExpr(context.ExprVar("true"));
     context.MatchBranchBeg("fls");
-    context.MatchBranchExpr(context.B(false));
+    context.MatchBranchExpr(context.ExprVar("false"));
     context.BlockStmt(context.Let("boolean", context.ExprFunExpr(context.MatchEnd())));
 
     context.save(context.BlockEnd());
@@ -136,7 +136,7 @@ void test_imm(API& context)
     let s = "To be, or not to be, that is the question:\n";
      */
     context.BlockBegin();
-    context.BlockStmt(context.Let("b", context.B(true)));
+    context.BlockStmt(context.Let("b", context.ExprVar("true")));
     context.BlockStmt(context.Let("c", context.C('c')));
     context.BlockStmt(context.Let("i", context.I(1)));
     context.BlockStmt(context.Let("f", context.F(0.0)));
@@ -286,7 +286,7 @@ void test_type(API& context)
 void test_if(API& context)
 {
     auto _if = context.If(
-        context.B(false)
+        context.ExprVar("false")
     ,   context.Let(Name("Y"), context.I(1))
     ,   context.Let(Name("N"), context.I(0))
     );
@@ -306,9 +306,9 @@ void test_while(API& context)
      *  
      */
     context.BlockBegin();
-    context.BlockStmt(context.Let(Name("b1"), context.B(true)));
-    context.BlockStmt(context.Let(Name("b2"), context.B(true)));
-    context.BlockStmt(context.Let(Name("b3"), context.B(true)));
+    context.BlockStmt(context.Let(Name("b1"), context.ExprVar("true")));
+    context.BlockStmt(context.Let(Name("b2"), context.ExprVar("true")));
+    context.BlockStmt(context.Let(Name("b3"), context.ExprVar("true")));
     context.WhileBeg(); // outer
     context.WhileBeg(); // inner
 

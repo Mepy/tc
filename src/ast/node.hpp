@@ -69,11 +69,13 @@ struct Expr
 
     Sort          sort;
 
-    
-    ID     params, body; /* only for function */
+    ID          params; /* for function only      */
+    ID            body; /* for function and Const */
 
 
     Expr(ID id):id(id){}
+    Expr(ID id, expr::Shape* shape, Typep type, ID body) // Const
+    :id(id), shape(shape), type(type), sort(Sort::Const), body(body){}
     Expr(ID id, expr::Shape* shape, Typep type, Sort sort=Sort::SUNO)
     :id(id), shape(shape), type(type), sort(sort){}
     Expr(ID id, expr::Shape* shape, Typep type, Inst&& inst, Sort sort=Sort::SUNO)

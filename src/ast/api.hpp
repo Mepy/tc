@@ -38,11 +38,6 @@ struct API : public Context
     Stmt* Check(Expr* expr, Type* type=nullptr);
 
     /* Type */
-    Type* U();
-    Type* B();
-    Type* C();
-    Type* I();
-    Type* F();
     Type* TypeVar(Name name);
     Type* TypeRef(Type* type);
     Type* TypePtr(Type* type);
@@ -75,7 +70,6 @@ struct API : public Context
     Expr* ExprVal(Expr* expr);  /* Ptr T ->     T */
     Expr* ExprRef(Expr* expr);  /* Ptr T -> Ref T */
 
-    Expr* B(Bool b);
     Expr* C(Char c);
     Expr* S(Str s);
     Expr* I(Int i);

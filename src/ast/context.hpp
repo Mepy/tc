@@ -177,7 +177,7 @@ struct Context
     
 
     Name type_name;
-    Typep adt;
+    Typep u, b, c, i, f, adt;
 
     Context(){}
     ~Context(){}

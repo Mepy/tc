@@ -15,18 +15,9 @@ namespace Eh = expr::helper;
 namespace Ih = ir::instruction;
 using Sort = ir::Symbol::Sort;
 
-Exprp	API::B(Bool b)
-{
-	auto type = this->B();
-    auto id = this->expr.nid();
-	this->expr.insert(Expr(id, Eh::b(b), type, Ih::BImm(id, b), Sort::Const));
-	auto expr = &(this->expr[id]);
-	return expr;
-}
-
 Exprp	API::C(Char c)
 {
-	auto type = this->C();
+	auto type = this->c;
     auto id = this->expr.nid();
 	this->expr.insert(Expr(id, Eh::c(c), type, Ih::CImm(id, c), Sort::Const));
 	auto expr = &(this->expr[id]);
@@ -35,7 +26,7 @@ Exprp	API::C(Char c)
 
 Exprp	API::I(Int i)
 {
-	auto type = this->I();
+	auto type = this->i;
     auto id = this->expr.nid();
 	this->expr.insert(Expr(id, Eh::i(i), type, Ih::IImm(id, i), Sort::Const));
 	auto expr = &(this->expr[id]);
@@ -44,7 +35,7 @@ Exprp	API::I(Int i)
 
 Exprp	API::F(Float f)
 {
-	auto type = this->F();
+	auto type = this->f;
     auto id = this->expr.nid();
 	this->expr.insert(Expr(id, Eh::f(f), type, Ih::FImm(id, f), Sort::Const));
 	auto expr = &(this->expr[id]);
@@ -56,7 +47,7 @@ Exprp	API::S(Str s)
 	auto tid = this->type.nid();
     auto s_size = s.length()+1;
 	this->type.insert(Type(tid, Th::array(2, s_size)));
-	// 2 == this->C().id
+	// 2 == this->c.id
 	auto type = &(this->type[tid]);
 
     auto eid = this->expr.nid();
@@ -117,7 +108,7 @@ Exprp	API::Element(Exprp array, Exprp index)
 	array = this->AutoDereference(array);
 	index = this->AutoDereference(index);
 
-	Typing(index, this->I());
+	Typing(index, this->i);
 
 	auto array_type = array->type;
 
@@ -433,7 +424,6 @@ Exprp	API::ExprAppEnd()
 	return call;
 }
 
-// [TODO] insts
 void	API::ExprFunBeg()
 {
 	this->type.scope_beg();
@@ -502,7 +492,6 @@ Exprp	API::ExprFunStmt(Stmtp stmt)
 	auto body = this->new_block();
     body->insts.eat(stmt->insts);
 
-	std::cout<<"params->id = "<<params->id<<", body->id="<<body->id<<std::endl;
 	func->sort = Sort::CPrg;
 	func->params = params->id+2;
 	func->body   = body->id+2;
@@ -641,8 +630,8 @@ Exprp	API::MatchEnd()
 Exprp	API::UnOp(Oper oper, Exprp expr)
 {
 	
-	auto i = this->I();
-	auto f = this->F();
+	auto i = this->i;
+	auto f = this->f;
 	switch(oper)
 	{
 	case Pos:
@@ -686,20 +675,79 @@ Exprp	API::UnOp(Oper oper, Exprp expr)
 Exprp   API::Binary(expr::Shape::Flag flag, Exprp lhs, Exprp rhs, Typep type)
 {
 	auto id = this->expr.nid();
-
-	
 	this->expr.insert(Expr(id, new expr::Binary(flag, lhs->id, rhs->id), type));
-
 	auto expr = &(this->expr[id]);
+
 	auto& insts = expr->insts;
 	switch(flag)
 	{
-	case expr::Shape::Flag::IAdd: insts.push_back(Ih::IAdd(id, lhs->id, rhs->id)); break;
-	case expr::Shape::Flag::ISub: insts.push_back(Ih::ISub(id, lhs->id, rhs->id)); break;
-	case expr::Shape::Flag::IMul: insts.push_back(Ih::IMul(id, lhs->id, rhs->id)); break;
-	case expr::Shape::Flag::IDiv: insts.push_back(Ih::IDiv(id, lhs->id, rhs->id)); break;
-	case expr::Shape::Flag::Mod : insts.push_back(Ih::IMod(id, lhs->id, rhs->id)); break;
-	case expr::Shape::Flag::Lt  : 
+	case expr::Shape::Flag::PtrAdd:
+		insts.push_back(Ih::PtrAdd(id, lhs->id, rhs->id));
+		break;
+	case expr::Shape::Flag::PtrSub:
+		insts.push_back(Ih::PtrSub(id, lhs->id, rhs->id));
+		break;
+	case expr::Shape::Flag::Mod :
+		insts.push_back(Ih::IMod(id, lhs->id, rhs->id));
+		break;
+	case expr::Shape::Flag::IAdd:
+		insts.push_back(Ih::IAdd(id, lhs->id, rhs->id));
+		break;
+	case expr::Shape::Flag::ISub:
+		insts.push_back(Ih::ISub(id, lhs->id, rhs->id));
+		break;
+	case expr::Shape::Flag::IMul:
+		insts.push_back(Ih::IMul(id, lhs->id, rhs->id));
+		break;
+	case expr::Shape::Flag::IDiv:
+		insts.push_back(Ih::IDiv(id, lhs->id, rhs->id));
+		break;
+	case expr::Shape::Flag::FAdd:
+		insts.push_back(Ih::FAdd(id, lhs->id, rhs->id));
+		break;
+	case expr::Shape::Flag::FSub:
+		insts.push_back(Ih::FSub(id, lhs->id, rhs->id));
+		break;
+	case expr::Shape::Flag::FMul:
+		insts.push_back(Ih::FMul(id, lhs->id, rhs->id));
+		break;
+	case expr::Shape::Flag::FDiv:
+		insts.push_back(Ih::FDiv(id, lhs->id, rhs->id));
+		break;
+
+	case expr::Shape::Flag::LShift:
+		insts.push_back(Ih::LShift(id, lhs->id, rhs->id));
+		break;
+	case expr::Shape::Flag::RShift:
+		insts.push_back(Ih::RShift(id, lhs->id, rhs->id));
+		break;
+	case expr::Shape::Flag::BNot  :
+		insts.push_back(Ih::BNot(id, lhs->id, rhs->id));
+		break;
+	case expr::Shape::Flag::BAnd  :
+		insts.push_back(Ih::BAnd(id, lhs->id, rhs->id));
+		break;
+	case expr::Shape::Flag::BOr   :
+		insts.push_back(Ih::BOr (id, lhs->id, rhs->id));
+		break;
+	case expr::Shape::Flag::BXor  :
+		insts.push_back(Ih::BXor(id, lhs->id, rhs->id));
+		break;
+
+	case expr::Shape::Flag::LNot  :
+		insts.push_back(Ih::LNot(id, lhs->id, rhs->id));
+		break;
+	case expr::Shape::Flag::LAnd  :
+		insts.push_back(Ih::LAnd(id, lhs->id, rhs->id));
+		break;
+	case expr::Shape::Flag::LOr   :
+		insts.push_back(Ih::LOr (id, lhs->id, rhs->id));
+		break;
+	case expr::Shape::Flag::LXor  :
+		insts.push_back(Ih::LXor(id, lhs->id, rhs->id));
+		break;
+
+	case expr::Shape::Flag::Lt : 
 	{
 		switch(type->shape->flag)
 		{
@@ -707,9 +755,82 @@ Exprp   API::Binary(expr::Shape::Flag flag, Exprp lhs, Exprp rhs, Typep type)
 		case type::Shape::F: insts.push_back(Ih::FLt(id, lhs->id, rhs->id)); break;
 		default: /* Ptr T */ insts.push_back(Ih::PLt(id, lhs->id, rhs->id)); break;
 		}
-		expr->type = this->B();
+		expr->type = this->b;
 		break;
 	}
+	case expr::Shape::Flag::Gt :
+	{
+		switch(type->shape->flag)
+		{
+		case type::Shape::I: insts.push_back(Ih::IGt(id, lhs->id, rhs->id)); break;
+		case type::Shape::F: insts.push_back(Ih::FGt(id, lhs->id, rhs->id)); break;
+		default: /* Ptr T */ insts.push_back(Ih::PGt(id, lhs->id, rhs->id)); break;
+		}
+		expr->type = this->b;
+		break;
+	}
+	case expr::Shape::Flag::Leq:
+	{
+		switch(type->shape->flag)
+		{
+		case type::Shape::I: insts.push_back(Ih::ILe(id, lhs->id, rhs->id)); break;
+		case type::Shape::F: insts.push_back(Ih::FLe(id, lhs->id, rhs->id)); break;
+		default: /* Ptr T */ insts.push_back(Ih::PLe(id, lhs->id, rhs->id)); break;
+		}
+		expr->type = this->b;
+		break;
+	}
+	case expr::Shape::Flag::Geq:
+	{
+		switch(type->shape->flag)
+		{
+		case type::Shape::I: insts.push_back(Ih::IGe(id, lhs->id, rhs->id)); break;
+		case type::Shape::F: insts.push_back(Ih::FGe(id, lhs->id, rhs->id)); break;
+		default: /* Ptr T */ insts.push_back(Ih::PGe(id, lhs->id, rhs->id)); break;
+		}
+		expr->type = this->b;
+		break;
+	}
+	case expr::Shape::Flag::Eq :
+	{
+		switch(type->shape->flag)
+		{
+		case type::Shape::U:	insts.push_back(Ih::UEq(id, lhs->id, rhs->id)); break;
+		case type::Shape::B:	insts.push_back(Ih::BEq(id, lhs->id, rhs->id)); break;
+		case type::Shape::C:	insts.push_back(Ih::CEq(id, lhs->id, rhs->id)); break;
+		case type::Shape::I:	insts.push_back(Ih::IEq(id, lhs->id, rhs->id)); break;
+		case type::Shape::F:	insts.push_back(Ih::FEq(id, lhs->id, rhs->id)); break;
+		case type::Shape::Ptr: 
+		case type::Shape::Ref:	insts.push_back(Ih::PEq(id, lhs->id, rhs->id)); break;
+		case type::Shape::Array:insts.push_back(Ih::AEq(id, lhs->id, rhs->id)); break;
+		case type::Shape::ADT:	insts.push_back(Ih::TEq(id, lhs->id, rhs->id)); break;
+		default:
+			throw "API::== for Unknown Type.";
+		}
+		expr->type = this->b;
+		break;
+	}
+	case expr::Shape::Flag::Neq:
+	{
+		switch(type->shape->flag)
+		{
+		case type::Shape::U:	insts.push_back(Ih::UNe(id, lhs->id, rhs->id)); break;
+		case type::Shape::B:	insts.push_back(Ih::BNe(id, lhs->id, rhs->id)); break;
+		case type::Shape::C:	insts.push_back(Ih::CNe(id, lhs->id, rhs->id)); break;
+		case type::Shape::I:	insts.push_back(Ih::INe(id, lhs->id, rhs->id)); break;
+		case type::Shape::F:	insts.push_back(Ih::FNe(id, lhs->id, rhs->id)); break;
+		case type::Shape::Ptr: 
+		case type::Shape::Ref:	insts.push_back(Ih::PNe(id, lhs->id, rhs->id)); break;
+		case type::Shape::Array:insts.push_back(Ih::ANe(id, lhs->id, rhs->id)); break;
+		case type::Shape::ADT:	insts.push_back(Ih::TNe(id, lhs->id, rhs->id)); break;
+		default:
+			throw "API::!= for Unknown Type.";
+		}
+		expr->type = this->b;
+		break;
+	}
+
+
 	default:
 		break;
 	}
@@ -725,11 +846,9 @@ Exprp	API::BinOp(Exprp lhs, Oper oper, Exprp rhs)
 	lhs = AutoDereference(lhs);
 	rhs = AutoDereference(rhs);
 
-
-
-	auto b = this->B();
-	auto i = this->I();
-	auto f = this->F();
+	auto b = this->b;
+	auto i = this->i;
+	auto f = this->f;
 	switch(oper)
 	{
 	case PtrAdd:

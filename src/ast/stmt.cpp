@@ -134,7 +134,7 @@ ID If_Br(Context* context, Stmtp stmt, ID next)
 }
 Stmtp	API::If(Exprp cond, Stmtp fst, Stmtp snd) // = nullptr
 {
-	Typing(cond, this->B());
+	Typing(cond, this->b);
 
 	auto stmt = new Stmt(new stmt::_if(cond, fst, snd));
 
@@ -163,7 +163,7 @@ void	API::WhileBeg()
 
 Stmtp	API::While(Exprp cond, Stmtp body) // nullptr
 {	
-	Typing(cond, this->B());
+	Typing(cond, this->b);
 	auto stmt = this->whiles.back(); this->whiles.pop_back();
 	stmt->shape = new stmt::_while(cond, body);
 

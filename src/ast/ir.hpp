@@ -17,7 +17,6 @@ enum Kind : Byte4 { /* Block 's */
     
     INST = 0x54534E49, /* INST */ // ANF instruction
     ARGS = 0x53475241, /* ARGS */ // call  's arguments, just ids of expr
-    FILD = 0x444C4946, /* FILD */ // constr's arguments, just ids of expr
     BRCH = 0x48435242, /* BRCH */ // destr 's branches, just ids of block
     
     SYMB = 0x424D5953, /* SYMB */ // Symbol
@@ -38,7 +37,6 @@ struct Instruction
 {
     enum Sort : Byte4 {
         SUNO  = 0x4F4E5553, /* SUNO */ // Sort Unknown
-        BImm  = 0x6D6D4942, /* BImm */
         CImm  = 0x6D6D4943, /* CImm */
         IImm  = 0x6D6D4949, /* IImm */
         FImm  = 0x6D6D4946, /* FImm */
@@ -59,24 +57,51 @@ struct Instruction
         PSub  = 0x622D5350, /* PS-b */
         PMov  = 0x763D4D50, /* PM=v */
 
+        LShift= 0x3C3C3C3C, /* <<<< */
+        RShift= 0x3E3E3E3E, /* >>>> */
+        BNot  = 0x21212121, /* !!!! */
+        BAnd  = 0x26262626, /* &&&& */
+        BOr   = 0x7C7C7C7C, /* |||| */
+        BXor  = 0x5E5E5E5E, /* ^^^^ */
+        
+        LNot  = 0x746F6E20, /*  not */
+        LAnd  = 0x646E6120, /*  and */
+        LOr   = 0x20726F20, /*  or  */
+        LXor  = 0x726F7820, /*  xor */
+
+
         /* used by Pointer */
-        ULt   = 0x3F203C55, /* U< ? */
-        ULe   = 0x3F3D3C55, /* U<=? */
-        UGt   = 0x3F203E55, /* U> ? */
-        UGe   = 0x3F3D3E55, /* U>=? */ 
+        PLt   = 0x3F203C50, /* P< ? */
+        PLe   = 0x3F3D3C50, /* P<=? */
+        PGt   = 0x3F203E50, /* P> ? */
+        PGe   = 0x3F3D3E50, /* P>=? */
+        PEq   = 0x3F3D3D50, /* P==? */
+        PNe   = 0x3F3D2150, /* P!=? */
 
         ILt   = 0x3F203C49, /* I< ? */
         ILe   = 0x3F3D3C49, /* I<=? */
         IGt   = 0x3F203E49, /* I> ? */
         IGe   = 0x3F3D3E49, /* I>=? */ 
+        IEq   = 0x3F3D3D49, /* I==? */
+        INe   = 0x3F3D2149, /* I!=? */
 
         FLt   = 0x3F203C46, /* F< ? */
         FLe   = 0x3F3D3C46, /* F<=? */
         FGt   = 0x3F203E46, /* F> ? */
         FGe   = 0x3F3D3E46, /* F>=? */  
+        FEq   = 0x3F3D3D46, /* F==? */
+        FNe   = 0x3F3D2146, /* F!=? */
 
-        Eq    = 0x3F3D3D54, /* T==? */
-        Neq   = 0x3F3D2154, /* T!=? */
+        UEq   = 0x3F3D3D55, /* U==? */
+        UNe   = 0x3F3D2155, /* U!=? */
+        BEq   = 0x3F3D3D42, /* B==? */
+        BNe   = 0x3F3D2142, /* B!=? */
+        CEq   = 0x3F3D3D43, /* C==? */
+        CNe   = 0x3F3D2143, /* C!=? */
+        AEq   = 0x3D3D5D5B, /* []== */
+        ANe   = 0x3D215D5B, /* []!= */
+        TEq   = 0x3F3D3D54, /* T==? */
+        TNe   = 0x3F3D2154, /* T!=? */
 
         Br    = 0x3A3F7242, /* Br?: */
         Jump  = 0x706D754A, /* Jump */
