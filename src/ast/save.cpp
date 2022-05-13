@@ -45,6 +45,10 @@ inline void save_type(Context* context, Obfs& obfs)
                 ty->type.sort = ir::Type::Sort::Func;
                 auto shape = ((type::Fun*)(ty->shape));
                 auto& params = shape->params;
+                /* [TODO]
+                for(auto& param:params)
+                    param = context->type[param].id;
+                */
                 auto retype = shape->retype;
                 auto p_size = params.size(); 
                 switch(p_size)
@@ -185,6 +189,10 @@ void    API::save(string path)
         case ir::Kind::TADT:
         case ir::Kind::TARR:
         case ir::Kind::CSTR:
+        case ir::Kind::PARA:
+        case ir::Kind::ARGS:
+        case ir::Kind::FILD:
+        case ir::Kind::BRCH:
             obfs<<block.size<<block.extra;
             break;
         default: break;

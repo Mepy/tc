@@ -32,6 +32,7 @@ Cont   |  "continue" [integer]? ";"
 Ret    |  "return" [Expr]? ";" /* if no Expr, just fill with u0 "unit" */
 Exp    |  Expr ";" /* just Expr */
 Del    |  "del" Expr ";" /* Ptr T */
+Asgn   |  Cell asgn Expr ";"     /* TyCk : Ref T , (Ref)? T -> T */
 
 Alias  |  "type" type_name "=" Type ";"
 ADT    |  "type" type_name "=" [ "|" expr_name [Type | "$"] ] ";"
@@ -103,7 +104,6 @@ Match  |  "match" Expr "with" [ "|" expr_name [expr_name] "=>" (Stmt|Expr) ]
            * branches' expr_name aka constructor should have the same ADT
            * branches' stmt should have the same Type
            */
-Asgn   |  Cell asgn Expr      /* TyCk : Ref T , (Ref)? T -> T */
 
 ExprPtr    |  "&"  Cell /* address of  TyCk : Ref T -> Ptr T */
 ExprVal    |  "*"  Expr /* value of    TyCk : Ptr T ->     T */

@@ -6,7 +6,6 @@
 #include "node.hpp"
 #include "ir.hpp"
 #include "ir_helper.hpp"
-
 namespace tc{
 namespace ast{
 namespace Ih = ir::instruction;
@@ -191,7 +190,7 @@ struct Context
 
     ir::Block* new_IDs(ir::Kind kind, IDs& ids)
     {
-        auto size= ids.size();
+        auto size = ids.size();
         switch (size)
         {
         case 0:

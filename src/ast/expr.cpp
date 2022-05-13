@@ -333,7 +333,6 @@ Exprp	API::ExprEleAddr(Exprp array, Exprp index)
 	return expr;
 }
 
-// [TODO] insts
 void	API::AppBeg(Exprp func) // = nullptr
 {
 	// recursive
@@ -414,7 +413,6 @@ Cell*	API::CellAppEnd()
 
 	return (Cell*)call;
 }
-
 Exprp	API::ExprAppEnd()
 {
 	auto call = this->calls.top(); this->calls.pop();
@@ -494,11 +492,16 @@ Exprp	API::ExprFunStmt(Stmtp stmt)
 	this->funcs.pop();
 	this->funcs_retyck.pop();
 
-	func->sort = Sort::CPrg;
-	func->insts.push_back(Ih::Func(func->id, 0, 0));
 	auto shape = ((expr::Func*)(func->shape));
-
 	shape->body = stmt;
+
+	auto params = this->new_IDs(ir::Kind::PARA, shape->params);
+
+	auto body = this->new_block();
+    body->insts.eat(stmt->insts);
+
+	func->sort = Sort::CPrg;
+	func->insts.push_back(Ih::Func(func->id, params->id+2, body->id+2));
 
 	return func;
 }
@@ -579,30 +582,6 @@ Exprp	API::MatchEnd()
 	auto match = this->matches.top();
 	this->matches.pop();
 	return match;
-}
-
-Exprp	API::Asgn(Cell* cell, Oper oper, Exprp value)
-{
-
-	auto ref = (Exprp)cell;
-	auto shape = ((type::Typ*)(ref->type->shape));
-
-	if(type::Shape::Ref!=shape->flag)
-		throw "API::Asgn Cell Not A Ref Type;";
-
-	if(Oper::Undefined!=oper)
-		value = this->BinOp(ref, oper, value);
-
-
-	auto id = this->expr.nid();
-
-	this->expr.insert(Expr(id, Eh::set(ref->id, value->id), value->type, Ih::Set(ref->id, value->id)));
-
-	auto expr = &(this->expr[id]);
-
-	expr->inst_front(value);
-
-	return expr;
 }
 
 Exprp	API::UnOp(Oper oper, Exprp expr)

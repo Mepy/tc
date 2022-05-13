@@ -25,6 +25,7 @@ struct API : public Context
     Stmt* Ret(Expr* expr=nullptr);
     Stmt* Exp(Expr* expr);
     Stmt* Del(Expr* expr);
+    Stmt* Asgn(Cell* cell, Oper oper, Expr* expr);
     
     void  TypeDef(Name name);
     Stmt* Alias(Type* type);
@@ -94,8 +95,6 @@ struct API : public Context
     void  MatchBranchExpr(Expr* expr);
     void  MatchBranchStmt(Stmt* stmt);
     Expr* MatchEnd();
-
-    Expr* Asgn(Cell* cell, Oper oper, Expr* expr);
     
     Expr* UnOp(Oper oper, Expr* Expr);
     Expr* BinOp(Expr* lhs, Oper oper, Expr* rhs);

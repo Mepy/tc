@@ -14,20 +14,48 @@ void test_fact(API& context);
 void test_swap(API& context);
 void test_imm(API& context);
 void test_array(API& context);
+void test_delay_func_type(API& context);
+
+
 
 int main()
 {
     API context;
     try
     {
-        test_array(context);
+        test_delay_func_type(context);
     }
     catch(const char* str)
     {
         std::cerr << str << '\n';
     }
 }
+void test_delay_func_type(API& context)
+{
+    /* // delay_func_type.tc
+    let @x = 0;
+    let  y = 4;
+    let f = \ @x y => x=y;
+    f(@x, y);
+     */
+    context.BlockBegin();
 
+    context.BlockStmt(context.Var("x", context.I(3)));
+    context.BlockStmt(context.Let("y", context.I(4)));
+
+    context.ExprFunBeg();
+    context.ExprFunRefArg("x");
+    context.ExprFunArg("y");
+    auto f = context.ExprFunStmt(context.Asgn(context.CellVar("x"), tc::ast::Oper::Undefined, context.ExprVar("y")));
+    
+    context.BlockStmt(context.Let("f", f));
+    context.AppBeg(context.ExprVar("f"));
+    context.AppArg(context.ExprVarRef("x"));
+    context.AppArg(context.ExprVar("y"));
+    context.BlockStmt(context.Exp(context.ExprAppEnd()));
+    context.save(context.BlockEnd());
+    context.save("delay.hex");
+}
 void test_array(API& context)
 {
     /* // array.tc
@@ -103,12 +131,12 @@ void test_swap(API& context)
     context.BlockStmt(
         context.Let("t", context.ExprVar("x"))
     );
-    context.BlockStmt(context.Exp(
+    context.BlockStmt(
         context.Asgn(context.CellVar("x"), tc::ast::Oper::Undefined, context.ExprVar("y"))
-    ));
-    context.BlockStmt(context.Exp(
+    );
+    context.BlockStmt(
         context.Asgn(context.CellVar("y"), tc::ast::Oper::Undefined, context.ExprVar("t"))
-    ));
+    );
     context.Let("swap", context.ExprFunStmt(context.BlockEnd()));
     context.save("swap.hex");
 }
@@ -145,9 +173,9 @@ void test_insts(API& context)
     context.BlockStmt(
         context.Var(Name("x"), context.I(1234))
     );
-    context.BlockStmt(context.Exp(
+    context.BlockStmt(
         context.Asgn(context.CellVar(Name("x")), tc::ast::Oper::Add, context.I(5678))
-    ));
+    );
     context.save("test.hex");
 }
 

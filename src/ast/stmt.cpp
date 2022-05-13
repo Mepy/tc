@@ -245,11 +245,11 @@ Stmtp	API::Ret(Exprp expr) // = nullptr
 	auto stmt = new Stmt(new stmt::_ret(expr));
 
 	// IR
+	stmt->insts.eat(expr->insts);
 	stmt->insts.push_back(Ih::Return(expr->id));
 
 	return stmt;
 }
-
 Stmtp	API::Exp(Exprp expr)
 {
 	auto stmt = new Stmt(new stmt::_exp(expr));
@@ -273,6 +273,26 @@ Stmtp	API::Del(Exprp expr)
 	// IR
 	stmt->insts.eat(expr->insts);
 	stmt->insts.push_back(Ih::Delete(expr->id));
+
+	return stmt;
+}
+Stmtp	API::Asgn(Cellp cell, Oper oper, Exprp value)
+{
+	auto ref = (Exprp)cell;
+	auto shape = ((type::Typ*)(ref->type->shape));
+
+	if(type::Shape::Ref!=shape->flag)
+		throw "API::Asgn Cell Not A Ref Type;";
+
+	if(Oper::Undefined!=oper)
+		value = this->BinOp(ref, oper, value);
+
+	auto stmt = new Stmt(new stmt::_asgn(ref, value));
+
+	stmt->insts.push_back(Ih::Set(ref->id, value->id));
+
+	stmt->insts.concat_front(ref->insts);
+	stmt->insts.concat_front(value->insts);
 
 	return stmt;
 }
