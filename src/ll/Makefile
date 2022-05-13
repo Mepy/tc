@@ -19,7 +19,7 @@ demoCodegen.out: demoCodegen.o visitor.o instr_codegen.o
 demoCodegen.o: demoCodegen.cpp visitor.hpp 
 	${CC} $< ${CFLAGS} -c -o $@
 	
-visitor.o: visitor.cpp visitor.hpp 
+visitor.o: visitor.cpp visitor.hpp ../ast/ir_codegen.hpp
 	${CC} $< ${CFLAGS} -c -o $@ 
 
 instr_codegen.o: instr_codegen.cpp visitor.hpp

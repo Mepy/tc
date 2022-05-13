@@ -33,6 +33,8 @@ protected:
     
     std::map<std::int32_t, llvm::Value *> IdMapVal;
     std::map<std::int32_t, llvm::AllocaInst *> IdMapAlloc;
+    std::map<std::int32_t, std::int32_t> JumpMap;
+    std::map<std::int32_t, std::pair<llvm::Value *, std::pair<std::int32_t, std::int32_t>>> BrMap;
 public:
     LLCodegenVisitor() {
         // Open a new context and module.
@@ -43,6 +45,7 @@ public:
         Builder = std::make_unique<llvm::IRBuilder<>>(*TheContext);
         IdMapAlloc.clear();
         IdMapVal.clear();
+        BrMap.clear();
     }
 
     //Top level methods (in visitor.cpp)
