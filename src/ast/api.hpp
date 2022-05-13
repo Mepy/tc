@@ -70,6 +70,7 @@ struct API : public Context
     Expr* ExprEleAddr(Expr* expr, Expr* index);
 
     Cell* CellRef(Expr* expr);  /* Ptr T -> Ref T */
+    Expr* ExprPtr(Cell* cell);  /* Ref T -> Ptr T */
     Expr* ExprVal(Expr* expr);  /* Ptr T ->     T */
     Expr* ExprRef(Expr* expr);  /* Ptr T -> Ref T */
 
@@ -85,7 +86,7 @@ struct API : public Context
     Expr* ExprFunExpr(Expr* expr);
     Expr* ExprFunStmt(Stmt* stmt);
 
-    Expr* ExprPtr(Cell* cell);
+    
 
     void  MatchBeg(Expr* expr);
     void  MatchBranchBeg(Name name);

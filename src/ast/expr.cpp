@@ -15,261 +15,12 @@ namespace Eh = expr::helper;
 namespace Ih = ir::instruction;
 using Sort = ir::Symbol::Sort;
 
-Exprp   API::Dereference(Exprp ref)
-{
-	auto r_id = ref->id;
-	auto r_type = ref->type;
-	auto shape = ((type::Typ*)(r_type->shape));
-	auto v_type = &(this->type[shape->id]);
-	auto v_id = this->expr.nid();
-	this->expr.insert(Expr(v_id, Eh::get(r_id), v_type, Ih::Get(v_id, r_id)));
-	auto expr = &(this->expr[v_id]);
-
-	expr->inst_front(ref);
-
-	return expr;
-}
-
-Exprp   API::AutoDereference(Exprp expr)
-{
-	if(type::Shape::Ref==expr->type->shape->flag)
-		return Dereference(expr);
-	else
-		return expr;
-}
-
-
-Exprp  API::Element(Exprp array, Exprp index)
-{
-	array = this->AutoDereference(array);
-	index = this->AutoDereference(index);
-
-	Typing(index, this->I());
-
-	auto array_type = array->type;
-
-	switch(array_type->shape->flag)
-	{
-	case type::Shape::Array:
-	{
-		// [TODO] : static array bound check if possible
-		auto tid = ((type::Array*)(array_type->shape))->id;
-		auto type = &(this->type[tid]);
-
-		auto eid = this->expr.nid();
-		this->expr.insert(Expr(eid, Eh::element(array->id, index->id), type));
-		auto expr = &(this->expr[eid]);
-		return expr;
-	}
-	case type::Shape::Ptr:
-	{
-		auto tid = ((type::Typ*)(array_type->shape))->id;
-		auto type = &(this->type[tid]);
-		auto eid = this->expr.nid();
-		this->expr.insert(Expr(eid, Eh::element(array->id, index->id), type));
-		auto expr = &(this->expr[eid]);
-		return expr;
-	}
-	case type::Shape::Infer: // Infer Select : Ptr T
-	{
-		auto tid = this->type.nid();
-		this->type.insert(Type(tid, Th::infer()));
-		auto type = &(this->type[tid]);
-		auto shape = ((type::Typ*)(array_type->shape));
-		shape->flag = type::Shape::Ptr;
-		shape->id   = tid;
-
-		auto eid = this->expr.nid();
-		this->expr.insert(Expr(eid, Eh::element(array->id, index->id), type));
-		auto expr = &(this->expr[eid]);
-		return expr;
-	}
-	default:
-		throw "API::Element Not A Array-like Type;";
-	}
-}
-
-Cell*	API::CellVar(Name name)
-{
-	auto id = this->expr[name];
-	if(0==id)
-		throw "API::CellVar Name Not Found;";
-	auto cell = &(this->expr[id]);
-	auto type = cell->type;
-
-	if(type::Shape::Ref!=type->shape->flag)
-		throw "API::CellVar Not A Ref;";
-	
-	return (Cell*)cell;
-}
-Exprp	API::ExprVar(Name name)
-{
-	auto id = this->expr[name];
-
-	if(0==id)
-		throw "API::ExprVar Name Not Found;";
-
-	auto expr = &(this->expr[id]);
-
-	return this->AutoDereference(expr);
-}
-
-Exprp	API::ExprVarRef(Name name)
-{
-	auto id = this->expr[name];
-	if(0==id)
-		throw "API::ExprVarRef Name Not Found;";
-
-	auto expr = &(this->expr[id]);
-	auto type = expr->type;
-
-	if(type::Shape::Ref!=type->shape->flag)
-		throw "API::ExprVarRef Not A Ref;";
-	
-	return expr;	
-}
-
-void	API::AppBeg(Exprp func) // = nullptr
-{
-	if(nullptr==func)
-		func = this->funcs.top();
-	
-
-	if(type::Shape::Fun!=func->type->shape->flag)
-		throw "API::AppBeg Not A Fun Type;";
-
-	auto shape = ((type::Fun*)(func->type->shape));
-	auto retype_id = shape->retype;
-
-	auto retype = &(this->type[retype_id]);
-
-	auto id = this->expr.nid();
-	this->expr.insert(Expr(id, Eh::call(func->id), retype));
-	auto call = &(this->expr[id]);
-
-	this->calls.push(call);
-}
-void    API::AppForceRetRef()
-{
-	auto call = this->calls.top();
-	auto call_shape = ((expr::Call*)(call->shape));
-	auto func_id = call_shape->func;
-
-	auto func = &(this->expr[func_id]);
-	auto shape = (type::Fun*)(func->type->shape);
-	auto retype = &(this->type[shape->retype]);
-
-	if(type::Shape::Ref!=retype->shape->flag)
-		throw "API::AppForceRetRef Return Not A Ref;";
-
-	call_shape->flag = expr::Shape::CallRef;
-}
-void	API::AppArg(Exprp arg)
-{
-	auto call = this->calls.top();
-	auto shape = ((expr::Call*)(call->shape));
-	shape->args.push_back(arg->id);
-}
-
-Cell*	API::CellAppEnd()
-{
-	auto call = this->calls.top();
-	auto call_shape = ((expr::Call*)(call->shape));
-	auto func_id = call_shape->func;
-
-	auto func = &(this->expr[func_id]);
-	auto shape = (type::Fun*)(func->type->shape);
-	auto retype = &(this->type[shape->retype]);
-	
-	if(type::Shape::Ref!=retype->shape->flag)
-		throw "API::CellAppEnd Not A Ref;";
-	
-	call_shape->flag = expr::Shape::CallRef;
-
-	return (Cell*)call;
-}
-// nullptr -> Infer 0
-// ...     -> Infer 0 
-//          | Known
-Typep   API::TypeInfer(Typep ty)
-{
-	if(nullptr==ty)
-	{
-		auto tid = this->type.nid();
-		this->type.insert(Type(tid, Th::infer(0)));
-		auto type = &(this->type[tid]);
-
-		return type;
-	}
-
-	auto shape = ((type::Typ*)(ty->shape));
-	if(type::Shape::Infer==shape->flag&&shape->id!=0)
-		return &(this->type[shape->id]);
-	else
-		return ty;
-}
-
-Exprp	API::ExprAppEnd()
-{
-	auto call = this->calls.top();
-
-	auto call_shape = ((expr::Call*)(call->shape));
-	auto func_id = call_shape->func;
-
-	auto func = &(this->expr[func_id]);
-	auto shape = (type::Fun*)(func->type->shape);
-	auto retype = &(this->type[shape->retype]);
-
-
-	if(type::Shape::Ref    ==retype->shape->flag
-	&& expr::Shape::CallRef==   call_shape->flag)		
-		return this->Dereference(call); // auto dereference
-	else
-		return call;
-}
-
-Cell*	API::CellEle(Cell* cell, Exprp index)
-{
-	auto expr = this->Element((Exprp)cell, index);
-
-	expr->shape->flag = expr::Shape::EleRef;
-
-	expr->type = this->TypeRef(expr->type);
-
-	return (Cell*)expr;
-}
-
-Exprp	API::ExprEle(Exprp array, Exprp index)
-{
-	return this->Element(array, index);
-}
-
-Exprp	API::ExprEleRef(Exprp array, Exprp index)
-{
-	auto expr = this->Element(array, index);
-
-	expr->shape->flag = expr::Shape::EleRef;
-
-	expr->type = this->TypeRef(expr->type);
-
-	return expr;
-}
-
-Exprp	API::ExprEleAddr(Exprp array, Exprp index)
-{
-	auto expr = this->Element(array, index);
-	expr->shape->flag = expr::Shape::EleAddr;
-	return expr;
-}
-
 Exprp	API::B(Bool b)
 {
 	auto type = this->B();
     auto id = this->expr.nid();
 	this->expr.insert(Expr(id, Eh::b(b), type, Ih::BImm(id, b), Sort::Const));
 	auto expr = &(this->expr[id]);
-
-
 	return expr;
 }
 
@@ -279,7 +30,6 @@ Exprp	API::C(Char c)
     auto id = this->expr.nid();
 	this->expr.insert(Expr(id, Eh::c(c), type, Ih::CImm(id, c), Sort::Const));
 	auto expr = &(this->expr[id]);
-	
 	return expr;
 }
 
@@ -298,7 +48,6 @@ Exprp	API::F(Float f)
     auto id = this->expr.nid();
 	this->expr.insert(Expr(id, Eh::f(f), type, Ih::FImm(id, f), Sort::Const));
 	auto expr = &(this->expr[id]);
-	
 	return expr;
 }
 
@@ -340,6 +89,353 @@ Exprp	API::S(Str s)
 	return expr;
 }
 
+Exprp   API::Dereference(Exprp ref)
+{
+	auto r_id = ref->id;
+	auto r_type = ref->type;
+	auto shape = ((type::Typ*)(r_type->shape));
+	auto v_type = &(this->type[shape->id]);
+	auto v_id = this->expr.nid();
+	this->expr.insert(Expr(v_id, Eh::get(r_id), v_type, Ih::Get(v_id, r_id)));
+	auto expr = &(this->expr[v_id]);
+
+	expr->inst_front(ref);
+
+	return expr;
+}
+
+Exprp   API::AutoDereference(Exprp expr)
+{
+	if(type::Shape::Ref==expr->type->shape->flag)
+		return Dereference(expr);
+	else
+		return expr;
+}
+
+Exprp	API::Element(Exprp array, Exprp index)
+{
+	array = this->AutoDereference(array);
+	index = this->AutoDereference(index);
+
+	Typing(index, this->I());
+
+	auto array_type = array->type;
+
+	switch(array_type->shape->flag)
+	{
+	case type::Shape::Array:
+	{
+		// [TODO] : static array bound check if possible
+		auto tid = ((type::Array*)(array_type->shape))->id;
+		auto type = &(this->type[tid]);
+
+		auto eid = this->expr.nid();
+		this->expr.insert(Expr(eid, Eh::element(array->id, index->id), type));
+		auto expr = &(this->expr[eid]);
+
+		expr->inst_front(array);
+		expr->inst_front(index);
+
+		return expr;
+	}
+	case type::Shape::Ptr:
+	{
+		auto tid = ((type::Typ*)(array_type->shape))->id;
+		auto type = &(this->type[tid]);
+		auto eid = this->expr.nid();
+		this->expr.insert(Expr(eid, Eh::element(array->id, index->id), type));
+		auto expr = &(this->expr[eid]);
+
+		expr->inst_front(array);
+		expr->inst_front(index);
+
+		return expr;
+	}
+	case type::Shape::Infer: // Infer Select : Ptr T
+	{
+		auto tid = this->type.nid();
+		this->type.insert(Type(tid, Th::infer()));
+		auto type = &(this->type[tid]);
+		auto shape = ((type::Typ*)(array_type->shape));
+		shape->flag = type::Shape::Ptr;
+		shape->id   = tid;
+
+		auto eid = this->expr.nid();
+		this->expr.insert(Expr(eid, Eh::element(array->id, index->id), type));
+		auto expr = &(this->expr[eid]);
+
+		expr->inst_front(array);
+		expr->inst_front(index);
+
+		return expr;
+	}
+	default:
+		throw "API::Element Not A Array-like Type;";
+	}
+}
+
+Cell*	API::CellVar(Name name)
+{
+	auto id = this->expr[name];
+	if(0==id)
+		throw "API::CellVar Name Not Found;";
+	auto cell = &(this->expr[id]);
+	auto type = cell->type;
+
+	if(type::Shape::Ref!=type->shape->flag)
+		throw "API::CellVar Not A Ref;";
+	
+	return (Cell*)cell;
+}
+
+Exprp	API::ExprVar(Name name)
+{
+	auto id = this->expr[name];
+
+	if(0==id)
+		throw "API::ExprVar Name Not Found;";
+
+	auto expr = &(this->expr[id]);
+
+	return this->AutoDereference(expr);
+}
+
+Exprp	API::ExprVarRef(Name name)
+{
+	auto id = this->expr[name];
+	if(0==id)
+		throw "API::ExprVarRef Name Not Found;";
+
+	auto expr = &(this->expr[id]);
+	auto type = expr->type;
+
+	if(type::Shape::Ref!=type->shape->flag)
+		throw "API::ExprVarRef Not A Ref;";
+	
+	return expr;	
+}
+
+Exprp	API::ExprPtr(Cell* cell)
+{
+	auto expr = (Exprp)cell;
+	auto shape = ((type::Typ*)(expr->type->shape));
+
+	auto type = this->TypePtr(&(this->type[shape->id]));
+	auto id = this->expr.nid();
+	this->expr.insert(Expr(id, Eh::addr(expr->id), type, Sort::SUNO));
+
+	auto addr = &(this->expr[id]);
+
+	addr->insts.eat(expr->insts);
+	addr->insts.push_back(Ih::PtrMov(id, expr->id));
+
+	return addr;
+}
+
+Exprp	API::ExprVal(Exprp expr)
+{
+	switch (expr->type->shape->flag)
+	{
+	case type::Shape::Infer:
+		Typing(expr, this->TypePtr(this->TypeInfer()));
+	case type::Shape::Ptr:
+	{
+		auto id = this->expr.nid();
+		auto shape = ((type::Typ*)(expr->type->shape));
+		auto type = &(this->type[shape->id]);
+		this->expr.insert(Expr(id, Eh::get(expr->id), type, Sort::SUNO));
+		auto value = &(this->expr[id]);
+
+		value->insts.eat(expr->insts);
+		value->insts.push_back(Ih::Get(id, expr->id));
+
+		return value;
+	}
+	default:
+		throw "API::ExprVal * Not A Ptr;";
+	}
+}
+
+Exprp	API::ExprRef(Exprp expr)
+{
+	switch (expr->type->shape->flag)
+	{
+	case type::Shape::Infer:
+		Typing(expr, this->TypePtr(this->TypeInfer()));
+	case type::Shape::Ptr:
+	{
+		auto id = this->expr.nid();
+		auto shape = ((type::Typ*)(expr->type->shape));
+		auto type = this->TypeRef(&(this->type[shape->id]));
+		this->expr.insert(Expr(id, Eh::ref(expr->id), type, Sort::SUNO));
+		auto ref = &(this->expr[id]);
+
+		ref->insts.eat(expr->insts);
+		ref->insts.push_back(Ih::PtrMov(id, expr->id));
+
+		return ref;
+	}
+	default:
+		throw "API::ExprRef @* Not A Ptr;";
+	}
+}
+
+Cell*	API::CellRef(Exprp expr)
+{
+	return ((Cell*)(this->ExprRef(expr)));
+}
+
+Cell*	API::CellEle(Cell* cell, Exprp index)
+{
+	auto array = (Exprp)cell;
+	auto expr = this->Element(array, index);
+
+	expr->shape->flag = expr::Shape::EleRef;
+
+	expr->type = this->TypeRef(expr->type);
+
+	expr->insts.push_back(Ih::PtrAdd(expr->id, array->id, index->id));
+
+	return (Cell*)expr;
+}
+
+Exprp	API::ExprEle(Exprp array, Exprp index)
+{
+	auto expr = this->Element(array, index);
+
+	expr->insts.push_back(Ih::Get(expr->id, array->id, index->id));
+
+	return expr;
+}
+
+Exprp	API::ExprEleRef(Exprp array, Exprp index)
+{
+	auto expr = this->Element(array, index);
+
+	expr->shape->flag = expr::Shape::EleRef;
+
+	expr->type = this->TypeRef(expr->type);
+
+	expr->insts.push_back(Ih::PtrAdd(expr->id, array->id, index->id));
+
+	return expr;
+}
+
+Exprp	API::ExprEleAddr(Exprp array, Exprp index)
+{
+	auto expr = this->Element(array, index);
+	expr->shape->flag = expr::Shape::EleAddr;
+
+	expr->insts.push_back(Ih::PtrAdd(expr->id, array->id, index->id));
+
+	expr->type = this->TypePtr(expr->type);
+
+	return expr;
+}
+
+// [TODO] insts
+void	API::AppBeg(Exprp func) // = nullptr
+{
+	// recursive
+	if(nullptr==func)
+		func = this->funcs.top();
+
+	if(type::Shape::Fun!=func->type->shape->flag)
+		throw "API::AppBeg Not A Fun Type;";
+
+	auto shape = ((type::Fun*)(func->type->shape));
+	auto retype_id = shape->retype;
+
+	auto retype = &(this->type[retype_id]);
+
+	auto id = this->expr.nid();
+	this->expr.insert(Expr(id, Eh::call(func->id), retype));
+	auto call = &(this->expr[id]);
+
+	this->calls.push(call);
+}
+void    API::AppForceRetRef()
+{
+	auto call = this->calls.top();
+	auto call_shape = ((expr::Call*)(call->shape));
+	auto func_id = call_shape->func;
+
+	auto func = &(this->expr[func_id]);
+	auto shape = (type::Fun*)(func->type->shape);
+	auto retype = &(this->type[shape->retype]);
+
+	if(type::Shape::Ref!=retype->shape->flag)
+		throw "API::AppForceRetRef Return Not A Ref;";
+
+	call_shape->flag = expr::Shape::CallRef;
+}
+void	API::AppArg(Exprp arg)
+{
+	auto call = this->calls.top();
+	auto call_shape = ((expr::Call*)(call->shape));
+
+	auto func = &this->expr[call_shape->func];
+	auto& args   = call_shape->args;
+
+	auto func_shape = ((expr::Func*)(func->shape));
+	auto& params = func_shape->params;
+
+	auto index = args.size();
+	auto param = &this->expr[params[index]];
+
+	// NOT Ref Needed ~> Auto Dereference
+	if(type::Shape::Ref!=param->type->shape->flag)
+		arg = AutoDereference(arg);
+	
+	if( ! TypeEq(param, arg))
+		throw "API::AppArg TypeNotEq;";
+
+	args.push_back(arg->id);
+}
+
+Cell*	API::CellAppEnd()
+{
+	auto call = this->calls.top();
+
+	auto call_shape = ((expr::Call*)(call->shape));
+	auto func_id = call_shape->func;
+
+	auto func = &(this->expr[func_id]);
+	auto shape = (type::Fun*)(func->type->shape);
+	auto retype = &(this->type[shape->retype]);
+	
+	if(type::Shape::Ref!=retype->shape->flag)
+		throw "API::CellAppEnd Not A Ref;";
+	
+	call_shape->flag = expr::Shape::CallRef;
+
+	auto block = this->new_IDs(ir::Kind::ARGS, call_shape->args);
+	call->insts.push_back(Ih::Call(call->id, func_id, block->id));
+
+	return (Cell*)call;
+}
+
+Exprp	API::ExprAppEnd()
+{
+	auto call = this->calls.top(); this->calls.pop();
+
+	auto call_shape = ((expr::Call*)(call->shape));
+	auto func_id = call_shape->func;
+
+	auto func = &(this->expr[func_id]);
+	auto shape = (type::Fun*)(func->type->shape);
+	auto retype = &(this->type[shape->retype]);
+
+	auto block = this->new_IDs(ir::Kind::ARGS, call_shape->args);
+	call->insts.push_back(Ih::Call(call->id, func_id, block->id));
+
+	if(expr::Shape::CallRef!=call_shape->flag)
+		call = AutoDereference(call);
+		
+	return call;
+}
+
+// [TODO] insts
 void	API::ExprFunBeg()
 {
 	this->expr.scope_beg();
@@ -405,26 +501,6 @@ Exprp	API::ExprFunStmt(Stmtp stmt)
 	shape->body = stmt;
 
 	return func;
-}
-
-Exprp	API::ExprPtr(Cell* cell)
-{
-	auto _cell = ((Exprp)(cell));
-	auto cell_type =_cell->type;
-	auto shape = ((type::Typ*)(cell_type->shape));
-
-	if(type::Shape::Ref!=shape->flag)
-		throw "API::ExprPtr of Not A Ref.";
-	
-	auto type = &(this->type[shape->id]);
-
-	auto eid = this->expr.nid();
-
-	this->expr.insert(Expr(eid, Eh::addr(_cell->id), type));
-
-	auto expr = &(this->expr[eid]);
-
-	return expr;
 }
 
 void	API::MatchBeg(Exprp expr)
@@ -531,6 +607,7 @@ Exprp	API::Asgn(Cell* cell, Oper oper, Exprp value)
 
 Exprp	API::UnOp(Oper oper, Exprp expr)
 {
+	
 	auto i = this->I();
 	auto f = this->F();
 	switch(oper)
@@ -538,6 +615,7 @@ Exprp	API::UnOp(Oper oper, Exprp expr)
 	case Pos:
 	case Neg:
 	{
+		expr = AutoDereference(expr);
 		switch(expr->type->shape->flag)
 		{
 		case type::Shape::F:

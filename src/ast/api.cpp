@@ -13,18 +13,54 @@ void test_insts(API& context);
 void test_fact(API& context);
 void test_swap(API& context);
 void test_imm(API& context);
+void test_array(API& context);
 
 int main()
 {
     API context;
     try
     {
-        test_imm(context);
+        test_array(context);
     }
     catch(const char* str)
     {
         std::cerr << str << '\n';
     }
+}
+
+void test_array(API& context)
+{
+    /* // array.tc
+    let str   = "Hello, world!\n";
+    let index = 2;
+    let char1 = str[index];
+
+    let ref   = str@[index];
+    let char2 = ref;
+
+    let addr1 = &ref;
+    let char3 = *addr1;
+
+    let addr2 = str&[index];
+    let char4 = *addr2;
+     */
+    context.BlockBegin();
+
+    context.BlockStmt(context.Let("str", context.S("Hello, world!\n")));
+    context.BlockStmt(context.Let("index", context.I(2)));
+    context.BlockStmt(context.Let("char1", context.ExprEle(context.ExprVar("str"), context.ExprVar("index"))));
+    
+    context.BlockStmt(context.Let("ref", context.ExprEleRef(context.ExprVar("str"), context.ExprVar("index"))));
+    context.BlockStmt(context.Let("char2", context.ExprVar("ref")));
+
+    context.BlockStmt(context.Let("addr1", context.ExprPtr(context.CellVar("ref"))));
+    context.BlockStmt(context.Let("char3", context.ExprVal(context.ExprVar("addr1"))));
+
+    context.BlockStmt(context.Let("addr2", context.ExprEleAddr(context.ExprVar("str"), context.ExprVar("index"))));
+    context.BlockStmt(context.Let("char4", context.ExprVal(context.ExprVar("addr2"))));
+    
+    context.save(context.BlockEnd());
+    context.save("array.hex");
 }
 void test_imm(API& context)
 {

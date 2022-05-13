@@ -28,6 +28,7 @@ enum Kind : Byte4 { /* Block 's */
     TFUN = 0x4E554654, /* TFUN */ // for function's type, just ids of types
     TADT = 0x54444154, /* TADT */ // for adt's constructors, just ids of constructors
     TARR = 0x5D4E5B54, /* T[N] */ // for array type
+    TTPL = 0x292C2854, /* T(,) */ // for tuple's type, just ids of types
 
     CSTR = 0x52545343, /* CSTR */ // c string immediate
 };
@@ -55,6 +56,7 @@ struct Instruction
 
         PAdd  = 0x642B4150, /* PA+d */ 
         PSub  = 0x622D5350, /* PS-b */
+        PMov  = 0x763D4D50, /* PM=v */
 
         /* used by Pointer */
         ULt   = 0x3F203C55, /* U< ? */
@@ -215,6 +217,7 @@ struct Type
         Ptr   = 0x262A7954, /* Ty*& */
         Array = 0x5D5B7954, /* Ty[] */
         Func  = 0x3E2D7954, /* Ty-> */
+        Tuple = 0x29287954, /* Ty() */
         ADT   = 0x787C7954, /* Ty|x */
         ADTR  = 0x247C7954, /* Ty|$ */
     };
@@ -223,8 +226,10 @@ struct Type
     /* switch(sort)
      * case Unit~Float : Atom type
      * case Ptr   : id = id of T ~> &T
-     * case Array : id = id of block whost Sort = T[N]
+     * case Array : id = id of block whose Sort = T[N]
      *              id of T, len ~> T[len]
+     * case Tuple : id = id of block whose Sort = T(,)
+     * 
      * case Func  : id = id of block whose Sort = TFUN
      *              block[0]        = return type
      *              block[1:size-1] = params type

@@ -31,6 +31,27 @@ Typep	API::F()
 	return &(this->type[4]);
 }
 
+// nullptr -> Infer 0
+// ...     -> Infer 0 
+//          | Known
+Typep   API::TypeInfer(Typep ty)
+{
+	if(nullptr==ty)
+	{
+		auto tid = this->type.nid();
+		this->type.insert(Type(tid, Th::infer(0)));
+		auto type = &(this->type[tid]);
+
+		return type;
+	}
+
+	auto shape = ((type::Typ*)(ty->shape));
+	if(type::Shape::Infer==shape->flag&&shape->id!=0)
+		return &(this->type[shape->id]);
+	else
+		return ty;
+}
+
 Typep	API::TypeVar(Name name)
 {
 	if(name==this->type_name)

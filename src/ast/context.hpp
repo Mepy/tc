@@ -5,10 +5,11 @@
 #include "token.hpp"
 #include "node.hpp"
 #include "ir.hpp"
+#include "ir_helper.hpp"
 
 namespace tc{
 namespace ast{
-
+namespace Ih = ir::instruction;
 namespace ir{
 struct Block
 {
@@ -186,6 +187,40 @@ struct Context
         this->block.insert(ir::Block(kind, size, extra, id));
         auto block = &(this->block[id]);
         return block;
+    }
+
+    ir::Block* new_IDs(ir::Kind kind, IDs& ids)
+    {
+        auto size= ids.size();
+        switch (size)
+        {
+        case 0:
+            return new_block(kind, 0, 0x44494F5620454854L); // "THE VOID"
+        case 1:
+            return new_block(kind, 1, Byte8(ids[0]));
+        default:
+        {
+            auto block = new_block(kind, size, *(Byte8*)&ids[0]);
+            Size index=2;
+            for( ; index+3<size; index+=4)
+                block->insts.push_back(*(Inst*)(&ids[index]));
+        
+            switch(size-index)
+            {
+            case 3:block->insts.push_back(
+                Ih::IDs(ids[index], ids[index+1], ids[index+2])
+            ); break;
+            case 2:block->insts.push_back(
+                Ih::IDs(ids[index], ids[index+1])
+            ); break;
+            case 1:block->insts.push_back(
+                Ih::IDs(ids[index])
+            ); break;
+            default: break;
+            }
+            return block;
+        }
+        }
     }
 };
 

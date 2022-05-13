@@ -95,54 +95,14 @@ inline void save_type(Context* context, Obfs& obfs)
             case type::Shape::ADT:
             {
                 auto shape = ((type::ADT*)(ty->shape));
-                auto& cons = shape->cons;
-                auto c_size= cons.size();
-                switch (c_size)
-                {
-                case 0:
-                {
-                    auto block = context->new_block(ir::Kind::TADT, 0
-                    , 0x44494F5620454854L); // "THE VOID"
-                    ty->type.id = block->id + 2;
-                    break;
-                }
-                case 1:
-                {
-                    auto block = context->new_block(ir::Kind::TADT, 1
-                    , Byte8(cons[0]));
-                    ty->type.id = block->id + 2;
-                    break;
-                }
-                default:
-                {
-                    auto block = context->new_block(ir::Kind::TADT, c_size
-                    , *(Byte8*)&cons[0]);
-                    Size index=2;
-                    for( ; index+3<c_size; index+=4)
-                        block->insts.push_back(*(Inst*)(&cons[index]));
-        
-                    switch(c_size-index)
-                    {
-                    case 3:block->insts.push_back(
-                        Ih::IDs(cons[index], cons[index+1], cons[index+2])
-                        ); break;
-                    case 2:block->insts.push_back(
-                        Ih::IDs(cons[index], cons[index+1])
-                        ); break;
-                    case 1:block->insts.push_back(
-                        Ih::IDs(cons[index])
-                        ); break;
-                    default: break;
-                    }
-                    ty->type.id = block->id + 2;
-                    break;
-                }
-                }
+                auto block = context->new_IDs(ir::Kind::TADT, shape->cons);
+                ty->type.id = block->id + 2;
                 break;
             }
 
             case type::Shape::Array:
             {
+                ty->type.sort = ir::Type::Sort::Array;
                 auto shape = ((type::Array*)(ty->shape));
                 auto block = context->new_block(ir::Kind::TARR, shape->id, shape->size);
                 ty->type.id = block->id + 2;

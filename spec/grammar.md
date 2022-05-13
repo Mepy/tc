@@ -105,7 +105,7 @@ Match  |  "match" Expr "with" [ "|" expr_name [expr_name] "=>" (Stmt|Expr) ]
            */
 Asgn   |  Cell asgn Expr      /* TyCk : Ref T , (Ref)? T -> T */
 
-Addr       |  "&"  Cell /* address of  TyCk : Ref T -> Ptr T */
+ExprPtr    |  "&"  Cell /* address of  TyCk : Ref T -> Ptr T */
 ExprVal    |  "*"  Expr /* value of    TyCk : Ptr T ->     T */
 ExprRef    |  "@*" Expr
 ExprVar    |  expr_name     /* TyCk : Ref? T -> T */
