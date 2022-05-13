@@ -28,7 +28,8 @@ API::API()
 	this->type.bind(3, Name("Int"  ));
 	this->type.bind(4, Name("Float"));
 
-	this->expr.insert(Expr(0, Eh::u(), this->U(), ir::Symbol::Const));
+	auto u = &this->type[0];
+	this->expr.insert(Expr(0, Eh::u(), u), ir::Symbol::Const);
 	this->expr.bind(0, Name("unit"));
 
 	this->type.insert(Type(5, Th::adt(), ir::type::ADT(6)));

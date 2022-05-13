@@ -15,7 +15,7 @@ void test_swap(API& context);
 void test_imm(API& context);
 void test_array(API& context);
 void test_delay_func_type(API& context);
-
+void test_match(API& context);
 
 
 int main()
@@ -23,13 +23,47 @@ int main()
     API context;
     try
     {
-        test_delay_func_type(context);
+        test_match(context);
     }
     catch(const char* str)
     {
         std::cerr << str << '\n';
     }
 }
+
+void test_match(API& context)
+{
+    /* // match.tc
+    type Bol = 
+        | tru
+        | fls
+        ;
+    let boolean = \ bol =>
+        match bol with 
+        | tru => true
+        | fls => false
+        ;
+     */
+    context.BlockBegin();
+
+    context.TypeDef("Bol");
+    context.ADTBranchBegin("tru"); context.ADTBranchEnd();
+    context.ADTBranchBegin("fls"); context.ADTBranchEnd();
+    context.BlockStmt(context.ADT());
+
+    context.ExprFunBeg();
+    context.ExprFunArg("bol");
+    context.MatchBeg(context.ExprVar("bol"));
+    context.MatchBranchBeg("tru");
+    context.MatchBranchExpr(context.B(true));
+    context.MatchBranchBeg("fls");
+    context.MatchBranchExpr(context.B(false));
+    context.BlockStmt(context.Let("boolean", context.ExprFunExpr(context.MatchEnd())));
+
+    context.save(context.BlockEnd());
+    context.save("match.hex");
+}
+
 void test_delay_func_type(API& context)
 {
     /* // delay_func_type.tc
@@ -49,6 +83,7 @@ void test_delay_func_type(API& context)
     auto f = context.ExprFunStmt(context.Asgn(context.CellVar("x"), tc::ast::Oper::Undefined, context.ExprVar("y")));
     
     context.BlockStmt(context.Let("f", f));
+
     context.AppBeg(context.ExprVar("f"));
     context.AppArg(context.ExprVarRef("x"));
     context.AppArg(context.ExprVar("y"));

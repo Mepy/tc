@@ -9,7 +9,7 @@ namespace type{
 
 struct Shape
 {
-    using Flag = enum { Undefined,
+    using Flag = enum { Undefined, Saved,
         Infer, U, B, C, I, F, ADT, Ref, Ptr, Array, Fun
     };
     Flag flag;
@@ -33,7 +33,7 @@ inline Shapep f(){ return new Atom(Shape::F); }
 
 }
 
-// Infer, Ref, Ptr
+// Infer, Ref, Ptr, Saved
 struct Typ : public Shape
 {
     ID id;
@@ -45,6 +45,7 @@ namespace helper{
 inline Shapep infer(ID id=0){ return new Typ(Shape::Infer, id); }
 inline Shapep ref  (ID id  ){ return new Typ(Shape::Ref  , id); }
 inline Shapep ptr  (ID id  ){ return new Typ(Shape::Ptr  , id); }
+inline Shapep saved(ID id  ){ return new Typ(Shape::Saved, id); }
 
 }
 

@@ -69,6 +69,9 @@ struct Expr
 
     Sort          sort;
 
+    
+    ID     params, body; /* only for function */
+
 
     Expr(ID id):id(id){}
     Expr(ID id, expr::Shape* shape, Typep type, Sort sort=Sort::SUNO)

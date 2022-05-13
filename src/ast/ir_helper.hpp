@@ -12,11 +12,11 @@ namespace instruction{
 inline Instruction IDs(ID id0=0, ID id1=0, ID id2=0, ID id3=0)
 { return Instruction(Instruction::Sort(id0), id1, id2, id3); }
 
-inline Instruction Func(ID dst, ID params, ID body)
-{ return Instruction(Instruction::Func, dst, params, body); }
-
 inline Instruction Call(ID dst, ID func, ID args)
 { return Instruction(Instruction::Call, dst, func, args); }
+
+inline Instruction Match(ID dst, ID expr, ID branches)
+{ return Instruction(Instruction::Match, dst, expr, branches); }
 
 inline Instruction BImm(ID dst, Bool  b)
 {

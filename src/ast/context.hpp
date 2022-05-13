@@ -6,6 +6,7 @@
 #include "node.hpp"
 #include "ir.hpp"
 #include "ir_helper.hpp"
+#include <iostream>
 namespace tc{
 namespace ast{
 namespace Ih = ir::instruction;
@@ -120,6 +121,14 @@ struct Type : public Namespace<ast::Type>
         }
         return *type;
     }
+    ID shortcut(ID id) // for save
+    {
+        auto type = &(*this)[id];
+        if(type::Shape::Saved==type->shape->flag)
+            return ((type::Typ*)(type->shape))->id;
+        else
+            return type->id;
+    }
     ID operator[](string& name)
     {
         auto iter = this->sym->recursive_find(name);
@@ -187,7 +196,11 @@ struct Context
         auto block = &(this->block[id]);
         return block;
     }
-
+    ir::Block* new_func(ID type, ID params, ID body)
+    {
+        return new_block(ir::Kind::FUNC, type, (Byte8(body)<<32)|Byte8(params));
+        /* type, params, body */
+    }
     ir::Block* new_IDs(ir::Kind kind, IDs& ids)
     {
         auto size = ids.size();

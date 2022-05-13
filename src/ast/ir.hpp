@@ -22,6 +22,7 @@ enum Kind : Byte4 { /* Block 's */
     
     SYMB = 0x424D5953, /* SYMB */ // Symbol
     PARA = 0x41524150, /* PARA */ // func  's parameters, just ids of expr
+    FUNC = 0x434E5546, /* FUNC */ // for function's info
     CLOS = 0x534F4C43, /* CLOS */ // for closure's function info 
 
     TYPE = 0x45505954, /* TYPE */ // Type info, 
@@ -82,10 +83,8 @@ struct Instruction
         Ret   = 0x3E743D52, /* R=t> */
 
 
-        Func  = 0x636E7546, /* Func */
         Call  = 0x6C6C6143, /* Call */
-        Ctor  = 0x726F7443, /* Ctor */
-        Dtor  = 0x726F7444, /* Dtor */
+        Match  = 0x6863744D, /* Mtch */
 
         Array = 0x79617241, /* Aray */
         Alloc = 0x636F6C41, /* Aloc */ 
@@ -120,13 +119,9 @@ struct Instruction
      *             src.RESERVED = RESERVED
      * case Ret  : dst = if of value to return, 
      *             src.RESERVED = RESERVED
-     * case Func : src.id[0] = id of block of parameters
-     *             src.id[1] = id of block of body
      * case Call : src.id[0] = id of function
      *             src.id[1] = id of block of arguments 
-     * case Constr : src.id[0] = id of constructor
-     *               src.id[1] = id of block of arguments 
-     * case Destr  : src.id[0] = id of term destructed
+     * case Match  : src.id[0] = id of term destructed
      *               src.id[1] = id of block of branches
      * case Array  : src.id[0] = id of initial
      *               src.id[1] = id of length

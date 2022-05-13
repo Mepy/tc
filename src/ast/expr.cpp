@@ -409,7 +409,7 @@ Cell*	API::CellAppEnd()
 	call_shape->flag = expr::Shape::CallRef;
 
 	auto block = this->new_IDs(ir::Kind::ARGS, call_shape->args);
-	call->insts.push_back(Ih::Call(call->id, func_id, block->id));
+	call->insts.push_back(Ih::Call(call->id, func_id, block->id+2));
 
 	return (Cell*)call;
 }
@@ -425,7 +425,7 @@ Exprp	API::ExprAppEnd()
 	auto retype = &(this->type[shape->retype]);
 
 	auto block = this->new_IDs(ir::Kind::ARGS, call_shape->args);
-	call->insts.push_back(Ih::Call(call->id, func_id, block->id));
+	call->insts.push_back(Ih::Call(call->id, func_id, block->id+2));
 
 	if(expr::Shape::CallRef!=call_shape->flag)
 		call = AutoDereference(call);
@@ -436,6 +436,7 @@ Exprp	API::ExprAppEnd()
 // [TODO] insts
 void	API::ExprFunBeg()
 {
+	this->type.scope_beg();
 	this->expr.scope_beg();
 
 	auto retype = this->TypeInfer();
@@ -486,6 +487,7 @@ Exprp	API::ExprFunExpr(Exprp expr)
 
 Exprp	API::ExprFunStmt(Stmtp stmt)
 {
+	this->type.scope_end();
 	this->expr.scope_end();
 	auto func = this->funcs.top();
 
@@ -500,14 +502,21 @@ Exprp	API::ExprFunStmt(Stmtp stmt)
 	auto body = this->new_block();
     body->insts.eat(stmt->insts);
 
+	std::cout<<"params->id = "<<params->id<<", body->id="<<body->id<<std::endl;
 	func->sort = Sort::CPrg;
-	func->insts.push_back(Ih::Func(func->id, params->id+2, body->id+2));
-
+	func->params = params->id+2;
+	func->body   = body->id+2;
+	
+	// As for retype, if retype = Infer 0
+	// And following type unification do not infer it
+	// Therefore retype = type[0] == Unit
+	
 	return func;
 }
 
 void	API::MatchBeg(Exprp expr)
 {
+	this->type.scope_beg();
 	this->expr.scope_beg();
 
 	auto id = this->expr.nid();
@@ -524,29 +533,42 @@ void	API::MatchBranchBeg(Name name)
 	auto match = this->matches.top();
 
 	auto shape = ((expr::Match*)(match->shape));
+	auto expr = &this->expr[shape->expr]; // match expr with ...
 
 	auto id = this->expr[name];
 	auto constructor = &(this->expr[id]);
 
 	if(expr::Shape::Constructor!=constructor->shape->flag)
 		throw "API::MatchBranchBeg Not A Constructor.";
+	
 
 	auto tid = this->type.nid();
-
 	this->type.insert(Type(tid, Th::branch(match->type->id)));
-	
 	auto branch_type = &(this->type[tid]);
 
-	((type::Fun*)(branch_type->shape))->params = ((type::Fun*)(constructor->type->shape))->params;
+	// Typing ADT
+	{
+		auto type = constructor->type;
+		auto shape = ((type::Fun*)(type->shape));
+		if(type::Shape::Fun==shape->flag)
+		{
+			type = &this->type[shape->retype];
+			((type::Fun*)(branch_type->shape))->params = shape->params; // fetch types
+		}
+
+		Typing(expr, type);
+	}
 
 	auto branch_id = this->expr.nid();
-
 	this->expr.insert(Expr(branch_id, Eh::branch(), branch_type));
 	shape->branches.push_back(id);
 
 	auto branch = &(this->expr[branch_id]);
 
 	this->funcs_retyck.push(branch);
+	this->type.scope_beg();
+	this->expr.scope_beg();
+
 }
 
 void	API::MatchBranchArg(Name name)
@@ -574,13 +596,45 @@ void	API::MatchBranchExpr(Exprp expr)
 
 void	API::MatchBranchStmt(Stmtp stmt)
 {
-	this->ExprFunStmt(stmt);
+	this->type.scope_end();
+	this->expr.scope_end();
+	auto func = this->funcs_retyck.top(); this->funcs_retyck.pop();
+
+	auto shape = ((expr::Func*)(func->shape));
+	shape->body = stmt;
+
+	auto params = this->new_IDs(ir::Kind::PARA, shape->params);
+
+	auto body = this->new_block();
+    body->insts.eat(stmt->insts);
+
+	func->sort = Sort::CPrg;
+	func->params = params->id+2;
+	func->body = body->id+2;
+	
+	// As for retype, if retype = Infer 0
+	// And following type unification do not infer it
+	// Therefore retype = type[0] == Unit
+
+	auto match = this->matches.top();
+	// Typing branch retype
+	{
+	auto shape = ((type::Fun*)(func->type->shape));
+	
+	auto tid = shape->retype;
+	auto type = &(this->type[tid]);
+	Typing(match, type);
+	}
 }
 
 Exprp	API::MatchEnd()
 {
-	auto match = this->matches.top();
-	this->matches.pop();
+	auto match = this->matches.top(); this->matches.pop();
+	auto shape = ((expr::Match*)(match->shape));
+	auto branches = this->new_IDs(ir::Kind::BRCH, shape->branches);
+
+	match->insts.push_back(Ih::Match(match->id, shape->expr, branches->id+2));
+
 	return match;
 }
 
