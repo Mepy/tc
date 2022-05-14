@@ -16,21 +16,40 @@ void test_imm(API& context);
 void test_array(API& context);
 void test_delay_func_type(API& context);
 void test_match(API& context);
-
+void test_i2f_f2i(API& context); 
 
 int main()
 {
     API context;
     try
     {
-        test_match(context);
+        test_imm(context);
     }
     catch(const char* str)
     {
         std::cerr << str << '\n';
     }
 }
-
+void test_i2f_f2i(API& context)
+{
+    /* // i2f_f2i.tc
+    let x = 1;
+    let f = i2f(x);
+    let i = f2i(f);
+     */
+    
+    context.BlockBegin();
+    context.BlockStmt(context.Let("x", context.I(1)));
+    context.AppBeg(context.ExprVar("i2f"));
+    context.AppArg(context.ExprVar("x"));
+    context.BlockStmt(context.Let("f", context.ExprAppEnd()));
+    context.AppBeg(context.ExprVar("f2i"));
+    context.AppArg(context.ExprVar("f"));
+    context.BlockStmt(context.Let("i", context.ExprAppEnd()));
+    context.save(context.BlockEnd());
+    context.save("i2f_f2i.hex");
+    
+}
 void test_match(API& context)
 {
     /* // match.tc

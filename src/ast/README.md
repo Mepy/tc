@@ -11,7 +11,7 @@ Therefore, This module has 2 interfaces, one used by **Parsing**, another used b
 - Parsing
   Use methods declared in [api.hpp](./api.hpp).
 - Codegen 
-  Use the data structure directly, see [ir.hpp](./ir.hpp) and [ir_codegen.hpp](./ir_codegen.cpp).
+  Use the data structure directly, refer to [ir.hpp](./ir.hpp) , [ir_codegen.hpp](./ir_codegen.cpp), and [Spec](../../spec/IR.md).
 
 As for desugaring :
 - reference -> pointer
@@ -121,25 +121,3 @@ You can modify the ```extd``` field of ```struct Node *``` like this:
 // ...
 ```
 
-### IR structure
-Each IR of one module includes 3 part:
-Spec [TODO], see [ir.hpp](./ir.hpp) first.
-- **A**NF Instructions
-- **S**ymbols' Infomation
-  **S**ymbols are variables introduced in source code, those by ANF transformation included. Variables should be in order according to their IDs, from small to large.
-  
-  Names of symbols will be saved in text format with suffix ```.symb```.
-
-  Symbols are divided into 4 different sorts:
-  - Non-Function
-    Those being not functions.
-  - Constructors
-    Introduced by ADT.
-  - Function
-    Those being functions without free variables.
-  - Closure
-    Those with free variables.
-  
-
-- **T**ypes' Infomation
-  Similar to **S**ymbols' Infomation, and readable type structure saved in text format with suffix ```.type```.

@@ -1,7 +1,7 @@
 CC = g++
 LD = ld
-STD = -std=c++17
-MakeOBJ = ${CC} $< ${STD} -c -o $@ -fpermissive
+STD = -std=c++11
+MakeOBJ = ${CC} $< ${STD} -c -o $@
 OBJ = context.o impl.o stmt.o type.o expr.o save.o 
 
 test      : test.o ${OBJ}

@@ -16,17 +16,17 @@ namespace Eh = expr::helper;
 
 API::API()
 {
-	this->type.insert(Type(0, Th::u(), ir::type::Unit ()));
-	this->type.insert(Type(1, Th::b(), ir::type::Bool ()));
-	this->type.insert(Type(2, Th::c(), ir::type::Char ()));
-	this->type.insert(Type(3, Th::i(), ir::type::Int  ()));
-	this->type.insert(Type(4, Th::f(), ir::type::Float()));
+	this->type.insert(Type(T_UNIT , Th::u(), ir::type::Unit ()));
+	this->type.insert(Type(T_BOOL , Th::b(), ir::type::Bool ()));
+	this->type.insert(Type(T_CHAR , Th::c(), ir::type::Char ()));
+	this->type.insert(Type(T_INT  , Th::i(), ir::type::Int  ()));
+	this->type.insert(Type(T_FLOAT, Th::f(), ir::type::Float()));
 
-	this->type.bind(0, Name("Unit" ));
-	this->type.bind(1, Name("Bool" ));
-	this->type.bind(2, Name("Char" ));
-	this->type.bind(3, Name("Int"  ));
-	this->type.bind(4, Name("Float"));
+	this->type.bind(T_UNIT , "Unit" );
+	this->type.bind(T_BOOL , "Bool" );
+	this->type.bind(T_CHAR , "Char" );
+	this->type.bind(T_INT  , "Int"  );
+	this->type.bind(T_FLOAT, "Float");
 
 	{
 	auto iter = this->type.def.begin();
@@ -37,18 +37,38 @@ API::API()
 	this->f = ((tc::ast::Type*)(&*iter)); ++iter;
 	}
 
-	auto u = &this->type[0];
-	this->expr.insert(Expr(0, Eh::u(), u, 0));
-	this->expr.bind(0, Name("unit"));
-	auto b = &this->type[1];
-	this->expr.insert(Expr(1, Eh::b(true), b, 0));
-	this->expr.bind(1, Name("true"));
-	this->expr.insert(Expr(2, Eh::b(false), b, 0));
-	this->expr.bind(1, Name("false"));
+	{ // adt
+	auto id = this->type.nid();
+	this->type.insert(Type(id, Th::adt(), ir::type::ADT(id)));
+	this->adt = &(this->type[id]);
+	}
 
-	this->type.insert(Type(5, Th::adt(), ir::type::ADT(6)));
 
-	this->adt = &(this->type[5]);
+
+
+	this->expr.insert(Expr(E_UNIT, Eh::u(), this->u, 0));
+	this->expr.bind(E_UNIT , "unit" );
+	this->expr.insert(Expr(E_TRUE, Eh::b(true), this->b, 0));
+	this->expr.bind(E_TRUE , "true" );
+	this->expr.insert(Expr(E_FALSE, Eh::b(false), this->b, 0));
+	this->expr.bind(E_FALSE, "false");
+
+	{
+	this->TypeFunBeg();
+	this->TypeFunArg(i);
+	auto type = this->TypeFunEnd(f);
+	this->expr.insert(Expr(E_I2F, Eh::func(), type, ir::Symbol::CFun));
+	this->expr.bind(E_I2F, "i2f");
+	}
+
+	{
+	this->TypeFunBeg();
+	this->TypeFunArg(f);
+	auto type = this->TypeFunEnd(i);
+	this->expr.insert(Expr(E_F2I, Eh::func(), type, ir::Symbol::CFun));
+	this->expr.bind(E_F2I, "f2i");
+	}
+	
 }
 API::~API()
 {

@@ -46,8 +46,7 @@ Exprp	API::S(Str s)
 {
 	auto tid = this->type.nid();
     auto s_size = s.length()+1;
-	this->type.insert(Type(tid, Th::array(2, s_size)));
-	// 2 == this->c.id
+	this->type.insert(Type(tid, Th::array(T_CHAR, s_size)));
 	auto type = &(this->type[tid]);
 
     auto eid = this->expr.nid();
@@ -361,23 +360,23 @@ void    API::AppForceRetRef()
 }
 void	API::AppArg(Exprp arg)
 {
+
 	auto call = this->calls.top();
 	auto call_shape = ((expr::Call*)(call->shape));
 
 	auto func = &this->expr[call_shape->func];
 	auto& args   = call_shape->args;
 
-	auto func_shape = ((expr::Func*)(func->shape));
-	auto& params = func_shape->params;
+	auto& params = ((type::Fun*)(func->type->shape))->params;
 
 	auto index = args.size();
-	auto param = &this->expr[params[index]];
-
+	auto type = &this->type[params[index]];
+	
 	// NOT Ref Needed ~> Auto Dereference
-	if(type::Shape::Ref!=param->type->shape->flag)
+	if(type::Shape::Ref!=type->shape->flag)
 		arg = AutoDereference(arg);
 	
-	if( ! TypeEq(param, arg))
+	if( ! Typing(arg, type))
 		throw "API::AppArg TypeNotEq;";
 
 	args.push_back(arg->id);
@@ -410,7 +409,20 @@ Exprp	API::ExprAppEnd()
 
 	auto call_shape = ((expr::Call*)(call->shape));
 	auto func_id = call_shape->func;
-
+	switch(func_id)
+	{
+	case E_I2F:
+	{
+		call->insts.push_back(Ih::I2F(call->id, call_shape->args[0]));
+		return call;
+	}
+	case E_F2I: // 
+	{
+		call->insts.push_back(Ih::F2I(call->id, call_shape->args[0]));
+		return call;
+	}
+	default:
+	{
 	auto func = &(this->expr[func_id]);
 	auto shape = (type::Fun*)(func->type->shape);
 	auto retype = &(this->type[shape->retype]);
@@ -422,6 +434,9 @@ Exprp	API::ExprAppEnd()
 		call = AutoDereference(call);
 		
 	return call;
+	}
+	}
+
 }
 
 void	API::ExprFunBeg()
