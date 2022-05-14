@@ -51,18 +51,18 @@ struct Sym : public SymBase
 };
 
 template<typename Data>
-struct Def : public set<Data>
+struct Def_ : public set<Data>
 {
     Data& operator[](ID id) // [WARNING] : Why const_iterator??
     { return *(Data*)&*(this->find(Data(id))); }
 
-    ~Def(){}
+    ~Def_(){}
 };
 
 template<typename Data>
 struct Namespace
 {
-    using Def = Def<Data>;
+    using Def = Def_<Data>;
 
     Sym* sym;
     Def  def;
@@ -141,7 +141,7 @@ struct Type : public Namespace<ast::Type>
     ~Type(){}
 };
 
-using Block = Def<ir::Block>;
+using Block = Def_<ir::Block>;
 
 }
 
