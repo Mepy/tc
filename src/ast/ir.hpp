@@ -130,6 +130,7 @@ struct Instruction
         Char  Cimm;
         Int   Iimm;
         Float Fimm;
+        Char  SImm[8];
         Byte8 RESERVED;
         Src():RESERVED(tc::ast::RESERVED){}
     } src;

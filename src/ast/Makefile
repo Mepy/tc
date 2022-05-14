@@ -5,7 +5,7 @@ MakeOBJ = ${CC} $< ${STD} -c -o $@ -fpermissive
 OBJ = context.o impl.o stmt.o type.o expr.o save.o 
 
 test      : test.o ${OBJ}
-	${CC} $^ -o $@ && ./$@ && rm ./$@
+	${CC} $^ -fPIC -o $@ && ./$@ && rm ./$@
 
 build     : ast.o
 
