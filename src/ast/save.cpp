@@ -217,7 +217,7 @@ void    API::save(string path)
         switch(block.kind)
         {
         case ir::Kind::INST:
-            obfs<<((Byte4)(block.insts.size()))<<RESERVED;
+            obfs<<((Byte4)(block.insts.size()))<<block.extra;
             break;
         case ir::Kind::TFUN:
         case ir::Kind::TADT:
@@ -246,12 +246,12 @@ void	API::save(string path, Exprp expr)
 
 void	API::save(Stmtp root)
 {
-    if(nullptr!=root->beg)
-        return;
+    auto entry = &this->block[0];
 
-    std::cout<<"save"<<std::endl;
-    auto block = this->new_block();
-    block->insts.eat(root->insts);
+    if(nullptr==root->beg)
+        entry->insts.eat(root->insts);
+    else
+        entry->insts.push_back(Ih::Jump(root->beg->id));
 }
 
 }}

@@ -69,6 +69,9 @@ API::API()
 	this->expr.bind(E_F2I, "f2i");
 	}
 	
+	{ // entry
+	auto entry = this->new_block(ir::Kind::INST, 0, 0x0A24205952544E45L); // "ENTRY $\n"
+	}
 }
 API::~API()
 {
