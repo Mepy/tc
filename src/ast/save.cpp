@@ -217,7 +217,6 @@ void    API::save(string path)
         case ir::Kind::CSTR:
         case ir::Kind::PARA:
         case ir::Kind::ARGS:
-        case ir::Kind::FILD:
         case ir::Kind::BRCH:
         case ir::Kind::FUNC:
             obfs<<block.size<<block.extra;
