@@ -20,8 +20,6 @@ struct Shape
         Pos, Neg,
 
         // Binary
-        // (Ref T, T) -> T
-        Set, 
 
         // (Ptr T, Int) -> Ptr T
         PtrAdd, PtrSub, 
@@ -143,8 +141,6 @@ namespace helper
 
 inline Shapep element(ID base, ID offset)
 { return new Binary(Shape::EleVal, base, offset); }
-inline Shapep set(ID cell, ID value)
-{ return new Binary(Shape::Set, cell, value); }
 
 }
 

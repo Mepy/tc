@@ -32,6 +32,7 @@ Cont   |  "continue" [integer]? ";"
 Ret    |  "return" [Expr]? ";" /* if no Expr, just fill with u0 "unit" */
 Exp    |  Expr ";" /* just Expr */
 Del    |  "del" Expr ";" /* Ptr T */
+Asgn   |  Cell asgn Expr ";"     /* TyCk : Ref T , (Ref)? T -> T */
 
 Alias  |  "type" type_name "=" Type ";"
 ADT    |  "type" type_name "=" [ "|" expr_name [Type | "$"] ] ";"
@@ -47,11 +48,13 @@ Check  |  "check" Expr Type ";"
        ;
 
 Type      ::=
+/* Use TypeVar instead
 U          |  u0  /* "Unit"   */
 B          |  b1  /* "Bool"   */
 C          |  c8  /* "Char"   */
 I          |  i64 /* "Int"    */
 F          |  f64 /* "Double" */
+*/
 TypeVar    |  type_name /*       */
 TypeRef    |  "@" Type /* @T, Ref T */
 TypePtr    |  "&" Type /* &T, Ptr T */
@@ -103,9 +106,8 @@ Match  |  "match" Expr "with" [ "|" expr_name [expr_name] "=>" (Stmt|Expr) ]
            * branches' expr_name aka constructor should have the same ADT
            * branches' stmt should have the same Type
            */
-Asgn   |  Cell asgn Expr      /* TyCk : Ref T , (Ref)? T -> T */
 
-Addr       |  "&"  Cell /* address of  TyCk : Ref T -> Ptr T */
+ExprPtr    |  "&"  Cell /* address of  TyCk : Ref T -> Ptr T */
 ExprVal    |  "*"  Expr /* value of    TyCk : Ptr T ->     T */
 ExprRef    |  "@*" Expr
 ExprVar    |  expr_name     /* TyCk : Ref? T -> T */

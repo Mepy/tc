@@ -25,6 +25,7 @@ struct API : public Context
     Stmt* Ret(Expr* expr=nullptr);
     Stmt* Exp(Expr* expr);
     Stmt* Del(Expr* expr);
+    Stmt* Asgn(Cell* cell, Oper oper, Expr* expr);
     
     void  TypeDef(Name name);
     Stmt* Alias(Type* type);
@@ -37,11 +38,6 @@ struct API : public Context
     Stmt* Check(Expr* expr, Type* type=nullptr);
 
     /* Type */
-    Type* U();
-    Type* B();
-    Type* C();
-    Type* I();
-    Type* F();
     Type* TypeVar(Name name);
     Type* TypeRef(Type* type);
     Type* TypePtr(Type* type);
@@ -70,10 +66,10 @@ struct API : public Context
     Expr* ExprEleAddr(Expr* expr, Expr* index);
 
     Cell* CellRef(Expr* expr);  /* Ptr T -> Ref T */
+    Expr* ExprPtr(Cell* cell);  /* Ref T -> Ptr T */
     Expr* ExprVal(Expr* expr);  /* Ptr T ->     T */
     Expr* ExprRef(Expr* expr);  /* Ptr T -> Ref T */
 
-    Expr* B(Bool b);
     Expr* C(Char c);
     Expr* S(Str s);
     Expr* I(Int i);
@@ -85,7 +81,7 @@ struct API : public Context
     Expr* ExprFunExpr(Expr* expr);
     Expr* ExprFunStmt(Stmt* stmt);
 
-    Expr* ExprPtr(Cell* cell);
+    
 
     void  MatchBeg(Expr* expr);
     void  MatchBranchBeg(Name name);
@@ -93,8 +89,6 @@ struct API : public Context
     void  MatchBranchExpr(Expr* expr);
     void  MatchBranchStmt(Stmt* stmt);
     Expr* MatchEnd();
-
-    Expr* Asgn(Cell* cell, Oper oper, Expr* expr);
     
     Expr* UnOp(Oper oper, Expr* Expr);
     Expr* BinOp(Expr* lhs, Oper oper, Expr* rhs);

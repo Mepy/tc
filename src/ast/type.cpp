@@ -6,29 +6,71 @@ namespace ast{
 
 namespace Th = type::helper;
 
-Typep	API::U()
+bool	API::TypeEq(Exprp lhs, Exprp rhs)
 {
-	return &(this->type[0]);
+	try{ this->unify(*(lhs->type), *(rhs->type)); }
+	catch(const char* msg)
+	{
+		std::cerr<<"Unification Error : "<<msg<<std::endl;
+		return false;
+	}
+
+	// unify will modify expr->type
+	// ensure expr->type has such property : 
+	// Either Infer 0
+	// Or     Known T
+	{
+	auto shape = ((type::Typ*)(lhs->type->shape));
+	if(type::Shape::Infer==shape->flag&&shape->id!=0)
+		lhs->type = &(this->type[shape->id]);
+	}
+	{
+	auto shape = ((type::Typ*)(rhs->type->shape));
+	if(type::Shape::Infer==shape->flag&&shape->id!=0)
+		rhs->type = &(this->type[shape->id]);
+	}
+
+	return true;
 }
 
-Typep	API::B()
+bool	API::Typing(Exprp expr, Typep type) 
 {
-	return &(this->type[1]);
+	try{ this->unify(*(expr->type), *type); }
+	catch(const char* msg)
+	{
+		std::cerr<<"Unification Error : "<<msg<<std::endl;
+		return false;
+	}
+	// unify will modify expr->type
+	// ensure expr->type has such property : 
+	// Either Infer 0
+	// Or     Known T
+	auto shape = ((type::Typ*)(expr->type->shape));
+	if(type::Shape::Infer==shape->flag&&shape->id!=0)
+		expr->type = &(this->type[shape->id]);
+
+	return true;
 }
 
-Typep	API::C()
+// nullptr -> Infer 0
+// ...     -> Infer 0 
+//          | Known
+Typep   API::TypeInfer(Typep ty)
 {
-	return &(this->type[2]);
-}
+	if(nullptr==ty)
+	{
+		auto tid = this->type.nid();
+		this->type.insert(Type(tid, Th::infer(0)));
+		auto type = &(this->type[tid]);
 
-Typep	API::I()
-{
-	return &(this->type[3]);
-}
+		return type;
+	}
 
-Typep	API::F()
-{
-	return &(this->type[4]);
+	auto shape = ((type::Typ*)(ty->shape));
+	if(type::Shape::Infer==shape->flag&&shape->id!=0)
+		return &(this->type[shape->id]);
+	else
+		return ty;
 }
 
 Typep	API::TypeVar(Name name)

@@ -14,6 +14,7 @@ struct Shape
         Block, If, While, 
         Break, Cont, 
         Ret, Exp, Del,
+        Asgn,
         Let, Var, Check,
         Alias, ADT
     };
@@ -95,6 +96,14 @@ struct _del : public Shape
     Exprp expr;
     _del(Exprp expr)
     :Shape(Exp), expr(expr){}
+};
+
+struct _asgn : public Shape
+{
+    Exprp cell;
+    Exprp expr;
+    _asgn(Exprp cell, Exprp expr)
+    :Shape(Asgn), cell(cell), expr(expr){}
 };
 
 struct _alias :  public Shape

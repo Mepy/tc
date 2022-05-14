@@ -28,8 +28,23 @@ API::API()
 	this->type.bind(3, Name("Int"  ));
 	this->type.bind(4, Name("Float"));
 
-	this->expr.insert(Expr(0, Eh::u(), this->U(), ir::Symbol::Const));
+	{
+	auto iter = this->type.def.begin();
+	this->u = ((tc::ast::Type*)(&*iter)); ++iter;
+	this->b = ((tc::ast::Type*)(&*iter)); ++iter;
+	this->c = ((tc::ast::Type*)(&*iter)); ++iter;
+	this->i = ((tc::ast::Type*)(&*iter)); ++iter;
+	this->f = ((tc::ast::Type*)(&*iter)); ++iter;
+	}
+
+	auto u = &this->type[0];
+	this->expr.insert(Expr(0, Eh::u(), u, 0));
 	this->expr.bind(0, Name("unit"));
+	auto b = &this->type[1];
+	this->expr.insert(Expr(1, Eh::b(true), b, 0));
+	this->expr.bind(1, Name("true"));
+	this->expr.insert(Expr(2, Eh::b(false), b, 0));
+	this->expr.bind(1, Name("false"));
 
 	this->type.insert(Type(5, Th::adt(), ir::type::ADT(6)));
 
@@ -40,52 +55,5 @@ API::~API()
 
 }
 
-/* type */
-
-bool	API::TypeEq(Exprp lhs, Exprp rhs)
-{
-	try{ this->unify(*(lhs->type), *(rhs->type)); }
-	catch(const char* msg)
-	{
-		std::cerr<<"Unification Error : "<<msg<<std::endl;
-		return false;
-	}
-
-	// unify will modify expr->type
-	// ensure expr->type has such property : 
-	// Either Infer 0
-	// Or     Known T
-	{
-	auto shape = ((type::Typ*)(lhs->type->shape));
-	if(type::Shape::Infer==shape->flag&&shape->id!=0)
-		lhs->type = &(this->type[shape->id]);
-	}
-	{
-	auto shape = ((type::Typ*)(rhs->type->shape));
-	if(type::Shape::Infer==shape->flag&&shape->id!=0)
-		rhs->type = &(this->type[shape->id]);
-	}
-
-	return true;
-}
-// [TODO] : Check this function
-bool	API::Typing(Exprp expr, Typep type) 
-{
-	try{ this->unify(*(expr->type), *type); }
-	catch(const char* msg)
-	{
-		std::cerr<<"Unification Error : "<<msg<<std::endl;
-		return false;
-	}
-	// unify will modify expr->type
-	// ensure expr->type has such property : 
-	// Either Infer 0
-	// Or     Known T
-	auto shape = ((type::Typ*)(expr->type->shape));
-	if(type::Shape::Infer==shape->flag&&shape->id!=0)
-		expr->type = &(this->type[shape->id]);
-
-	return true;
-}
 
 }}

@@ -13,18 +13,117 @@ void test_insts(API& context);
 void test_fact(API& context);
 void test_swap(API& context);
 void test_imm(API& context);
+void test_array(API& context);
+void test_delay_func_type(API& context);
+void test_match(API& context);
+
 
 int main()
 {
     API context;
     try
     {
-        test_imm(context);
+        test_match(context);
     }
     catch(const char* str)
     {
         std::cerr << str << '\n';
     }
+}
+
+void test_match(API& context)
+{
+    /* // match.tc
+    type Bol = 
+        | tru
+        | fls
+        ;
+    let boolean = \ bol =>
+        match bol with 
+        | tru => true
+        | fls => false
+        ;
+     */
+    context.BlockBegin();
+
+    context.TypeDef("Bol");
+    context.ADTBranchBegin("tru"); context.ADTBranchEnd();
+    context.ADTBranchBegin("fls"); context.ADTBranchEnd();
+    context.BlockStmt(context.ADT());
+
+    context.ExprFunBeg();
+    context.ExprFunArg("bol");
+    context.MatchBeg(context.ExprVar("bol"));
+    context.MatchBranchBeg("tru");
+    context.MatchBranchExpr(context.ExprVar("true"));
+    context.MatchBranchBeg("fls");
+    context.MatchBranchExpr(context.ExprVar("false"));
+    context.BlockStmt(context.Let("boolean", context.ExprFunExpr(context.MatchEnd())));
+
+    context.save(context.BlockEnd());
+    context.save("match.hex");
+}
+
+void test_delay_func_type(API& context)
+{
+    /* // delay_func_type.tc
+    let @x = 0;
+    let  y = 4;
+    let f = \ @x y => x=y;
+    f(@x, y);
+     */
+    context.BlockBegin();
+
+    context.BlockStmt(context.Var("x", context.I(3)));
+    context.BlockStmt(context.Let("y", context.I(4)));
+
+    context.ExprFunBeg();
+    context.ExprFunRefArg("x");
+    context.ExprFunArg("y");
+    auto f = context.ExprFunStmt(context.Asgn(context.CellVar("x"), tc::ast::Oper::Undefined, context.ExprVar("y")));
+    
+    context.BlockStmt(context.Let("f", f));
+
+    context.AppBeg(context.ExprVar("f"));
+    context.AppArg(context.ExprVarRef("x"));
+    context.AppArg(context.ExprVar("y"));
+    context.BlockStmt(context.Exp(context.ExprAppEnd()));
+    context.save(context.BlockEnd());
+    context.save("delay.hex");
+}
+void test_array(API& context)
+{
+    /* // array.tc
+    let str   = "Hello, world!\n";
+    let index = 2;
+    let char1 = str[index];
+
+    let ref   = str@[index];
+    let char2 = ref;
+
+    let addr1 = &ref;
+    let char3 = *addr1;
+
+    let addr2 = str&[index];
+    let char4 = *addr2;
+     */
+    context.BlockBegin();
+
+    context.BlockStmt(context.Let("str", context.S("Hello, world!\n")));
+    context.BlockStmt(context.Let("index", context.I(2)));
+    context.BlockStmt(context.Let("char1", context.ExprEle(context.ExprVar("str"), context.ExprVar("index"))));
+    
+    context.BlockStmt(context.Let("ref", context.ExprEleRef(context.ExprVar("str"), context.ExprVar("index"))));
+    context.BlockStmt(context.Let("char2", context.ExprVar("ref")));
+
+    context.BlockStmt(context.Let("addr1", context.ExprPtr(context.CellVar("ref"))));
+    context.BlockStmt(context.Let("char3", context.ExprVal(context.ExprVar("addr1"))));
+
+    context.BlockStmt(context.Let("addr2", context.ExprEleAddr(context.ExprVar("str"), context.ExprVar("index"))));
+    context.BlockStmt(context.Let("char4", context.ExprVal(context.ExprVar("addr2"))));
+    
+    context.save(context.BlockEnd());
+    context.save("array.hex");
 }
 void test_imm(API& context)
 {
@@ -37,7 +136,7 @@ void test_imm(API& context)
     let s = "To be, or not to be, that is the question:\n";
      */
     context.BlockBegin();
-    context.BlockStmt(context.Let("b", context.B(true)));
+    context.BlockStmt(context.Let("b", context.ExprVar("true")));
     context.BlockStmt(context.Let("c", context.C('c')));
     context.BlockStmt(context.Let("i", context.I(1)));
     context.BlockStmt(context.Let("f", context.F(0.0)));
@@ -67,12 +166,12 @@ void test_swap(API& context)
     context.BlockStmt(
         context.Let("t", context.ExprVar("x"))
     );
-    context.BlockStmt(context.Exp(
+    context.BlockStmt(
         context.Asgn(context.CellVar("x"), tc::ast::Oper::Undefined, context.ExprVar("y"))
-    ));
-    context.BlockStmt(context.Exp(
+    );
+    context.BlockStmt(
         context.Asgn(context.CellVar("y"), tc::ast::Oper::Undefined, context.ExprVar("t"))
-    ));
+    );
     context.Let("swap", context.ExprFunStmt(context.BlockEnd()));
     context.save("swap.hex");
 }
@@ -109,9 +208,9 @@ void test_insts(API& context)
     context.BlockStmt(
         context.Var(Name("x"), context.I(1234))
     );
-    context.BlockStmt(context.Exp(
+    context.BlockStmt(
         context.Asgn(context.CellVar(Name("x")), tc::ast::Oper::Add, context.I(5678))
-    ));
+    );
     context.save("test.hex");
 }
 
@@ -187,7 +286,7 @@ void test_type(API& context)
 void test_if(API& context)
 {
     auto _if = context.If(
-        context.B(false)
+        context.ExprVar("false")
     ,   context.Let(Name("Y"), context.I(1))
     ,   context.Let(Name("N"), context.I(0))
     );
@@ -207,9 +306,9 @@ void test_while(API& context)
      *  
      */
     context.BlockBegin();
-    context.BlockStmt(context.Let(Name("b1"), context.B(true)));
-    context.BlockStmt(context.Let(Name("b2"), context.B(true)));
-    context.BlockStmt(context.Let(Name("b3"), context.B(true)));
+    context.BlockStmt(context.Let(Name("b1"), context.ExprVar("true")));
+    context.BlockStmt(context.Let(Name("b2"), context.ExprVar("true")));
+    context.BlockStmt(context.Let(Name("b3"), context.ExprVar("true")));
     context.WhileBeg(); // outer
     context.WhileBeg(); // inner
 

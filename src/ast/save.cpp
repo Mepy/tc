@@ -21,6 +21,18 @@ void    save(Obfs& obfs, Insts& insts)
 		obfs<<inst;
 }
 
+inline void shortcut(Context* context, ID& id)
+{
+    auto& type = context->type.def[id];
+    auto shape = ((type::Typ*)(type.shape));
+    if(type::Shape::Infer==shape->flag)
+    {
+        auto& tid = shape->id;
+        std::cout<<"id="<<type.id<<" ~> id="<<tid<<std::endl;
+        id = tid = context->type.def[tid].id;
+    }
+}
+
 inline void save_type(Context* context, Obfs& obfs)
 {
     obfs<<ir::Kind::TYPE;
@@ -32,8 +44,9 @@ inline void save_type(Context* context, Obfs& obfs)
     for(auto& type : context->type.def)
         if(type::Shape::Infer==type.shape->flag)
         {
+            type.shape->flag=type::Shape::Saved;
             auto& id = ((type::Typ*)(type.shape))->id;
-            id = context->type.def[id].id;
+            id = context->type.shortcut(id);
         }
         else
         {
@@ -45,7 +58,12 @@ inline void save_type(Context* context, Obfs& obfs)
                 ty->type.sort = ir::Type::Sort::Func;
                 auto shape = ((type::Fun*)(ty->shape));
                 auto& params = shape->params;
-                auto retype = shape->retype;
+                
+                for(auto& param:params)
+                    param = context->type.shortcut(param);
+                    
+                auto retype = context->type.shortcut(shape->retype);
+                
                 auto p_size = params.size(); 
                 switch(p_size)
                 {
@@ -53,21 +71,21 @@ inline void save_type(Context* context, Obfs& obfs)
                 {
                     auto block = context->new_block(ir::Kind::TFUN
                         , 1, Byte8(retype));
-                    ty->type.id = block->id + 2;
+                    ty->type.id = block->id+2;
                     break;
                 }
                 case 1:
                 {
                     auto block = context->new_block(ir::Kind::TFUN
-                        , 2, (Byte8(params[0])<<32)+Byte8(retype));
-                    ty->type.id = block->id + 2;
+                        , 2, (Byte8(params[0])<<32)|Byte8(retype));
+                    ty->type.id = block->id+2;
 
                     break;
                 }
                 default:
                 {
                     auto block = context->new_block(ir::Kind::TFUN
-                        , p_size+1, (Byte8(params[0])<<32)+Byte8(retype));
+                        , p_size+1, (Byte8(params[0])<<32)|Byte8(retype));
                     
                     Size index=1;
                     for( ; index+3<p_size; index+=4)
@@ -86,7 +104,7 @@ inline void save_type(Context* context, Obfs& obfs)
                         ); break;
                     default: break;
                     }
-                    ty->type.id = block->id + 2;
+                    ty->type.id = block->id+2;
                 }
                 }
                 break;
@@ -95,57 +113,19 @@ inline void save_type(Context* context, Obfs& obfs)
             case type::Shape::ADT:
             {
                 auto shape = ((type::ADT*)(ty->shape));
-                auto& cons = shape->cons;
-                auto c_size= cons.size();
-                switch (c_size)
-                {
-                case 0:
-                {
-                    auto block = context->new_block(ir::Kind::TADT, 0
-                    , 0x44494F5620454854L); // "THE VOID"
-                    ty->type.id = block->id + 2;
-                    break;
-                }
-                case 1:
-                {
-                    auto block = context->new_block(ir::Kind::TADT, 1
-                    , Byte8(cons[0]));
-                    ty->type.id = block->id + 2;
-                    break;
-                }
-                default:
-                {
-                    auto block = context->new_block(ir::Kind::TADT, c_size
-                    , *(Byte8*)&cons[0]);
-                    Size index=2;
-                    for( ; index+3<c_size; index+=4)
-                        block->insts.push_back(*(Inst*)(&cons[index]));
-        
-                    switch(c_size-index)
-                    {
-                    case 3:block->insts.push_back(
-                        Ih::IDs(cons[index], cons[index+1], cons[index+2])
-                        ); break;
-                    case 2:block->insts.push_back(
-                        Ih::IDs(cons[index], cons[index+1])
-                        ); break;
-                    case 1:block->insts.push_back(
-                        Ih::IDs(cons[index])
-                        ); break;
-                    default: break;
-                    }
-                    ty->type.id = block->id + 2;
-                    break;
-                }
-                }
+                auto block = context->new_IDs(ir::Kind::TADT, shape->cons);
+                ty->type.id = block->id+2;
                 break;
             }
 
             case type::Shape::Array:
             {
+                ty->type.sort = ir::Type::Sort::Array;
+                
                 auto shape = ((type::Array*)(ty->shape));
-                auto block = context->new_block(ir::Kind::TARR, shape->id, shape->size);
-                ty->type.id = block->id + 2;
+                auto id = context->type.shortcut(shape->id);
+                auto block = context->new_block(ir::Kind::TARR, id, shape->size);
+                ty->type.id = block->id+2;
                 break;
             }
 
@@ -163,9 +143,10 @@ inline void save_type(Context* context, Obfs& obfs)
             }
             obfs<<type.type;
             delete ty->shape;
-            ty->shape = Th::infer(size);
+            ty->shape = Th::saved(size);
             ++size;
         }
+    
     if(0==size%2)
         obfs<<Byte8(0);
     auto cur = obfs.tell();
@@ -180,14 +161,23 @@ inline void save_symb(Context* context, Obfs& obfs)
 
     for(auto& expr : context->expr.def)
     {
-        obfs<<expr.sort;
-        auto type = expr.type;
-        auto id = type->id;
+        auto sort = expr.sort;
+        auto tid = context->type.shortcut(expr.type->id);
+        obfs<<sort;
+        switch(sort)
+        {
+        case ir::Symbol::Sort::CFun:
+        case ir::Symbol::Sort::CPrg:
+        {
+            auto block = context->new_func(tid, expr.params, expr.body);
+            obfs<<block->id+2;
+            break;
+        }
+        default:
+            obfs<<tid;
+            break;
+        }
         
-        auto nid = ((type::Typ*)(context->type.def[id].shape))->id;
-        if(0!=nid)
-            id = nid;
-        obfs<<id;
     }
     if(0==size%2)
         obfs<<Byte8(0);
@@ -209,7 +199,7 @@ void    API::save(string path)
         <<ir::Cat::EXEC;
     auto pos = obfs.tell();
     obfs<<Byte4(0)<<RESERVED;
-    
+
     save_type(this, obfs);
     save_symb(this, obfs);
     
@@ -225,6 +215,11 @@ void    API::save(string path)
         case ir::Kind::TADT:
         case ir::Kind::TARR:
         case ir::Kind::CSTR:
+        case ir::Kind::PARA:
+        case ir::Kind::ARGS:
+        case ir::Kind::FILD:
+        case ir::Kind::BRCH:
+        case ir::Kind::FUNC:
             obfs<<block.size<<block.extra;
             break;
         default: break;

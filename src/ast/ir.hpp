@@ -17,17 +17,18 @@ enum Kind : Byte4 { /* Block 's */
     
     INST = 0x54534E49, /* INST */ // ANF instruction
     ARGS = 0x53475241, /* ARGS */ // call  's arguments, just ids of expr
-    FILD = 0x444C4946, /* FILD */ // constr's arguments, just ids of expr
     BRCH = 0x48435242, /* BRCH */ // destr 's branches, just ids of block
     
     SYMB = 0x424D5953, /* SYMB */ // Symbol
     PARA = 0x41524150, /* PARA */ // func  's parameters, just ids of expr
+    FUNC = 0x434E5546, /* FUNC */ // for function's info
     CLOS = 0x534F4C43, /* CLOS */ // for closure's function info 
 
     TYPE = 0x45505954, /* TYPE */ // Type info, 
     TFUN = 0x4E554654, /* TFUN */ // for function's type, just ids of types
     TADT = 0x54444154, /* TADT */ // for adt's constructors, just ids of constructors
     TARR = 0x5D4E5B54, /* T[N] */ // for array type
+    TTPL = 0x292C2854, /* T(,) */ // for tuple's type, just ids of types
 
     CSTR = 0x52545343, /* CSTR */ // c string immediate
 };
@@ -36,7 +37,6 @@ struct Instruction
 {
     enum Sort : Byte4 {
         SUNO  = 0x4F4E5553, /* SUNO */ // Sort Unknown
-        BImm  = 0x6D6D4942, /* BImm */
         CImm  = 0x6D6D4943, /* CImm */
         IImm  = 0x6D6D4949, /* IImm */
         FImm  = 0x6D6D4946, /* FImm */
@@ -55,35 +55,61 @@ struct Instruction
 
         PAdd  = 0x642B4150, /* PA+d */ 
         PSub  = 0x622D5350, /* PS-b */
+        PMov  = 0x763D4D50, /* PM=v */
+
+        LShift= 0x3C3C3C3C, /* <<<< */
+        RShift= 0x3E3E3E3E, /* >>>> */
+        BNot  = 0x21212121, /* !!!! */
+        BAnd  = 0x26262626, /* &&&& */
+        BOr   = 0x7C7C7C7C, /* |||| */
+        BXor  = 0x5E5E5E5E, /* ^^^^ */
+        
+        LNot  = 0x746F6E20, /*  not */
+        LAnd  = 0x646E6120, /*  and */
+        LOr   = 0x20726F20, /*  or  */
+        LXor  = 0x726F7820, /*  xor */
+
 
         /* used by Pointer */
-        ULt   = 0x3F203C55, /* U< ? */
-        ULe   = 0x3F3D3C55, /* U<=? */
-        UGt   = 0x3F203E55, /* U> ? */
-        UGe   = 0x3F3D3E55, /* U>=? */ 
+        PLt   = 0x3F203C50, /* P< ? */
+        PLe   = 0x3F3D3C50, /* P<=? */
+        PGt   = 0x3F203E50, /* P> ? */
+        PGe   = 0x3F3D3E50, /* P>=? */
+        PEq   = 0x3F3D3D50, /* P==? */
+        PNe   = 0x3F3D2150, /* P!=? */
 
         ILt   = 0x3F203C49, /* I< ? */
         ILe   = 0x3F3D3C49, /* I<=? */
         IGt   = 0x3F203E49, /* I> ? */
         IGe   = 0x3F3D3E49, /* I>=? */ 
+        IEq   = 0x3F3D3D49, /* I==? */
+        INe   = 0x3F3D2149, /* I!=? */
 
         FLt   = 0x3F203C46, /* F< ? */
         FLe   = 0x3F3D3C46, /* F<=? */
         FGt   = 0x3F203E46, /* F> ? */
         FGe   = 0x3F3D3E46, /* F>=? */  
+        FEq   = 0x3F3D3D46, /* F==? */
+        FNe   = 0x3F3D2146, /* F!=? */
 
-        Eq    = 0x3F3D3D54, /* T==? */
-        Neq   = 0x3F3D2154, /* T!=? */
+        UEq   = 0x3F3D3D55, /* U==? */
+        UNe   = 0x3F3D2155, /* U!=? */
+        BEq   = 0x3F3D3D42, /* B==? */
+        BNe   = 0x3F3D2142, /* B!=? */
+        CEq   = 0x3F3D3D43, /* C==? */
+        CNe   = 0x3F3D2143, /* C!=? */
+        AEq   = 0x3D3D5D5B, /* []== */
+        ANe   = 0x3D215D5B, /* []!= */
+        TEq   = 0x3F3D3D54, /* T==? */
+        TNe   = 0x3F3D2154, /* T!=? */
 
         Br    = 0x3A3F7242, /* Br?: */
         Jump  = 0x706D754A, /* Jump */
         Ret   = 0x3E743D52, /* R=t> */
 
 
-        Func  = 0x636E7546, /* Func */
         Call  = 0x6C6C6143, /* Call */
-        Ctor  = 0x726F7443, /* Ctor */
-        Dtor  = 0x726F7444, /* Dtor */
+        Match  = 0x6863744D, /* Mtch */
 
         Array = 0x79617241, /* Aray */
         Alloc = 0x636F6C41, /* Aloc */ 
@@ -118,13 +144,9 @@ struct Instruction
      *             src.RESERVED = RESERVED
      * case Ret  : dst = if of value to return, 
      *             src.RESERVED = RESERVED
-     * case Func : src.id[0] = id of block of parameters
-     *             src.id[1] = id of block of body
      * case Call : src.id[0] = id of function
      *             src.id[1] = id of block of arguments 
-     * case Constr : src.id[0] = id of constructor
-     *               src.id[1] = id of block of arguments 
-     * case Destr  : src.id[0] = id of term destructed
+     * case Match  : src.id[0] = id of term destructed
      *               src.id[1] = id of block of branches
      * case Array  : src.id[0] = id of initial
      *               src.id[1] = id of length
@@ -215,6 +237,7 @@ struct Type
         Ptr   = 0x262A7954, /* Ty*& */
         Array = 0x5D5B7954, /* Ty[] */
         Func  = 0x3E2D7954, /* Ty-> */
+        Tuple = 0x29287954, /* Ty() */
         ADT   = 0x787C7954, /* Ty|x */
         ADTR  = 0x247C7954, /* Ty|$ */
     };
@@ -223,8 +246,10 @@ struct Type
     /* switch(sort)
      * case Unit~Float : Atom type
      * case Ptr   : id = id of T ~> &T
-     * case Array : id = id of block whost Sort = T[N]
+     * case Array : id = id of block whose Sort = T[N]
      *              id of T, len ~> T[len]
+     * case Tuple : id = id of block whose Sort = T(,)
+     * 
      * case Func  : id = id of block whose Sort = TFUN
      *              block[0]        = return type
      *              block[1:size-1] = params type
