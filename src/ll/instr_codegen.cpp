@@ -57,17 +57,20 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
         }
         case Ins::CStr:
         {
-            if (StringMap.find(ins.src.id[0]) != StringMap.end())
+            if (StringMap.find(ins.src.id[0] + 2) != StringMap.end())
             {
                 auto *CStr_ptr = Builder->CreateGlobalStringPtr(
-                    StringMap[ins.src.id[0]]
+                    StringMap[ins.src.id[0] + 2]
                 );
                 IdMapVal[ins.dst] = CStr_ptr;
+                return IdMapVal[ins.dst];
             }
             else 
             {
                 // assume that CSTR decl before reference
-                throw std::invalid_argument("CSTR src id not found in StringMap.");
+                // throw std::invalid_argument("CSTR src id not found in StringMap.");
+                StringdstMap[ins.src.id[0] + 2] = ins.dst;
+                return nullptr;
             }
             break;
         }

@@ -107,7 +107,7 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
                         // entry
                     );
                 std::string content((char *)(module.blocks[i].bytes));
-                StringMap[CStr_counter ++] = content;
+                StringMap[i] = content;
                 break;
             }
 
@@ -161,7 +161,8 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
             for (int k=0; k<BrMap[i].second.second; k++, target_false_it++);
             Builder->CreateCondBr(BrMap[i].first, &*target_true_it, &*target_false_it);
         }
-        else {
+        else 
+        {
             // if (block.getInstList().empty()) 
             {
                 // std::cout << i << "\n";
@@ -170,6 +171,12 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
                 Builder->SetInsertPoint(&block);
                 prevFlag = true;
             }
+        }
+
+        if (StringMap.find(i) != StringMap.end() ) 
+        {
+            Builder->SetInsertPoint(&block);
+            IdMapVal[StringdstMap[i]] = Builder->CreateGlobalStringPtr(StringMap[i]);
         }
         i++;
     }

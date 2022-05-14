@@ -41,6 +41,8 @@ protected:
     std::map<std::int32_t, std::pair<llvm::Value *, std::pair<std::int32_t, std::int32_t>>> BrMap;
     //map block-id to CSTR (assuming one block contains only one CSTR)
     std::map<std::int32_t, std::string> StringMap;
+    //map block-id of string to id of IdMapVal 
+    std::map<std::int32_t, std::int32_t> StringdstMap;
 
     int CStr_counter;
 public:
