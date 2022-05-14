@@ -109,7 +109,7 @@ struct Instruction
 
 
         Call  = 0x6C6C6143, /* Call */
-        Match  = 0x6863744D, /* Mtch */
+        Match = 0x6863744D, /* Mtch */
 
         Array = 0x79617241, /* Aray */
         Alloc = 0x636F6C41, /* Aloc */ 
@@ -126,7 +126,6 @@ struct Instruction
     ID dst;    // ID Destinate
     union Src {
         ID    id[2]; // ID Source 
-        Bool  Bimm;
         Char  Cimm;
         Int   Iimm;
         Float Fimm;
