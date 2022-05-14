@@ -64,6 +64,8 @@ struct Block
                 ;   ++ptr)
                     ibfs>>*ptr;
                 // std::cout << size << std::endl;
+
+                // consume leftover bytes for alignment
                 if (size % 2 != 1)
                 {
                     // std::cout << "sy:align\n";
@@ -72,6 +74,31 @@ struct Block
                     delete dumb_ptr;
                 }
                 break;
+            
+            case CSTR:
+                bytes = new Byte[size*sizeof(char)];
+                for(auto ptr = (char *)bytes
+                ;   ptr-(char*)bytes<size
+                ;   ++ptr)
+                    ibfs>>*ptr;
+                if (size % 16 != 8) 
+                {
+                    int align_size;
+                    if (size < 8) 
+                    {
+                        align_size = 8 - size;
+                    }
+                    else
+                    {
+                        align_size = 16-((size-8)%16);
+                    }
+                    // std::cout << align_size << std::endl;
+                    auto dumb_ptr = new char[align_size];
+                    auto tmp_ptr = dumb_ptr;
+                    for (int i=0; i<align_size; i++, tmp_ptr++)
+                    {ibfs>>*tmp_ptr;}
+                    delete[] dumb_ptr;
+                }
 
             default:
                 break;

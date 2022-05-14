@@ -20,15 +20,15 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             // %Iimm0 = alloca i64, align 8
             // store i64 1234, i64* %Iimm0, align 4
         }
-        case Ins::BImm:
-        {
-            auto *BImm_ptr = llvm::ConstantInt::get(
-                llvm::Type::getInt1Ty(*TheContext),
-                ins.src.Bimm
-            );
-            IdMapVal[ins.dst] = BImm_ptr;
-            return BImm_ptr;
-        }
+        // case Ins::BImm:
+        // {
+        //     auto *BImm_ptr = llvm::ConstantInt::get(
+        //         llvm::Type::getInt1Ty(*TheContext),
+        //         ins.src.Bimm
+        //     );
+        //     IdMapVal[ins.dst] = BImm_ptr;
+        //     return BImm_ptr;
+        // }
         case Ins::CImm: //Char?
         {
             auto *CImm_ptr = llvm::ConstantInt::get(
@@ -46,6 +46,30 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             );  
             IdMapVal[ins.dst] = FImm_ptr;
             return FImm_ptr;          
+        }
+        case Ins::SImm:
+        {
+            auto *SImm_ptr = Builder->CreateGlobalStringPtr(
+                ins.src.SImm
+            );
+            IdMapVal[ins.dst] = SImm_ptr;
+            return SImm_ptr;
+        }
+        case Ins::CStr:
+        {
+            if (StringMap.find(ins.src.id[0]) != StringMap.end())
+            {
+                auto *CStr_ptr = Builder->CreateGlobalStringPtr(
+                    StringMap[ins.src.id[0]]
+                );
+                IdMapVal[ins.dst] = CStr_ptr;
+            }
+            else 
+            {
+                // assume that CSTR decl before reference
+                throw std::invalid_argument("CSTR src id not found in StringMap.");
+            }
+            break;
         }
         case Ins::IAdd:
         {

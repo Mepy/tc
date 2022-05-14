@@ -9,7 +9,7 @@ int main() {
         LLCodegenVisitor llVisitor;
         /* code */
         // std::cout << "Started demo.\n";
-        llVisitor.ASTIRtoLLVMIR("../../ir/while.hex");
+        llVisitor.ASTIRtoLLVMIR("../../ir/imm.hex");
         // std::cout << "Into dump.\n";
         llVisitor.dumpLLVMIR();
     }

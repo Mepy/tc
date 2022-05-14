@@ -18,20 +18,28 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
         "main", 
         *TheModule);
 
-    // std::vector<llvm::Type*> param_type;
-    // param_type.push_back(
-    //     llvm::IntegerType::getInt8Ty(*TheContext)->getPointerTo()
-    // );
-
-    auto func_type = llvm::FunctionType::get(
+    // printf
+    auto printf_func_type = llvm::FunctionType::get(
         Builder->getInt32Ty(),
         llvm::IntegerType::getInt8Ty(*TheContext)->getPointerTo(),
         true
     );
-
     std::vector<llvm::Value *> ArgsV;
+    auto printf_func_callee = TheModule->getOrInsertFunction("printf", printf_func_type);
 
-    auto func_callee = TheModule->getOrInsertFunction("printf", func_type);
+    // puts
+    std::vector<llvm::Type*> params_type;
+    params_type.push_back(
+        llvm::IntegerType::getInt8Ty(*TheContext)->getPointerTo() // char*
+    );
+    auto puts_func_type = llvm::FunctionType::get(
+        Builder->getInt32Ty(), // return_type
+        llvm::ArrayRef<llvm::Type*>(params_type), // params_type, but : ArrayRef<Type*>
+        false // UNKNOWN
+    ); 
+
+    // call function named puts
+    auto puts_func_callee = TheModule->getOrInsertFunction("puts", puts_func_type);
 
     for (int i=0; i<module.size; i++) {
         // auto block = module.blocks[i]; !!!
@@ -56,16 +64,24 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
                 {
                     // std::cout << ptr->sort << std::endl;
                     llvm::Value *vptr = codegen(*ptr);
-                    if (vptr != nullptr && vptr->getType()->isIntegerTy()) {
+                    if (vptr != nullptr ) {
                         // DEBUG: PRINT ALL RETURN VALUES
 
-                        // auto IntType = llvm::IntegerType::getInt32Ty(*TheContext);
-                        // llvm::IntegerType *CI = llvm::cast<llvm::Integer>(vptr);
-                        ArgsV.push_back(vptr);
-                        Builder->CreateCall(func_callee, ArgsV, "printfCall");
-                        // std::cout << ArgsV.size();
-                        ArgsV.pop_back();
+                        if (vptr->getType()->isIntegerTy(8) /*char*/ || 
+                            vptr->getType()->isIntegerTy(32) /*int*/ )
+                        {
+                            ArgsV.push_back(vptr);
+                            Builder->CreateCall(printf_func_callee, ArgsV, "printfCall");
+                            // std::cout << ArgsV.size();
+                            ArgsV.pop_back();
+                        }
+                        if (vptr->getType()->isPointerTy() )
+                        {
+                            Builder->CreateCall(puts_func_callee,
+                                vptr, "putsCall");
+                        }
                     }
+                    
                     if (ptr->sort == Ins::Jump)
                     {
                         // std::cout << "J" << i;
@@ -78,6 +94,31 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
                             std::make_pair(ptr->src.id[0], ptr->src.id[1]));
                     }
                 }
+                break;
+            }
+
+            case Kind::CSTR:
+            {
+                
+                auto BB = llvm::BasicBlock::Create(
+                        *TheContext,
+                        std::to_string(i),
+                        main
+                        // entry
+                    );
+                std::string content((char *)(module.blocks[i].bytes));
+                StringMap[CStr_counter ++] = content;
+                break;
+            }
+
+            case Kind::TARR:
+            {
+                auto BB = llvm::BasicBlock::Create(
+                        *TheContext,
+                        std::to_string(i),
+                        main
+                        // entry
+                    );                
                 break;
             }
         
@@ -97,7 +138,8 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
     bool prevFlag = false;
     for (auto &block : main->getBasicBlockList() )
     {
-        if (prevFlag) {
+        if (prevFlag) 
+        {
             //to avoid empty llvm::BasicBlock induced error
             Builder->CreateBr(&block);
             prevFlag = false;
@@ -120,10 +162,11 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
             Builder->CreateCondBr(BrMap[i].first, &*target_true_it, &*target_false_it);
         }
         else {
-            if (block.getInstList().empty()) {
+            // if (block.getInstList().empty()) 
+            {
                 // std::cout << i << "\n";
-                //set insert point for the next iteration
-                //TODO: final iter?
+                // set insert point for the next iteration to avoid empty-block error
+                // TODO: final iter?
                 Builder->SetInsertPoint(&block);
                 prevFlag = true;
             }

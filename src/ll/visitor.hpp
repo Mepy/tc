@@ -31,10 +31,18 @@ protected:
     std::unique_ptr<llvm::IRBuilder<>> Builder;
     std::unique_ptr<llvm::Module> TheModule;
     
+    //map id to llvm::Value*
     std::map<std::int32_t, llvm::Value *> IdMapVal;
+    //map id to llvm::AllocaInst* (can be interpreted as ptr to llvm::Value*)
     std::map<std::int32_t, llvm::AllocaInst *> IdMapAlloc;
+    //map src block-id to dst block-id
     std::map<std::int32_t, std::int32_t> JumpMap;
+    //map src block-id to (boolean value, (dst-if-true block-id, dst-if-false block-id))
     std::map<std::int32_t, std::pair<llvm::Value *, std::pair<std::int32_t, std::int32_t>>> BrMap;
+    //map block-id to CSTR (assuming one block contains only one CSTR)
+    std::map<std::int32_t, std::string> StringMap;
+
+    int CStr_counter;
 public:
     LLCodegenVisitor() {
         // Open a new context and module.
@@ -45,7 +53,11 @@ public:
         Builder = std::make_unique<llvm::IRBuilder<>>(*TheContext);
         IdMapAlloc.clear();
         IdMapVal.clear();
+        JumpMap.clear();
         BrMap.clear();
+        StringMap.clear();
+
+        CStr_counter = 0;
     }
 
     //Top level methods (in visitor.cpp)
