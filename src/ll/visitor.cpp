@@ -1,12 +1,14 @@
 #include "visitor.hpp"
 #include <iostream>
 
+// #define DEBUG 0
+
 void LLCodegenVisitor::dumpLLVMIR() 
     {TheModule->print(llvm::outs(), nullptr);}
 
+// assuming that the ASTIR file contains only one module: -> use block
 void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
     codegen::Module module(path);
-    //assuming that the ASTIR file contains only one module: -> use block
     // std::cout << "Module loaded." << std::endl;
 
     auto main_type = llvm::FunctionType::get(
@@ -19,25 +21,21 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
         *TheModule);
 
     // printf
-    auto printf_func_type = llvm::FunctionType::get(
-        Builder->getInt32Ty(),
-        llvm::IntegerType::getInt8Ty(*TheContext)->getPointerTo(),
-        true
-    );
-    std::vector<llvm::Value *> ArgsV;
-    auto printf_func_callee = TheModule->getOrInsertFunction("printf", printf_func_type);
+    auto printf_func_callee = TheModule->getOrInsertFunction(
+        "printf", 
+        llvm::FunctionType::get(
+            llvm::IntegerType::getInt32Ty(*TheContext), 
+            {llvm::PointerType::getInt8PtrTy(*TheContext)}, 
+            true));
+    std::vector<llvm::Value *> printfArgsV;
 
     // puts
-    std::vector<llvm::Type*> params_type;
-    params_type.push_back(
-        llvm::IntegerType::getInt8Ty(*TheContext)->getPointerTo() // char*
-    );
-    auto puts_func_type = llvm::FunctionType::get(
-        Builder->getInt32Ty(), // return_type
-        llvm::ArrayRef<llvm::Type*>(params_type), // params_type, but : ArrayRef<Type*>
-        false // UNKNOWN
-    ); 
-    auto puts_func_callee = TheModule->getOrInsertFunction("puts", puts_func_type);
+    auto puts_func_callee = TheModule->getOrInsertFunction(
+        "puts", 
+        llvm::FunctionType::get(
+            llvm::IntegerType::getInt32Ty(*TheContext), 
+            {llvm::PointerType::getInt8PtrTy(*TheContext)}, 
+            true));
 
     for (int i=0; i<module.size; i++) {
         // auto block = module.blocks[i]; !!!
@@ -54,7 +52,7 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
                 );
                 Builder->SetInsertPoint(BB);
                 
-                ArgsV.push_back(Builder->CreateGlobalStringPtr("%d"));
+                printfArgsV.push_back(Builder->CreateGlobalStringPtr("%d"));
 
                 for (Ins *ptr = (Ins *)module.blocks[i].bytes; 
                 ptr - (Ins *)module.blocks[i].bytes < module.blocks[i].size; 
@@ -62,32 +60,38 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
                 {
                     // std::cout << ptr->sort << std::endl;
                     llvm::Value *vptr = codegen(*ptr);
-                    if (vptr != nullptr ) {
-                        // DEBUG: PRINT ALL RETURN VALUES
 
-                        if (vptr->getType()->isIntegerTy(8) /*char*/ || 
-                            vptr->getType()->isIntegerTy(32) /*int*/ )
-                        {
-                            ArgsV.push_back(vptr);
-                            Builder->CreateCall(printf_func_callee, ArgsV, "printfCall");
-                            // std::cout << ArgsV.size();
-                            ArgsV.pop_back();
+                    # ifdef DEBUG
+                    // DEBUG: PRINT ALL RETURN VALUES
+                        if (vptr != nullptr ) {
+                            if (vptr->getType()->isIntegerTy(8) /*char*/ || 
+                                vptr->getType()->isIntegerTy(32) /*int*/ )
+                            {
+                                printfArgsV.push_back(vptr);
+                                Builder->CreateCall(printf_func_callee, printfArgsV, "printfCall");
+                                // std::cout << printfArgsV.size();
+                                printfArgsV.pop_back();
+                            }
+                            if (vptr->getType()->isPointerTy() )
+                            {
+                                Builder->CreateCall(puts_func_callee,
+                                    vptr, "putsCall");
+                            }
                         }
-                        if (vptr->getType()->isPointerTy() )
-                        {
-                            Builder->CreateCall(puts_func_callee,
-                                vptr, "putsCall");
-                        }
-                    }
+                    # endif
                     
                     if (ptr->sort == Ins::Jump)
-                    {
-                        // std::cout << "J" << i;
+                    {   
+                        #ifdef DEBUG
+                            std::cout << "J" << i;
+                        #endif
                         JumpMap[i] = ptr->dst;
                     }
                     if (ptr->sort == Ins::Br) 
-                    {
-                        // std::cout << "B" << i;
+                    {   
+                        #ifdef DEBUG
+                            std::cout << "B" << i;
+                        #endif
                         BrMap[i] = std::make_pair(vptr, 
                             std::make_pair(ptr->src.id[0], ptr->src.id[1]));
                     }
@@ -142,7 +146,6 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
             Builder->CreateBr(&block);
             prevFlag = false;
         }
-        // std::cout << i;
         if (JumpMap.find(i) != JumpMap.end()) 
         {
             Builder->SetInsertPoint(&block);
@@ -181,7 +184,6 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
 
     Builder->CreateRet(
         llvm::ConstantInt::get(llvm::IntegerType::getInt32Ty(*TheContext), 0)
-        // Builder->CreateLoad()
     );
 
     return;

@@ -43,8 +43,6 @@ protected:
     std::map<std::int32_t, std::string> StringMap;
     //map block-id of string to id of IdMapVal 
     std::map<std::int32_t, std::int32_t> StringdstMap;
-
-    int CStr_counter;
 public:
     LLCodegenVisitor() {
         // Open a new context and module.
@@ -53,13 +51,14 @@ public:
 
         // Create a new builder for the module.
         Builder = std::make_unique<llvm::IRBuilder<>>(*TheContext);
+        
+        // Refresh all maps
         IdMapAlloc.clear();
         IdMapVal.clear();
         JumpMap.clear();
         BrMap.clear();
         StringMap.clear();
-
-        CStr_counter = 0;
+        StringdstMap.clear();
     }
 
     //Top level methods (in visitor.cpp)
