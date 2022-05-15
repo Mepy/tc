@@ -37,8 +37,6 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
         llvm::ArrayRef<llvm::Type*>(params_type), // params_type, but : ArrayRef<Type*>
         false // UNKNOWN
     ); 
-
-    // call function named puts
     auto puts_func_callee = TheModule->getOrInsertFunction("puts", puts_func_type);
 
     for (int i=0; i<module.size; i++) {

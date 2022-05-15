@@ -90,20 +90,364 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
         }
         case Ins::ISub:
         {
-            
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("ISub: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateSub(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;            
         }
         case Ins::IMul:
         {
-
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("IMul: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateMul(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
         }
         case Ins::IDiv:
         {
-
+            // throw "IDiv: Not Sure.\n";
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("IDiv: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateSDiv(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
         }
         case Ins::IMod:
         {
-
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("IMod: src id not found.");
+            }
+            auto ret_val = Builder->CreateSRem(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
         }
+        case Ins::FAdd:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("FAdd: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateFAdd(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;            
+        }
+        case Ins::FSub:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("FSub: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateFSub(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        case Ins::FMul:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("FMul: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateFMul(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        case Ins::FDiv:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("FDiv: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateFDiv(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        case Ins::FMod:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("FMod: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateFRem(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        
+        // Pointer ops: to be implemented...
+
+        case Ins::LShift:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("LShift: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateShl(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        case Ins::RShift:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("RShift: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateLShr(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        case Ins::BNot:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            if (Val1_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("BNot: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateNot(Val1_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        case Ins::BAnd:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("BAnd: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateAnd(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        case Ins::BOr:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("BOr: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateOr(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        case Ins::BXor:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("BXor: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateXor(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+
+        // L-instruction: to be implemented...
+        // Ptr comparison: to be implemented...
+
+        // Int comparison
+        case Ins::ILt:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("ILt: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateICmpSLT(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        case Ins::ILe:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("ILe: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateICmpSLE(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        case Ins::IGt:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("IGt: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateICmpSGT(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        case Ins::IGe:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("IGe: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateICmpSGE(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        case Ins::IEq:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("IEq: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateICmpEQ(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        case Ins::INe:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("INe: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateICmpNE(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        case Ins::FLt:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("FLt: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateFCmpOLT(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        case Ins::FLe:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("FLe: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateFCmpOLE(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        case Ins::FGt:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("FGt: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateFCmpOGT(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        case Ins::FGe:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("FGe: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateFCmpOGE(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        case Ins::FEq:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("FEq: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateFCmpOEQ(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        case Ins::FNe:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("FNe: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateFCmpONE(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+
+
 
         case Ins::Br:
         {
@@ -123,6 +467,11 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
         {
             // Implemented in visitor.cpp
             return nullptr;
+        }
+        case Ins::Ret:
+        {
+            Builder->CreateRet(IdMapVal[ins.dst]);
+            return IdMapVal[ins.dst];
         }
 
         case Ins::Alloc:
@@ -209,6 +558,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             return IdMapVal[ins.dst];
         }
         default:
+            throw std::invalid_argument("Unknown instruction.");
             break;
     }
     return nullptr;
