@@ -37,6 +37,7 @@ struct Instruction
 {
     enum Sort : Byte4 {
         SUNO  = 0x4F4E5553, /* SUNO */ // Sort Unknown
+        Null  = 0x6C6C754E, /* Null */
         CImm  = 0x6D6D4943, /* CImm */
         IImm  = 0x6D6D4949, /* IImm */
         FImm  = 0x6D6D4946, /* FImm */

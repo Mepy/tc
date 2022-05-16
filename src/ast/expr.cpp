@@ -15,6 +15,15 @@ namespace Eh = expr::helper;
 namespace Ih = ir::instruction;
 using Sort = ir::Symbol::Sort;
 
+Exprp	API::Null()
+{
+	auto type = TypePtr(TypeInfer());
+	auto id = this->expr.nid();
+	this->expr.insert(Expr(id, Eh::null(), type, Ih::Null(id), Sort::Const));
+	auto expr = &(this->expr[id]);
+	return expr;
+}
+
 Exprp	API::C(Char c)
 {
 	auto type = this->c;

@@ -70,6 +70,7 @@ struct API : public Context
     Expr* ExprVal(Expr* expr);  /* Ptr T ->     T */
     Expr* ExprRef(Expr* expr);  /* Ptr T -> Ref T */
 
+    Expr* Null();
     Expr* C(Char c);
     Expr* S(Str s);
     Expr* I(Int i);

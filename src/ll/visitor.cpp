@@ -38,9 +38,9 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
             true));
 
     for (int i=0; i<module.size; i++) {
-        // auto block = module.blocks[i]; !!!
-        // std::cout << module.blocks[i].kind << std::endl;
-        switch (module.blocks[i].kind)
+        auto& block = module.blocks[i];
+        // std::cout << block.kind << std::endl;
+        switch (block.kind)
         {   
             case Kind::INST:
             {
@@ -54,8 +54,8 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
                 
                 printfArgsV.push_back(Builder->CreateGlobalStringPtr("%d"));
 
-                for (Ins *ptr = (Ins *)module.blocks[i].bytes; 
-                ptr - (Ins *)module.blocks[i].bytes < module.blocks[i].size; 
+                for (auto ptr = block.extra.insts; 
+                ptr - block.extra.insts < block.size; 
                 ptr++) 
                 {
                     // std::cout << ptr->sort << std::endl;
@@ -109,8 +109,8 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
                 );
                 Builder->SetInsertPoint(BB);
 
-                for (auto ptr = (ir::Type *)module.blocks[i].bytes; 
-                ptr - (ir::Type *)module.blocks[i].bytes < module.blocks[i].size; 
+                for (auto ptr = (ir::Type *)block.bytes; 
+                ptr - (ir::Type *)block.bytes < block.size; 
                 ptr++) 
                 {
                     switch (ptr->sort)
@@ -190,7 +190,7 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
                         main
                         // entry
                     );
-                std::string content((char *)(module.blocks[i].bytes));
+                std::string content(block.extra.chars);
                 StringMap[i] = content;
                 break;
             }

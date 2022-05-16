@@ -11,7 +11,6 @@ namespace ast{
 namespace Th = type::helper;
 namespace Ih = ir::instruction;
 
-// [TODO] : AST ~> IR
 using Obfs = utils::obfstream;
 
 void    save(Obfs& obfs, Insts& insts)
@@ -129,11 +128,10 @@ inline void save_type(Context* context, Obfs& obfs)
                 break;
             }
 
-            case type::Shape::Ref: // [TODO]
-                ty->type.sort = ir::Type::Sort::Ptr;
+            case type::Shape::Ref:
             case type::Shape::Ptr:
             {
-                
+                ty->type.sort = ir::Type::Sort::Ptr;
                 auto id = ((type::Typ*)(ty->shape))->id;
                 id = ((type::Typ*)(context->type.def[id].shape))->id;
                 ty->type.id   = id;

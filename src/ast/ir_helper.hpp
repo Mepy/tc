@@ -18,6 +18,9 @@ inline Instruction Call(ID dst, ID func, ID args)
 inline Instruction Match(ID dst, ID expr, ID branches)
 { return Instruction(Instruction::Match, dst, expr, branches); }
 
+inline Instruction Null(ID dst)
+{   return Instruction(Instruction::Null, dst); }
+
 inline Instruction CImm(ID dst, Char  c)
 {
     auto ins = Instruction(Instruction::CImm, dst);
