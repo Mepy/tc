@@ -11,7 +11,7 @@ test.out: test.o visitor.o instr_codegen.o
 test.o: test.cpp visitor.hpp 
 	${CC} $< ${CFLAGS} -c -o $@
 	
-visitor.o: visitor.cpp visitor.hpp ir_codegen.hpp
+visitor.o: visitor.cpp visitor.hpp ir_loader.hpp
 	${CC} $< ${CFLAGS} -c -o $@ 
 
 instr_codegen.o: instr_codegen.cpp visitor.hpp

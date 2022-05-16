@@ -5,7 +5,7 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Constant.h>
 #include "../ast/ir.hpp"
-#include "ir_codegen.hpp"
+#include "ir_loader.hpp"
 
 namespace ir = tc::ast::ir;
 namespace codegen = tc::ast::ir::codegen;
