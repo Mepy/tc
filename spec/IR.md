@@ -20,11 +20,14 @@ let type := blocks[0] in
     type[6] = Float -> Int
 
 let symbol := blocks[1] in
-    symbol[0] = unit
-    symbol[1] = true
-    symbol[2] = false
-    symbol[3] = i2f
-    symbol[4] = f2i
+    symbol[0] = unit  :   Unit
+    symbol[1] = true  :   Bool
+    symbol[2] = false :   Bool
+    symbol[3] = i2f   : { Int   -> Float }
+    symbol[4] = f2i   : { Float -> Int   }
+    symbol[5] = geti  : {       -> Int   }
+    symbol[6] = puti  : { Int   -> Unit  }
+    symbol[7] = puts  : { &Char -> Unit  }
 
 type ID := index of blocks, types, symbols in
     sizeof(ID) = 4 Bytes

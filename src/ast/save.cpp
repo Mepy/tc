@@ -251,7 +251,7 @@ void	API::save(Stmtp root)
     if(nullptr==root->beg)
         entry->insts.eat(root->insts);
     else
-        entry->insts.push_back(Ih::Jump(root->beg->id));
+        entry->insts.push_back(Ih::Jump(root->beg->id+2));
 }
 
 }}

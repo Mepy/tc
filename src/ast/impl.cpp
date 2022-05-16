@@ -72,6 +72,31 @@ API::API()
 	{ // entry
 	auto entry = this->new_block(ir::Kind::INST, 0, 0x0A24205952544E45L); // "ENTRY $\n"
 	}
+
+	{ // geti
+	this->TypeFunBeg();
+	auto type = this->TypeFunEnd(i);
+	this->expr.insert(Expr(E_GETI, Eh::func(), type, ir::Symbol::CPrg));
+	this->expr.bind(E_GETI, "geti");
+	}
+
+	{ // puti 
+	this->TypeFunBeg();
+	this->TypeFunArg(i);
+	auto type = this->TypeFunEnd(u);
+	this->expr.insert(Expr(E_PUTI, Eh::func(), type, ir::Symbol::CPrg));
+	this->expr.bind(E_PUTI, "puti");
+	}
+
+	{ // puts
+	auto cptr = this->TypePtr(c);
+	this->TypeFunBeg();
+	this->TypeFunArg(cptr);
+	auto type = this->TypeFunEnd(u);
+	this->expr.insert(Expr(E_PUTS, Eh::func(), type, ir::Symbol::CPrg));
+	this->expr.bind(E_PUTS, "puts");
+	}
+	
 }
 API::~API()
 {

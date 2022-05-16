@@ -72,7 +72,7 @@ Exprp	API::S(Str s)
         }
         block->insts.push_back(inst);
         
-        this->expr.insert(Expr(eid, Eh::s(s), type, Ih::CStr(eid, block->id), Sort::Const));
+        this->expr.insert(Expr(eid, Eh::s(s), type, Ih::CStr(eid, block->id+2), Sort::Const));
     }
 	auto expr = &(this->expr[eid]);
 	
@@ -86,7 +86,7 @@ Exprp   API::Dereference(Exprp ref)
 	auto shape = ((type::Typ*)(r_type->shape));
 	auto v_type = &(this->type[shape->id]);
 	auto v_id = this->expr.nid();
-	this->expr.insert(Expr(v_id, Eh::get(r_id), v_type, Ih::Get(v_id, r_id)));
+	this->expr.insert(Expr(v_id, Eh::get(r_id), v_type, Ih::Get(v_id, r_id), Sort::NonD));
 	auto expr = &(this->expr[v_id]);
 
 	expr->inst_front(ref);
@@ -212,7 +212,7 @@ Exprp	API::ExprPtr(Cell* cell)
 
 	auto type = this->TypePtr(&(this->type[shape->id]));
 	auto id = this->expr.nid();
-	this->expr.insert(Expr(id, Eh::addr(expr->id), type, Sort::SUNO));
+	this->expr.insert(Expr(id, Eh::addr(expr->id), type, expr->sort));
 
 	auto addr = &(this->expr[id]);
 
@@ -233,7 +233,7 @@ Exprp	API::ExprVal(Exprp expr)
 		auto id = this->expr.nid();
 		auto shape = ((type::Typ*)(expr->type->shape));
 		auto type = &(this->type[shape->id]);
-		this->expr.insert(Expr(id, Eh::get(expr->id), type, Sort::SUNO));
+		this->expr.insert(Expr(id, Eh::get(expr->id), type, Sort::NonD));
 		auto value = &(this->expr[id]);
 
 		value->insts.eat(expr->insts);
@@ -257,7 +257,7 @@ Exprp	API::ExprRef(Exprp expr)
 		auto id = this->expr.nid();
 		auto shape = ((type::Typ*)(expr->type->shape));
 		auto type = this->TypeRef(&(this->type[shape->id]));
-		this->expr.insert(Expr(id, Eh::ref(expr->id), type, Sort::SUNO));
+		this->expr.insert(Expr(id, Eh::ref(expr->id), type, expr->sort));
 		auto ref = &(this->expr[id]);
 
 		ref->insts.eat(expr->insts);
@@ -286,6 +286,8 @@ Cell*	API::CellEle(Cell* cell, Exprp index)
 
 	expr->insts.push_back(Ih::PtrAdd(expr->id, array->id, index->id));
 
+	expr->sort = Sort::NonD;
+
 	return (Cell*)expr;
 }
 
@@ -294,6 +296,8 @@ Exprp	API::ExprEle(Exprp array, Exprp index)
 	auto expr = this->Element(array, index);
 
 	expr->insts.push_back(Ih::Get(expr->id, array->id, index->id));
+
+	expr->sort = Sort::NonD;
 
 	return expr;
 }
@@ -308,6 +312,8 @@ Exprp	API::ExprEleRef(Exprp array, Exprp index)
 
 	expr->insts.push_back(Ih::PtrAdd(expr->id, array->id, index->id));
 
+	expr->sort = Sort::NonD;
+
 	return expr;
 }
 
@@ -319,6 +325,8 @@ Exprp	API::ExprEleAddr(Exprp array, Exprp index)
 	expr->insts.push_back(Ih::PtrAdd(expr->id, array->id, index->id));
 
 	expr->type = this->TypePtr(expr->type);
+
+	expr->sort = Sort::NonD;
 
 	return expr;
 }
@@ -340,6 +348,8 @@ void	API::AppBeg(Exprp func) // = nullptr
 	auto id = this->expr.nid();
 	this->expr.insert(Expr(id, Eh::call(func->id), retype));
 	auto call = &(this->expr[id]);
+
+	call->sort = Sort::NonD;
 
 	this->calls.push(call);
 }
@@ -453,7 +463,6 @@ void	API::ExprFunBeg()
 	auto eid = this->expr.nid();
 	this->expr.insert(Expr(eid, Eh::func(), type));
 	auto func = &(this->expr[eid]);
-
 	this->funcs.push(func);
 	this->funcs_retyck.push(func);
 }
@@ -662,7 +671,7 @@ Exprp	API::UnOp(Oper oper, Exprp expr)
 			, 	new expr::Unary(
 					expr::Shape::Flag((oper-Pos)+int(expr::Shape::Pos))
 					, expr->id)
-			, f));
+			, f, Sort::NonD));
 			return &(this->expr[id]);
 		}
 		case type::Shape::Infer:
@@ -675,7 +684,7 @@ Exprp	API::UnOp(Oper oper, Exprp expr)
 			, 	new expr::Unary(
 					expr::Shape::Flag((oper-Pos)+int(expr::Shape::Pos))
 					, expr->id)
-			, i));
+			, i, Sort::NonD));
 			return &(this->expr[id]);
 		}
 		default:
@@ -690,7 +699,7 @@ Exprp	API::UnOp(Oper oper, Exprp expr)
 Exprp   API::Binary(expr::Shape::Flag flag, Exprp lhs, Exprp rhs, Typep type)
 {
 	auto id = this->expr.nid();
-	this->expr.insert(Expr(id, new expr::Binary(flag, lhs->id, rhs->id), type));
+	this->expr.insert(Expr(id, new expr::Binary(flag, lhs->id, rhs->id), type, Sort::NonD));
 	auto expr = &(this->expr[id]);
 
 	auto& insts = expr->insts;

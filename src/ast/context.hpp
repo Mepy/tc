@@ -193,6 +193,9 @@ struct Context
     ,   E_FALSE = 2
     ,   E_I2F   = 3
     ,   E_F2I   = 4
+    ,   E_GETI  = 5
+    ,   E_PUTI  = 6
+    ,   E_PUTS  = 7
     };
 
     Context(){}
