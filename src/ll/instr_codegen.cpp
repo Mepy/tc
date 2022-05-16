@@ -549,6 +549,10 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             Builder->CreateRet(IdMapVal[ins.dst]);
             return IdMapVal[ins.dst];
         }
+        case Ins::Call:
+        {
+            Builder->CreateCall()
+        }
 
         case Ins::Alloc:
         {

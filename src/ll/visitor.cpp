@@ -99,6 +99,88 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
                 break;
             }
 
+            case Kind::TYPE:
+            {
+                auto BB = llvm::BasicBlock::Create(
+                    *TheContext,
+                    std::to_string(i),
+                    main
+                    // entry
+                );
+                Builder->SetInsertPoint(BB);
+
+                for (auto ptr = (ir::Type *)module.blocks[i].bytes; 
+                ptr - (ir::Type *)module.blocks[i].bytes < module.blocks[i].size; 
+                ptr++) 
+                {
+                    switch (ptr->sort)
+                    {
+                        case Sort::SUNO:
+                        {
+                            throw std::invalid_argument("Sort Unknown.");
+                        }
+                        case Sort::Unit:
+                        {
+                            TypeMap[ptr->id] = llvm::Type::getVoidTy(*TheContext);
+                            break;
+                        }
+                        case Sort::Bool:
+                        {
+                            TypeMap[ptr->id] = llvm::Type::getInt1Ty(*TheContext);
+                            break;
+                        }
+                        case Sort::Char:
+                        {
+                            TypeMap[ptr->id] = llvm::Type::getInt8Ty(*TheContext);
+                            break;
+                        }
+                        case Sort::Int:
+                        {
+                            TypeMap[ptr->id] = llvm::Type::getInt32Ty(*TheContext);
+                            break;
+                        }
+                        case Sort::Float:
+                        {
+                            TypeMap[ptr->id] = llvm::Type::getFloatTy(*TheContext);
+                            break;
+                        }
+                        case Sort::Ptr:
+                        {
+                            throw std::runtime_error("Pointer types not supported.");
+                        }
+                        case Sort::Array:
+                        {
+                            throw std::runtime_error("Array types not supported.");
+                        }
+                        case Sort::Func:
+                        {
+                            throw std::runtime_error("Function types not supported.");
+                        }
+                        case Sort::Tuple:
+                        {
+                            throw std::runtime_error("Tuple types not supported.");
+                        }
+                        case Sort::ADT:
+                        {
+                            throw std::runtime_error("ADT types not supported.");
+                        }
+                        case Sort::ADTR:
+                        {
+                            throw std::runtime_error("ADTR types not supported.");
+                        }
+                    
+                    default:
+                        break;
+                    };
+                }
+                break;   
+            }
+
+            // case Kind::SYMB:
+            // {
+            //     auto
+            // }
+
             case Kind::CSTR:
             {
                 

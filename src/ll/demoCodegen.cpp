@@ -13,6 +13,10 @@ int main() {
         // std::cout << "Into dump.\n";
         llVisitor.dumpLLVMIR();
     }
+    catch (const std::runtime_error &e) 
+    {
+        std::cout << e.what() << std::endl;
+    }
     catch(const std::invalid_argument &e)
     {
         std::cout << e.what() << '\n';

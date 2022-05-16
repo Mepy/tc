@@ -15,6 +15,7 @@ using Kind =ir::Kind;
 using Ins = ir::Instruction;
 using Sym = ir::Symbol;
 // using Type = ir::Type; -> ambiguity
+using Sort = ir::Type::Sort;
 
 class irVisitor
 {
@@ -31,6 +32,10 @@ protected:
     std::unique_ptr<llvm::IRBuilder<>> Builder;
     std::unique_ptr<llvm::Module> TheModule;
     
+    //map from id to llvm::Type
+    std::map<std::int32_t, llvm::Type*> TypeMap;
+    //map from id to ir::SYMB
+    std::map<std::int32_t, Sym> SymMap;
     //map id to llvm::Value*
     std::map<std::int32_t, llvm::Value *> IdMapVal;
     //map id to llvm::AllocaInst* (can be interpreted as ptr to llvm::Value*)
