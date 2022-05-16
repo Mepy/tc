@@ -3,13 +3,16 @@
 #include <string>
 
 using namespace llvm;
-int main() {
+
+int main(int argc, char* argv[]) 
+{
+    if(argc>=2)
     try
     {
         LLCodegenVisitor llVisitor;
         /* code */
         // std::cout << "Started demo.\n";
-        llVisitor.ASTIRtoLLVMIR("../../ir/imm.hex");
+        llVisitor.ASTIRtoLLVMIR(argv[1]);
         // std::cout << "Into dump.\n";
         llVisitor.dumpLLVMIR();
     }

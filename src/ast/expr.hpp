@@ -13,7 +13,7 @@ struct Shape
     using Flag = enum { Undefined,
         Func, CallVal, CallRef, Match, Branch,
         EleVal, EleRef, EleAddr,
-        U, B, C, S, I, F, Constructor, Param,
+        Null, U, B, C, S, I, F, Constructor, Param,
         Get, NewExpr, NewArray, Addr, Ref,
         
         // Unary
@@ -98,6 +98,7 @@ struct F : public Shape
 namespace helper
 {
 
+inline Shapep null(){ return new Nullary(Shape::Null); }
 inline Shapep u(){ return new Nullary(Shape::U); }
 inline Shapep b(Bool  b){ return new B(b); }
 inline Shapep c(Char  c){ return new C(c); }

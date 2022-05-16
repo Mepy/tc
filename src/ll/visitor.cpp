@@ -42,9 +42,9 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
     auto puts_func_callee = TheModule->getOrInsertFunction("puts", puts_func_type);
 
     for (int i=0; i<module.size; i++) {
-        // auto block = module.blocks[i]; !!!
+        auto& block = module.blocks[i];
         // std::cout << module.blocks[i].kind << std::endl;
-        switch (module.blocks[i].kind)
+        switch (block.kind)
         {   
             case Kind::INST:
             {
@@ -58,8 +58,8 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
                 
                 ArgsV.push_back(Builder->CreateGlobalStringPtr("%d"));
 
-                for (Ins *ptr = (Ins *)module.blocks[i].bytes; 
-                ptr - (Ins *)module.blocks[i].bytes < module.blocks[i].size; 
+                for (auto ptr = block.extra.insts; 
+                ptr - block.extra.insts < block.size; 
                 ptr++) 
                 {
                     // std::cout << ptr->sort << std::endl;
@@ -106,7 +106,7 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
                         main
                         // entry
                     );
-                std::string content((char *)(module.blocks[i].bytes));
+                std::string content(block.extra.chars);
                 StringMap[CStr_counter ++] = content;
                 break;
             }

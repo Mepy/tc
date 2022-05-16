@@ -22,6 +22,10 @@ public:
     }
     inline ibfstream& seek(std::__1::streampos pos)
     { is.seekg(pos); return *this; }
+    inline std::__1::streampos tell()
+    { return is.tellg(); }
+    inline ibfstream& move(std::__1::streamoff off)
+    { is.seekg(off, std::ios::cur); return *this; }
 };
 
 }}

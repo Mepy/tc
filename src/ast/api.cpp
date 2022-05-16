@@ -24,7 +24,7 @@ int main()
     API context;
     try
     {
-        test_get_put(context);
+        test_imm(context);
     }
     catch(const char* str)
     {
@@ -43,10 +43,8 @@ void test_get_put(API& context)
 
     context.AppBeg(context.ExprVar("geti"));
     
-    auto stmt = context.Let("x", context.ExprAppEnd());
-    
-    context.BlockStmt(stmt
-        
+    context.BlockStmt(
+        context.Let("x", context.ExprAppEnd())
     );
 
     context.BlockStmt(
