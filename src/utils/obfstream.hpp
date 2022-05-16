@@ -21,9 +21,9 @@ public:
     inline obfstream& operator<<(const T&& ref)
     { return (*this)<<ref; }
 
-    inline obfstream& seek(std::__1::streampos pos)
+    inline obfstream& seek(std::streampos pos)
     { os.seekp(pos); return *this; }
-    inline std::__1::streampos tell()
+    inline std::streampos tell()
     { return os.tellp(); }
 };
 
