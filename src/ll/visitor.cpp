@@ -177,7 +177,7 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
         if (StringMap.find(i) != StringMap.end() ) 
         {
             Builder->SetInsertPoint(&block);
-            IdMapVal[StringdstMap[i]] = Builder->CreateGlobalStringPtr(StringMap[i]);
+            IdMapVal[StringDstMap[i]] = Builder->CreateGlobalStringPtr(StringMap[i]);
         }
         i++;
     }

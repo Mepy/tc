@@ -9,3 +9,5 @@ Read [LLVM Programmer's Manual](https://llvm.org/docs/ProgrammersManual.html), a
 ## Implementation milestone
 - initial settings
 - alloc, set, get, printf
+- string, puts
+- binary ops (ptr & typed comp to be impl)

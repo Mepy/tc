@@ -57,10 +57,10 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
         }
         case Ins::CStr:
         {
-            if (StringMap.find(ins.src.id[0] + 2) != StringMap.end())
+            if (StringMap.find(ins.src.id[0]) != StringMap.end())
             {
                 auto *CStr_ptr = Builder->CreateGlobalStringPtr(
-                    StringMap[ins.src.id[0] + 2]
+                    StringMap[ins.src.id[0]]
                 );
                 IdMapVal[ins.dst] = CStr_ptr;
                 return IdMapVal[ins.dst];
@@ -69,7 +69,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             {
                 // assume that CSTR decl before reference
                 // throw std::invalid_argument("CSTR src id not found in StringMap.");
-                StringdstMap[ins.src.id[0] + 2] = ins.dst;
+                StringDstMap[ins.src.id[0]] = ins.dst;
                 return nullptr;
             }
             break;
@@ -205,8 +205,10 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
-        
-        // Pointer ops: to be implemented...
+        case Ins::PAdd:
+        {
+
+        }
 
         case Ins::LShift:
         {
@@ -241,8 +243,8 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             {
                 throw std::invalid_argument("BNot: src id not found.");
             }
-            llvm::Value *ret_val = 
-                Builder->CreateNot(Val1_it->second, "");
+            // do bit-wise negation in builder
+            llvm::Value *ret_val = Builder->CreateNot(Val1_it->second, "");
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -285,8 +287,82 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
-
-        // L-instruction: to be implemented...
+        case Ins::LNot:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            if (Val1_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("LNot: src id not found.");
+            }
+            llvm::Value *ret_val = Builder->CreateXor(
+                Val1_it->second, 
+                llvm::ConstantInt::get(Val1_it->second->getType(), -1, true /* signed */),
+                "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        case Ins::LAnd:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("LAnd: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateLogicalAnd(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        case Ins::LOr:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("LOr: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateLogicalOr(Val1_it->second, Val2_it->second, "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        case Ins::LXor:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("LXor: src id not found.");
+            }
+            llvm::Value *ret_val = // ^AB+A^B
+                Builder->CreateLogicalOr(
+                    Builder->CreateLogicalAnd(
+                        Val1_it->second, 
+                        // negate Val2_it->second
+                        Builder->CreateXor(
+                            Val2_it->second, 
+                            llvm::ConstantInt::get(
+                                Val2_it->second->getType(), 
+                                -1, 
+                                true /* signed */), 
+                                ""),
+                            ""),
+                    Builder->CreateLogicalAnd(
+                        Val2_it->second, 
+                        // negate Val2_it->second
+                        Builder->CreateXor(
+                            Val1_it->second, 
+                            llvm::ConstantInt::get(
+                                Val1_it->second->getType(), 
+                                -1, 
+                                true /* signed */), 
+                                ""),
+                            ""),
+                    "");
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
         // Ptr comparison: to be implemented...
 
         // Int comparison

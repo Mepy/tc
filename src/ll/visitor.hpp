@@ -39,10 +39,10 @@ protected:
     std::map<std::int32_t, std::int32_t> JumpMap;
     //map src block-id to (boolean value, (dst-if-true block-id, dst-if-false block-id))
     std::map<std::int32_t, std::pair<llvm::Value *, std::pair<std::int32_t, std::int32_t>>> BrMap;
-    //map block-id to CSTR (assuming one block contains only one CSTR)
+    //map block-id to CSTR 
     std::map<std::int32_t, std::string> StringMap;
     //map block-id of string to id of IdMapVal 
-    std::map<std::int32_t, std::int32_t> StringdstMap;
+    std::map<std::int32_t, std::int32_t> StringDstMap;
 public:
     LLCodegenVisitor() {
         // Open a new context and module.
@@ -58,7 +58,7 @@ public:
         JumpMap.clear();
         BrMap.clear();
         StringMap.clear();
-        StringdstMap.clear();
+        StringDstMap.clear();
     }
 
     //Top level methods (in visitor.cpp)
