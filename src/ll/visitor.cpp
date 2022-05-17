@@ -55,7 +55,7 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) {
                 printfArgsV.push_back(Builder->CreateGlobalStringPtr("%d"));
 
                 for (auto ptr = block.extra.insts; 
-                ptr - block.extra.insts < block.size; 
+                ptr - block.extra.insts < block.head.ord.size; 
                 ptr++) 
                 {
                     // std::cout << ptr->sort << std::endl;

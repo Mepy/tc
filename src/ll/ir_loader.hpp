@@ -16,32 +16,44 @@ struct Block
 {
     /* align 16 Bytes, 8 Bytes reserve */
     Kind kind;
-    Size size;
+    union {
+        struct {
+        Size size;
+        Byte8 Len;
+        } ord; // ordinary for most situation
+        struct {
+        ID type;
+        ID param;
+        ID body;
+        } func;
+    } head;
     union Extra {
         Instruction* insts;
         Type*        types;
         Symbol*      symbs;
         Char*        chars;
-
+        ID*            ids;
         Byte*        bytes;
         Extra():bytes(nullptr){}
     } extra;
 
-    Block():kind(Kind::KUNO), size(0){}
+
+    Block():kind(Kind::KUNO){}
     Block(Ibfs& ibfs){ load(ibfs); }
     ~Block(){ delete[] extra.bytes; }
 
     void load(Ibfs& ibfs)
     {
-        Byte8 _RESERVED;
-        ibfs>>kind>>size;
+        ibfs>>kind;
 
         switch(kind)
         {
         case INST:
         {
-            ibfs>>_RESERVED;
-            extra.bytes = new Byte[size*sizeof(Instruction)];
+            auto& ord = head.ord;
+            auto& size = ord.size;
+            ibfs>>ord;
+            extra.bytes = new Byte[ord.size*sizeof(Instruction)];
             for(auto ptr = extra.insts
             ;   ptr-extra.insts<size
             ;   ++ptr)
@@ -51,7 +63,10 @@ struct Block
         }
         case TYPE:
         {
-            extra.bytes = new Byte[size*sizeof(Type)];
+            auto& ord = head.ord;
+            auto& size = ord.size;
+            ibfs>>size;
+            extra.bytes = new Byte[ord.size*sizeof(Type)];
             for(auto ptr = extra.types
             ;   ptr-extra.types<size
             ;   ++ptr)
@@ -64,6 +79,8 @@ struct Block
         }
         case SYMB:
         {
+            auto& ord = head.ord;
+            auto& size = ord.size;
             extra.bytes = new Byte[size*sizeof(Symbol)];
             for(auto ptr = extra.symbs
             ;   ptr-extra.symbs<size
@@ -77,6 +94,8 @@ struct Block
         }
         case CSTR:
         {
+            auto& ord = head.ord;
+            auto& size = ord.size;
             extra.bytes = new Byte[size*sizeof(Char)];
             for(auto ptr = extra.chars
             ;   ptr-extra.chars<size
@@ -96,6 +115,37 @@ struct Block
                 // std::cout << align_size << std::endl;
                 ibfs.move(align_size);
             }
+            break;
+        }
+        case FUNC:
+        case BRCH:
+        {
+            ibfs>>head.func;
+            break;
+        }
+        case TARR:
+        {
+            ibfs>>head.ord;
+            break;
+        }
+        case PARA:
+        case ARGS:
+        case TFUN:
+        {
+            auto& ord = head.ord;
+            auto& size = ord.size;
+            ibfs>>size;
+            extra.bytes = new Byte[size*sizeof(ID)];
+            for(auto ptr = extra.ids
+            ;   ptr-extra.ids<size
+            ;   ++ptr)
+                ibfs>>*ptr;
+            // alignment
+            if(size<2)
+                ibfs.move((2-size) * sizeof(ID));
+            else
+                ibfs.move(((2-size)%4+4) * sizeof(ID));
+            break;
         }
         default:
             break;
