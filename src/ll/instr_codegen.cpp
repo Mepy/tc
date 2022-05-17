@@ -3,6 +3,7 @@
 // #include <llvm/IR/Value.h>
 #include <iostream>
 #include <string>
+#define DEBUG 1
 
 llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
     // std::cout << "in codegen\n";
@@ -551,7 +552,106 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
         }
         case Ins::Call:
         {
-            Builder->CreateCall()
+            switch (ins.src.id[0] /*Func Symb id*/)
+            {
+                case 3: /*i2f; for details, see ir.hpp->conventions*/
+                {
+                    auto Args_it = ArgsMap.find(ins.src.id[1]);
+                    if (Args_it == ArgsMap.end())
+                    {
+                        throw std::invalid_argument("Call: (i2f) src id not found.");
+                    }
+                    assert (Args_it->second.size() == 1);
+                    llvm::Value *ret_val = Builder->CreateSIToFP(Args_it->second[0], llvm::Type::getFloatTy(*TheContext), "");
+                    IdMapVal[ins.dst] = ret_val;
+                    return ret_val;
+                }
+                case 4: /*f2i; for details, see ir.hpp->conventions*/
+                {
+                    auto Args_it = ArgsMap.find(ins.src.id[1]);
+                    if (Args_it == ArgsMap.end())
+                    {
+                        throw std::invalid_argument("Call: (f2i) src id not found.");
+                    }
+                    assert (Args_it->second.size() == 1);
+                    llvm::Value *ret_val = Builder->CreateFPToSI(Args_it->second[0], llvm::Type::getInt32Ty(*TheContext), "");
+                    IdMapVal[ins.dst] = ret_val;
+                    return ret_val;
+                }
+                case 5: /*getint; for details, see ir.hpp->conventions*/
+                {
+                    auto Args_it = ArgsMap.find(ins.src.id[1]);
+                    if (Args_it == ArgsMap.end())
+                    {
+                        // goto visitor.cpp to evaluate ARGS after INST
+                        return nullptr;
+                        // throw std::invalid_argument("Call: (getint) src id not found.");
+                    }
+                    assert (Args_it->second.size() == 0);
+                    
+                    llvm::Value *alloc_val = Builder->CreateAlloca(
+                        llvm::Type::getInt32Ty(*TheContext), nullptr, "getint");
+                    std::vector<llvm::Value*> Args;
+                    Args.push_back(FormatMap["int"]);
+                    Args.push_back(alloc_val);
+                    Builder->CreateCall(
+                        TheModule->getOrInsertFunction(
+                        "scanf", 
+                        llvm::FunctionType::get(
+                            llvm::IntegerType::getInt32Ty(*TheContext), 
+                            {llvm::PointerType::getInt8PtrTy(*TheContext)}, 
+                            true))
+                            ,llvm::ArrayRef<llvm::Value*>(Args));
+                    IdMapAlloc[ins.dst] = llvm::dyn_cast<llvm::AllocaInst>(alloc_val);
+                    IdMapVal[ins.dst] = Builder->CreateLoad(alloc_val);
+                    return &*alloc_val;
+                }
+                case 6: /*putint; for details, see ir.hpp->conventions*/
+                {
+                    auto Args_it = ArgsMap.find(ins.src.id[1]);
+                    if (Args_it == ArgsMap.end())
+                    {
+                        // goto visitor.cpp to evaluate ARGS after INST
+                        return nullptr;
+                    }
+                    if (Args_it->second.size() != 1)
+                    {
+                        throw std::runtime_error("Call: (putint) wrong number of args. Have: " + std::to_string(Args_it->second.size()));
+                    }
+                    #if DEBUG
+                        // std::cout << "putint: "<< Args_it->second[0]<< std::endl;
+                    #endif
+                    std::vector<llvm::Value*> Args(Args_it->second);
+                    Args.insert(Args.begin(), FormatMap["int"]);
+                    
+                    llvm::Value *ret_val = Builder->CreateCall(
+                        TheModule->getOrInsertFunction(
+                        "printf", 
+                        llvm::FunctionType::get(
+                            llvm::IntegerType::getInt32Ty(*TheContext), 
+                            {llvm::PointerType::getInt8PtrTy(*TheContext)}, 
+                            true))
+                            , llvm::ArrayRef<llvm::Value *>(Args)
+                            /*1 arg, default name*/);
+                    IdMapVal[ins.dst] = ret_val;
+                    return ret_val;
+                }
+                default:
+                {   
+                    // implemented in visitor.cpp
+                    return nullptr;
+                }
+            }
+            // Implemented in visitor.cpp
+            // return nullptr;
+            // if (SymMap[ins.src.id[0]].first == 'B')
+            // {
+            //     // block-id
+
+            // }
+            // IdMapVal[ins.dst] = Builder->CreateCall(
+            //                         , 
+            //                         ArgsMap[ins.src.id[1]]);
         }
 
         case Ins::Alloc:
@@ -615,6 +715,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 //pointer-type: add offset to it
                 llvm::Value *index = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*TheContext), ins.src.id[1]);
                 
+                //??
                 llvm::Value *val_ptr = Builder->CreateGEP(
                     IdMapAlloc[ins.src.id[0]]->getType(),
                     IdMapAlloc[ins.src.id[0]], 
@@ -622,8 +723,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                     std::to_string(ins.src.id[0])
                 );
 
-                IdMapVal[ins.dst] = Builder->CreateLoad(val_ptr);
-                //??
+                IdMapVal[ins.dst] = Builder->CreateLoad(val_ptr->getType(), val_ptr);
             }
             else 
             {
@@ -631,14 +731,14 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 if (ins.src.id[1] != 0) 
                 {
                     // TODO: this can be a warning, not an error?
-                    throw std::invalid_argument("Get: src(ptr) id mapped to non-ptr. But offset is non-zero.");
+                    throw std::invalid_argument("Get: src(ptr) id mapped to non-ptr, but offset is non-zero.");
                 }
-                IdMapVal[ins.dst] = Builder->CreateLoad(IdMapAlloc[ins.src.id[0]]);
+                IdMapVal[ins.dst] = Builder->CreateLoad(IdMapAlloc[ins.src.id[0]]->getType(), IdMapAlloc[ins.src.id[0]]);
             }
             return IdMapVal[ins.dst];
         }
         default:
-            throw std::invalid_argument("Unknown instruction.");
+            throw std::invalid_argument("Unknown block.");
             break;
     }
     return nullptr;

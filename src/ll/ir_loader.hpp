@@ -5,6 +5,8 @@
 #include "../utils/ibfstream.hpp"
 #include <iostream>
 #include <string>
+#pragma pack(push)
+#pragma pack(4)
 
 namespace tc{
 namespace ast{
@@ -26,7 +28,17 @@ struct Block
         ID param;
         ID body;
         } func;
+        struct {
+        ID type;
+        Byte8 Len;
+        } arr;
+        struct{
+        Size size;
+        ID ret;
+        ID param;
+        } typefunc; 
     } head;
+#pragma pack(pop)
     union Extra {
         Instruction* insts;
         Type*        types;
@@ -81,6 +93,7 @@ struct Block
         {
             auto& ord = head.ord;
             auto& size = ord.size;
+            ibfs>>size;
             extra.bytes = new Byte[size*sizeof(Symbol)];
             for(auto ptr = extra.symbs
             ;   ptr-extra.symbs<size

@@ -3,9 +3,9 @@ LLVMPATH = /usr/local/llvm
 CFLAGS = $(shell ${LLVMPATH}/bin/llvm-config --cxxflags --ldflags --libs --system-libs) -fexceptions -Wall -ggdb
 
 test : test.out 
-	./$< ../ast/imm.hex > $@.ll && cat $@.ll 
+	./$< ../ast/get_put.hex > $@.ll && cat $@.ll 
 
-test.out: test.o visitor.o instr_codegen.o
+test.out: test.o visitor.o instr_codegen.o type_codegen.o
 	${CC} $? ${CFLAGS} -o $@ 
 
 test.o: test.cpp visitor.hpp 
@@ -16,6 +16,9 @@ visitor.o: visitor.cpp visitor.hpp ir_loader.hpp
 
 instr_codegen.o: instr_codegen.cpp visitor.hpp
 	${CC} $< ${CFLAGS} -c -o $@ 
+
+type_codegen.o: type_codegen.cpp visitor.hpp
+	${CC} $< ${CFLAGS} -c -o $@
 
 demo : demo.out
 	./$< > $@.ll && cat $@.ll 

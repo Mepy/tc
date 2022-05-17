@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
         // std::cout << "Into dump.\n";
         llVisitor.dumpLLVMIR();
     }
-    catch (const std::runtime_error &e) 
+    catch(const std::runtime_error &e) 
     {
         std::cout << e.what() << std::endl;
     }
