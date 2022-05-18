@@ -114,20 +114,8 @@ struct Block
             ;   ptr-extra.chars<size
             ;   ++ptr)
                 ibfs>>*ptr;
-            if (size % 16 != 8) 
-            {
-                int align_size;
-                if (size < 8) 
-                {
-                    align_size = 8 - size;
-                }
-                else
-                {
-                    align_size = 16-((size-8)%16);
-                }
-                // std::cout << align_size << std::endl;
-                ibfs.move(align_size);
-            }
+
+            ibfs.move((8-size)%16); // align
             break;
         }
         case FUNC:
@@ -154,10 +142,8 @@ struct Block
             ;   ++ptr)
                 ibfs>>*ptr;
             // alignment
-            if(size<2)
-                ibfs.move((2-size) * sizeof(ID));
-            else
-                ibfs.move(((2-size)%4+4) * sizeof(ID));
+            ibfs.move(((2-size)%4) * sizeof(ID));
+
             break;
         }
         default:
@@ -173,8 +159,9 @@ struct Module
     Size   size;
     Block* blocks; /* new Block[this->size] */
     
+    Module():blocks(nullptr){}
     Module(std::string path){ load(path); }
-    ~Module(){ delete[] blocks; }
+    ~Module(){ if(nullptr!=blocks) delete[] blocks; }
 
     void load(std::string path)
     {

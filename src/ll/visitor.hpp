@@ -23,8 +23,6 @@ class irVisitor
 public:
     virtual llvm::Value *codegen(const Ins &ins) = 0;
     // virtual llvm::Value *codegen(const Sym &sym) = 0;
-    virtual llvm::Type *codegen(const ir::Type &type, int index) = 0;
-    
 };
 
 class LLCodegenVisitor: public irVisitor
@@ -58,6 +56,11 @@ protected:
     std::map<std::uint32_t, std::vector<llvm::Value*>> ArgsMap; 
     //map formatting arguments to llvm::Constant* (strings)
     std::map<std::string, llvm::Constant *> FormatMap;
+
+
+    codegen::Module module;
+    std::map<tc::ast::ID, llvm::BasicBlock*> block_entry;
+
 public:
     LLCodegenVisitor() {
         // Open a new context and module.
@@ -77,7 +80,24 @@ public:
     }
 
     //Top level methods (in visitor.cpp)
-    void ASTIRtoLLVMIR(std::string path_to_ASTir);
+    
+
+    void load(std::string path_of_ASTir)
+    {
+        module.load(path_of_ASTir);
+        load_type();
+        builtin();
+    }
+    // fill in this->TypeMap
+    void load_type();
+    void builtin();
+    llvm::BasicBlock* walk_block(Block* block);
+    void walk();
+    void ASTIRtoLLVMIR();
+
+
+    
+
     void dumpLLVMIR();
     void dumpAllMap(); 
     void builtinFuncInit();
@@ -87,5 +107,4 @@ public:
 
     llvm::Value *codegen(const Ins &ins) override;
     // llvm::Value *codegen(const Sym &sym) override;
-    llvm::Type *codegen(const ir::Type &type, int index) override;
 };

@@ -9,11 +9,14 @@ int main(int argc, char* argv[])
     if(argc>=2)
     try
     {
+        // std::cout<<"Test "<<std::endl;
         LLCodegenVisitor llVisitor;
         /* code */
         // std::cout << "Started demo.\n";
-        llVisitor.ASTIRtoLLVMIR(argv[1]);
+        llVisitor.load(argv[1]);
+        // llVisitor.ASTIRtoLLVMIR();
         // std::cout << "Into dump.\n";
+        llVisitor.walk();
         llVisitor.dumpLLVMIR();
     }
     catch(const std::runtime_error &e) 

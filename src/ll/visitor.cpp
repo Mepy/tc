@@ -99,10 +99,55 @@ llvm::FunctionType *LLCodegenVisitor::getFuncType(Block *block)
     return llvm::FunctionType::get(retType, llvm::ArrayRef<llvm::Type*>(argTypes), false);
 }
 
-// assuming that the ASTIR file contains only one module: -> use block
-void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path) 
+void LLCodegenVisitor::builtin()
 {
-    codegen::Module module(path);
+    
+    llvm::Function::Create(((llvm::FunctionType*)(this->TypeMap[7]))
+        , llvm::Function::ExternalLinkage, "geti", *TheModule
+    );
+    llvm::Function::Create(((llvm::FunctionType*)(this->TypeMap[8]))
+        , llvm::Function::ExternalLinkage, "puti", *TheModule
+    );
+    llvm::Function::Create(((llvm::FunctionType*)(this->TypeMap[10]))
+        , llvm::Function::ExternalLinkage, "puts", *TheModule
+    );
+}
+
+llvm::BasicBlock* LLCodegenVisitor::walk_block(Block* block)
+{
+    auto size = block->head.ord.size;
+    auto insts = block->extra.insts;
+    auto BB = llvm::BasicBlock::Create(*TheContext);
+    this->Builder->SetInsertPoint(BB);
+    
+    for(auto ptr=insts; ptr-insts<size; ++ptr)
+        codegen(*ptr);
+    
+    this->Builder->CreateRet(
+        llvm::ConstantInt::get(llvm::IntegerType::getInt32Ty(*TheContext), 0)
+    );
+    return BB;
+}
+
+void LLCodegenVisitor::walk()
+{
+    auto block = &this->module.blocks[2]; // entry
+    auto BB = walk_block(block);
+    auto main_type = llvm::FunctionType::get(
+        llvm::IntegerType::getInt32Ty(*TheContext),
+        false);
+    auto main = llvm::Function::Create(
+        main_type, 
+        llvm::Function::ExternalLinkage, 
+        "main", 
+        *TheModule);
+
+    BB->insertInto(main);
+}
+
+// assuming that the ASTIR file contains only one module: -> use block
+void LLCodegenVisitor::ASTIRtoLLVMIR() 
+{
     // std::cout << "Module loaded." << std::endl;
 
     auto main_type = llvm::FunctionType::get(
@@ -131,29 +176,8 @@ void LLCodegenVisitor::ASTIRtoLLVMIR(std::string path)
             {llvm::PointerType::getInt8PtrTy(*TheContext)}, 
             true));
 
-    // puts
-    auto puts_func_callee = TheModule->getOrInsertFunction(
-        "puts", 
-        llvm::FunctionType::get(
-            llvm::IntegerType::getInt32Ty(*TheContext), 
-            {llvm::PointerType::getInt8PtrTy(*TheContext)}, 
-            true));
 
-    // getint
-    auto getint_func_callee = TheModule->getOrInsertFunction(
-        "getint", 
-        llvm::FunctionType::get(
-            llvm::IntegerType::getInt32Ty(*TheContext), 
-            {}, 
-            false));
-    
-    // putint
-    auto putint_func_callee = TheModule->getOrInsertFunction(
-        "putint", 
-        llvm::FunctionType::get(
-            llvm::Type::getVoidTy(*TheContext), 
-            {llvm::IntegerType::getInt32Ty(*TheContext)}, 
-            false));
+
 #if TEST_GETI_PUTI
     bool lateInstrFlag = false;
     int nextBlockInd;
@@ -273,81 +297,6 @@ loop_start:
                 }
                 // break;
             }
-            case Kind::TYPE:
-            {
-                auto BB = llvm::BasicBlock::Create(
-                    *TheContext,
-                    std::to_string(i),
-                    main
-                    // entry
-                );
-                Builder->SetInsertPoint(BB);
-
-                int i = 0;
-                for (auto ptr = block.extra.types; 
-                ptr - block.extra.types < block.head.ord.size;
-                ptr++) 
-                {
-                    #if DEBUG
-                        std::cout << ptr->sort << std::endl;
-                        std::cout << ptr->id << std::endl;
-                    #endif
-
-                    // auto type = *ptr;
-                    auto ret_type_ptr = codegen(*ptr, i);
-                    #if DEBUG
-                        std::cout << "codegen OK" << std::endl;
-                    #endif
-                    switch (ptr->sort)
-                    {
-                        case ir::Type::Sort::Func:
-                        {
-                            std::vector<llvm::Type*> argTypes;
-                            auto &block = module.blocks[ptr->id];
-                            auto size = block.head.ord.size;
-                            auto &retType = TypeMap[block.head.typefunc.ret];
-                            if (size != 1)
-                            {
-                                argTypes.push_back(TypeMap[block.head.typefunc.param]);
-                                if (size != 2)
-                                {
-                                    for (auto ptr = block.extra.ids; ptr - block.extra.ids < size; ++ptr)
-                                    {
-                                        argTypes.push_back(TypeMap[(*ptr)]);
-                                    }
-                                }
-                            }
-                            TypeFuncMap[i] = llvm::FunctionType::get(retType, llvm::ArrayRef<llvm::Type*>(argTypes), false);
-                            
-                            // getFuncType(&module.blocks[type.id]);
-                            #if DEBUG
-                                std::cout << "Not getFuncType's fault" << std::endl;
-                            #endif
-                            break;
-                        }
-                        case ir::Type::Sort::Array:
-                        {
-                            
-                            // type.id is the block-id of Array spec (type, len)
-                            auto &arr_block = module.blocks[ptr->id];
-                            auto arr_type = arr_block.head.arr.type;
-                            auto arr_len = arr_block.head.arr.Len;
-                            TypeMap[i] = llvm::ArrayType::get(
-                                TypeMap[arr_type], 
-                                arr_len);
-                            break;
-                        }
-                        default:
-                        {
-                            #if DEBUG
-                                std::cout << "Keyword Processed in codegen." << std::endl;
-                            #endif
-                        }
-                    }
-                    i++;
-                }
-                break;   
-            }
             case Kind::ARGS:
             {
                 #if DEBUG
@@ -446,7 +395,6 @@ loop_start:
             }
             case Kind::CSTR:
             {
-                
                 auto BB = llvm::BasicBlock::Create(
                         *TheContext,
                         std::to_string(i),
@@ -458,123 +406,6 @@ loop_start:
                 break;
             }
 
-            // case Kind::TARR:
-            // {
-            //     auto BB = llvm::BasicBlock::Create(
-            //             *TheContext,
-            //             std::to_string(i),
-            //             main
-            //             // entry
-            //         );                
-            //     break;
-            // }
-        
-            // case Kind::TFUN:
-            // {
-            //     auto BB = llvm::BasicBlock::Create(
-            //             *TheContext,
-            //             std::to_string(i),
-            //             main
-            //             // entry
-            //         );
-            //     std::vector<llvm::Type *> args;
-            //     for (auto ptr = (ir::Type *)block.extra.types;
-            //     ptr - (ir::Type *)block.extra.types < block.head.ord.size;
-            //     ptr++)
-            //     {
-            //         switch (ptr->sort)
-            //         {
-            //             case ir::Type::Sort::SUNO:
-            //             {
-            //                 throw std::invalid_argument("TFUN: Sort Unknown.");
-            //             }
-            //             case ir::Type::Sort::Unit:
-            //             {
-            //                 args.push_back(llvm::Type::getVoidTy(*TheContext));
-            //                 break;
-            //             }
-            //             case ir::Type::Sort::Bool:
-            //             {
-            //                 args.push_back(llvm::Type::getInt1Ty(*TheContext));
-            //                 break;
-            //             }
-            //             case ir::Type::Sort::Char:
-            //             {
-            //                 args.push_back(llvm::Type::getInt8Ty(*TheContext));
-            //                 break;
-            //             }
-            //             case ir::Type::Sort::Int:
-            //             {
-            //                 args.push_back(llvm::Type::getInt32Ty(*TheContext));
-            //                 break;
-            //             }
-            //             case ir::Type::Sort::Float:
-            //             {
-            //                 args.push_back(llvm::Type::getFloatTy(*TheContext));
-            //                 break;
-            //             }
-            //             case ir::Type::Sort::Ptr:
-            //             {
-            //                 throw std::runtime_error("Pointer types not supported.");
-            //             }
-            //             case ir::Type::Sort::Array:
-            //             {
-                            
-            //             }
-            //             case ir::Type::Sort::Func:
-            //             {
-            //                 for (auto ptr2 = block.extra.ids;
-            //                 ptr2 - block.extra.ids < block.head.ord.size;
-            //                 ptr2++)
-            //                 {
-            //                     TypeFuncMap[i].push_back(*ptr);
-            //                 }
-            //             }
-            //             case ir::Type::Sort::Tuple:
-            //             {
-            //                 throw std::runtime_error("Tuple types not supported.");
-            //             }
-            //             case ir::Type::Sort::ADT:
-            //             {
-            //                 throw std::runtime_error("ADT types not supported.");
-            //             }
-            //             case ir::Type::Sort::ADTR:
-            //             {
-            //                 throw std::runtime_error("ADTR types not supported.");
-            //             }
-            //             default:
-            //                 break;
-            //         }
-            //         TypeFuncMap[i] = args;
-            //     }
-            //     break;
-            // }
-            // case Kind::FUNC:
-            // {
-            //     auto BB = llvm::BasicBlock::Create(
-            //             *TheContext,
-            //             std::to_string(i),
-            //             main
-            //             // entry
-            //         );
-            //     auto func_type = TypeFuncMap[block.head.func.type];
-            //     auto ret_type = func_type[0];
-            //     auto param_types = std::vector<llvm::Type *>(func_type.begin() + 1, func_type.end());
-            //     auto func = llvm::Function::Create(
-            //         llvm::FunctionType::get(ret_type, param_types, false),
-            //         llvm::Function::ExternalLinkage,
-            //         std::to_string(i),
-            //         *TheModule
-            //     );
-            //     auto entry = llvm::BasicBlock::Create(
-            //         *TheContext,
-            //         "entry",
-            //         func
-            //     );
-            //     Builder->SetInsertPoint(entry);
-
-            //      // TODO: params and body
-            // }
             default:
                 auto BB = llvm::BasicBlock::Create(
                         *TheContext,

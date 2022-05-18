@@ -12,7 +12,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
         case Ins::IImm:
         {
             llvm::Value* IImm_ptr = llvm::ConstantInt::get(
-                llvm::Type::getInt32Ty(*TheContext), 
+                this->TypeMap[3], 
                 ins.src.Iimm);
             
             IdMapVal[ins.dst] = IImm_ptr;
@@ -79,15 +79,15 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
         {
             auto Val1_it = IdMapVal.find(ins.src.id[0]);
             auto Val2_it = IdMapVal.find(ins.src.id[1]);
-            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
-            {
-                throw std::invalid_argument("IAdd: src id not found.");
-            }
-            llvm::Value *ret_val = 
-                Builder->CreateAdd(Val1_it->second, Val2_it->second, "");
+            if (Val1_it == IdMapVal.end())
+                throw std::invalid_argument("IAdd: src id[0] not found.");
+            if(Val2_it == IdMapVal.end())
+                throw std::invalid_argument("IAdd: src id[1] not found.");
+            auto dst = 
+                Builder->CreateAdd(Val1_it->second, Val2_it->second);
             // llvm::BinaryOperator::CreateAdd(Val1_it->second, Val2_it->second, "");
-            IdMapVal[ins.dst] = ret_val;
-            return ret_val;
+            IdMapVal[ins.dst] = dst;
+            return dst;
         }
         case Ins::ISub:
         {
@@ -580,61 +580,25 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 }
                 case 5: /*getint; for details, see ir.hpp->conventions*/
                 {
-                    auto Args_it = ArgsMap.find(ins.src.id[1]);
-                    if (Args_it == ArgsMap.end())
-                    {
-                        // goto visitor.cpp to evaluate ARGS after INST
-                        return nullptr;
-                        // throw std::invalid_argument("Call: (getint) src id not found.");
-                    }
-                    assert (Args_it->second.size() == 0);
+                    auto& args = this->module.blocks[ins.src.id[1]];
+                    // assert (args.head.ord.size == 0);
+                    // type safety for TyCk in AST, no need to assert
                     
-                    llvm::Value *alloc_val = Builder->CreateAlloca(
-                        llvm::Type::getInt32Ty(*TheContext), nullptr, "getint");
-                    std::vector<llvm::Value*> Args;
-                    Args.push_back(FormatMap["int"]);
-                    Args.push_back(alloc_val);
-                    Builder->CreateCall(
-                        TheModule->getOrInsertFunction(
-                        "scanf", 
-                        llvm::FunctionType::get(
-                            llvm::IntegerType::getInt32Ty(*TheContext), 
-                            {llvm::PointerType::getInt8PtrTy(*TheContext)}, 
-                            true))
-                            ,llvm::ArrayRef<llvm::Value*>(Args));
-                    IdMapAlloc[ins.dst] = llvm::dyn_cast<llvm::AllocaInst>(alloc_val);
-                    IdMapVal[ins.dst] = Builder->CreateLoad(alloc_val);
-                    return &*alloc_val;
+                    auto geti = TheModule->getFunction("geti");
+                    auto dst = Builder->CreateCall(geti);
+                    IdMapVal[ins.dst] = dst;
+                    return dst;
                 }
                 case 6: /*putint; for details, see ir.hpp->conventions*/
                 {
-                    auto Args_it = ArgsMap.find(ins.src.id[1]);
-                    if (Args_it == ArgsMap.end())
-                    {
-                        // goto visitor.cpp to evaluate ARGS after INST
-                        return nullptr;
-                    }
-                    if (Args_it->second.size() != 1)
-                    {
-                        throw std::runtime_error("Call: (putint) wrong number of args. Have: " + std::to_string(Args_it->second.size()));
-                    }
-                    #if DEBUG
-                        // std::cout << "putint: "<< Args_it->second[0]<< std::endl;
-                    #endif
-                    std::vector<llvm::Value*> Args(Args_it->second);
-                    Args.insert(Args.begin(), FormatMap["int"]);
+                    auto& args = this->module.blocks[ins.src.id[1]];
                     
-                    llvm::Value *ret_val = Builder->CreateCall(
-                        TheModule->getOrInsertFunction(
-                        "printf", 
-                        llvm::FunctionType::get(
-                            llvm::IntegerType::getInt32Ty(*TheContext), 
-                            {llvm::PointerType::getInt8PtrTy(*TheContext)}, 
-                            true))
-                            , llvm::ArrayRef<llvm::Value *>(Args)
-                            /*1 arg, default name*/);
-                    IdMapVal[ins.dst] = ret_val;
-                    return ret_val;
+                    auto arg = this->IdMapVal[args.extra.ids[0]];
+                    
+                    auto puti = TheModule->getFunction("puti");
+                    auto dst = Builder->CreateCall(puti, { arg });
+                    IdMapVal[ins.dst] = dst;
+                    return dst;
                 }
                 default:
                 {   
