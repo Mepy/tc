@@ -24,7 +24,7 @@ int main()
     API context;
     try
     {
-        test_func_ref(context);
+        test_match(context);
     }
     catch(const char* str)
     {

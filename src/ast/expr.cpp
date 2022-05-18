@@ -582,11 +582,11 @@ void	API::MatchBranchBeg(Name name)
 	}
 
 	auto branch_id = this->expr.nid();
-	this->expr.insert(Expr(branch_id, Eh::branch(), branch_type));
+	this->expr.insert(Expr(branch_id, Eh::branch(id), branch_type));
 	shape->branches.push_back(id);
 
 	auto branch = &(this->expr[branch_id]);
-
+	
 	this->funcs_retyck.push(branch);
 	this->type.scope_beg();
 	this->expr.scope_beg();
@@ -598,7 +598,7 @@ void	API::MatchBranchArg(Name name)
 	//	if(name=='_') // [TODO] : _
 	//		return ;
 	auto branch = this->funcs_retyck.top();
-	auto shape = ((expr::Func*)(branch->shape));
+	auto shape = ((expr::Branch*)(branch->shape));
 	auto index = shape->params.size();
 	auto& params = ((type::Fun*)(branch->type->shape))->params;
 
@@ -630,7 +630,7 @@ void	API::MatchBranchStmt(Stmtp stmt)
 	auto body = this->new_block();
     body->insts.eat(stmt->insts);
 
-	func->sort = Sort::CPrg;
+	func->sort = Sort::Brch;
 	func->params = params->id+2;
 	func->body = body->id+2;
 	
@@ -653,10 +653,10 @@ Exprp	API::MatchEnd()
 {
 	auto match = this->matches.top(); this->matches.pop();
 	auto shape = ((expr::Match*)(match->shape));
-	auto branches = this->new_IDs(ir::Kind::BRCH, shape->branches);
+	auto branches = this->new_IDs(ir::Kind::MTCH, shape->branches);
 
 	match->insts.push_back(Ih::Match(match->id, shape->expr, branches->id+2));
-
+	match->sort = Sort::NonD;
 	return match;
 }
 

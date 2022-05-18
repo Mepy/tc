@@ -176,6 +176,13 @@ inline void save_symb(Context* context, Obfs& obfs)
             obfs<<block->id+2;
             break;
         }
+        case ir::Symbol::Sort::Brch:
+        {
+            auto cons = ((expr::Branch*)(iter->shape))->cons;
+            auto block = context->new_branch(cons, iter->params, iter->body);
+            obfs<<block->id+2;
+            break;
+        }
         default:
             obfs<<tid;
             break;
@@ -222,6 +229,7 @@ void    API::save(string path)
         case ir::Kind::ARGS:
         case ir::Kind::BRCH:
         case ir::Kind::FUNC:
+        case ir::Kind::MTCH:
             obfs<<block.size<<block.extra;
             break;
         default: break;
