@@ -29,7 +29,7 @@ struct Name : public ExtdBase, string
     ~Name(){}
 };
 
-enum Oper {Undefined,
+enum Oper { Undefined,
     Pos, Neg,
     Add, Sub, Mul, Div, 
     Mod, LShift, RShift,

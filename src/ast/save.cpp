@@ -11,7 +11,6 @@ namespace ast{
 namespace Th = type::helper;
 namespace Ih = ir::instruction;
 
-// [TODO] : AST ~> IR
 using Obfs = utils::obfstream;
 
 void    save(Obfs& obfs, Insts& insts)
@@ -129,11 +128,10 @@ inline void save_type(Context* context, Obfs& obfs)
                 break;
             }
 
-            case type::Shape::Ref: // [TODO]
-                ty->type.sort = ir::Type::Sort::Ptr;
+            case type::Shape::Ref:
             case type::Shape::Ptr:
             {
-                
+                ty->type.sort = ir::Type::Sort::Ptr;
                 auto id = ((type::Typ*)(ty->shape))->id;
                 id = ((type::Typ*)(context->type.def[id].shape))->id;
                 ty->type.id   = id;
@@ -159,17 +157,25 @@ inline void save_symb(Context* context, Obfs& obfs)
     Size size = context->expr.def.size();
     obfs<<ir::Kind::SYMB<<size;
 
-    for(auto& expr : context->expr.def)
+    auto iter = context->expr.def.begin();
+
+    obfs<<iter->sort<<0; ++iter; // E_UNIT
+    obfs<<iter->sort<<0; ++iter; // E_TRUE
+    obfs<<iter->sort<<0; ++iter; // E_FALSE
+    obfs<<iter->sort<<0; ++iter; // E_I2F
+    obfs<<iter->sort<<0; ++iter; // E_F2I
+
+    for( ; iter!=context->expr.def.end(); ++iter)
     {
-        auto sort = expr.sort;
-        auto tid = context->type.shortcut(expr.type->id);
+        auto sort = iter->sort;
+        auto tid = context->type.shortcut(iter->type->id);
         obfs<<sort;
         switch(sort)
         {
         case ir::Symbol::Sort::CFun:
         case ir::Symbol::Sort::CPrg:
         {
-            auto block = context->new_func(tid, expr.params, expr.body);
+            auto block = context->new_func(tid, iter->params, iter->body);
             obfs<<block->id+2;
             break;
         }
@@ -209,7 +215,7 @@ void    API::save(string path)
         switch(block.kind)
         {
         case ir::Kind::INST:
-            obfs<<((Byte4)(block.insts.size()))<<RESERVED;
+            obfs<<((Byte4)(block.insts.size()))<<block.extra;
             break;
         case ir::Kind::TFUN:
         case ir::Kind::TADT:
@@ -238,12 +244,12 @@ void	API::save(string path, Exprp expr)
 
 void	API::save(Stmtp root)
 {
-    if(nullptr!=root->beg)
-        return;
+    auto entry = &this->block[0];
 
-    std::cout<<"save"<<std::endl;
-    auto block = this->new_block();
-    block->insts.eat(root->insts);
+    if(nullptr==root->beg)
+        entry->insts.eat(root->insts);
+    else
+        entry->insts.push_back(Ih::Jump(root->beg->id+2));
 }
 
 }}

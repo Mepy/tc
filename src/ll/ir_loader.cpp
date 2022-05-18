@@ -30,5 +30,5 @@ int main()
     auto& block = module.blocks[0];
 
     Obfs obfs("t.ins");
-    obfs<<*(Ins*)block.bytes;
+    obfs<<*block.extra.insts;
 }

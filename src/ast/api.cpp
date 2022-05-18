@@ -16,14 +16,15 @@ void test_imm(API& context);
 void test_array(API& context);
 void test_delay_func_type(API& context);
 void test_match(API& context);
-
+void test_i2f_f2i(API& context);
+void test_get_put(API& context);
 
 int main()
 {
     API context;
     try
     {
-        test_match(context);
+        test_imm(context);
     }
     catch(const char* str)
     {
@@ -31,6 +32,57 @@ int main()
     }
 }
 
+void test_get_put(API& context)
+{
+    /* // get_put.tc
+    let x = geti();
+    let y = x + 1;
+    let _ = puti(y);
+     */
+    context.BlockBegin();
+
+    context.AppBeg(context.ExprVar("geti"));
+    
+    context.BlockStmt(
+        context.Let("x", context.ExprAppEnd())
+    );
+
+    context.BlockStmt(
+        context.Let("y", context.BinOp(context.ExprVar("x"), tc::ast::Oper::Add, context.I(1)))
+    );
+    context.AppBeg(context.ExprVar("puti"));
+    context.AppArg(context.ExprVar("y"));
+    context.BlockStmt(
+        context.Let("_", context.ExprAppEnd())
+    );
+    
+    context.save(context.BlockEnd());
+    
+    
+    context.save("get_put.hex");
+    
+}
+
+void test_i2f_f2i(API& context)
+{
+    /* // i2f_f2i.tc
+    let x = 1;
+    let f = i2f(x);
+    let i = f2i(f);
+     */
+    
+    context.BlockBegin();
+    context.BlockStmt(context.Let("x", context.I(1)));
+    context.AppBeg(context.ExprVar("i2f"));
+    context.AppArg(context.ExprVar("x"));
+    context.BlockStmt(context.Let("f", context.ExprAppEnd()));
+    context.AppBeg(context.ExprVar("f2i"));
+    context.AppArg(context.ExprVar("f"));
+    context.BlockStmt(context.Let("i", context.ExprAppEnd()));
+    context.save(context.BlockEnd());
+    context.save("i2f_f2i.hex");
+    
+}
 void test_match(API& context)
 {
     /* // match.tc
@@ -141,11 +193,13 @@ void test_imm(API& context)
     context.BlockStmt(context.Let("i", context.I(1)));
     context.BlockStmt(context.Let("f", context.F(0.0)));
     context.BlockStmt(context.Let("h", context.S("Hello!\n")));
+    
     context.BlockStmt(
         context.Let("s", context.S(
             "To be, or not to be, that is the question:\n"
         ))
     );
+    
     auto stmt = context.BlockEnd();
     context.save(stmt);
     context.save("imm.hex");

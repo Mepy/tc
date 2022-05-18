@@ -37,6 +37,7 @@ struct Instruction
 {
     enum Sort : Byte4 {
         SUNO  = 0x4F4E5553, /* SUNO */ // Sort Unknown
+        Null  = 0x6C6C754E, /* Null */
         CImm  = 0x6D6D4943, /* CImm */
         IImm  = 0x6D6D4949, /* IImm */
         FImm  = 0x6D6D4946, /* FImm */
@@ -109,7 +110,7 @@ struct Instruction
 
 
         Call  = 0x6C6C6143, /* Call */
-        Match  = 0x6863744D, /* Mtch */
+        Match = 0x6863744D, /* Mtch */
 
         Array = 0x79617241, /* Aray */
         Alloc = 0x636F6C41, /* Aloc */ 
@@ -126,10 +127,10 @@ struct Instruction
     ID dst;    // ID Destinate
     union Src {
         ID    id[2]; // ID Source 
-        Bool  Bimm;
         Char  Cimm;
         Int   Iimm;
         Float Fimm;
+        Char  SImm[8];
         Byte8 RESERVED;
         Src():RESERVED(tc::ast::RESERVED){}
     } src;

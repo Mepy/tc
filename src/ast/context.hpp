@@ -51,18 +51,18 @@ struct Sym : public SymBase
 };
 
 template<typename Data>
-struct Def_ : public set<Data>
+struct Space : public set<Data>
 {
     Data& operator[](ID id) // [WARNING] : Why const_iterator??
     { return *(Data*)&*(this->find(Data(id))); }
 
-    ~Def_(){}
+    ~Space(){}
 };
 
 template<typename Data>
 struct Namespace
 {
-    using Def = Def_<Data>;
+    using Def = Space<Data>;
 
     Sym* sym;
     Def  def;
@@ -141,7 +141,7 @@ struct Type : public Namespace<ast::Type>
     ~Type(){}
 };
 
-using Block = Def_<ir::Block>;
+using Block = Space<ir::Block>;
 
 }
 
@@ -178,6 +178,25 @@ struct Context
 
     Name type_name;
     Typep u, b, c, i, f, adt;
+    Exprp i2f, f2i;
+
+    enum T_ID : ID
+    {   T_UNIT  = 0
+    ,   T_BOOL  = 1
+    ,   T_CHAR  = 2
+    ,   T_INT   = 3
+    ,   T_FLOAT = 4
+    };
+    enum E_ID : ID 
+    {   E_UNIT  = 0
+    ,   E_TRUE  = 1
+    ,   E_FALSE = 2
+    ,   E_I2F   = 3
+    ,   E_F2I   = 4
+    ,   E_GETI  = 5
+    ,   E_PUTI  = 6
+    ,   E_PUTS  = 7
+    };
 
     Context(){}
     ~Context(){}

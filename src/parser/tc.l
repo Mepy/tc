@@ -1,6 +1,9 @@
 %{
     #include <stdlib.h>
     #include <string>
+    #include <iostream>
+    #include "head.hpp"
+    #include "parser.hpp"
     int col_count = 0;
     int row_count = 0;
 %}
@@ -17,7 +20,7 @@
 
 [0-9]+\.[0-9]+ {
     double f = atof(yytext);
-    yylval.dval = f;
+    yylval.fval = f;
     return FLOAT; 
 }
 
@@ -34,7 +37,7 @@
     row_count += 1; 
 }
 
-"(" {return LP; }
+"(" { return LP;  }
 ")" {return RP; }
 "[" {return LB; }
 "]" {return RB; }
@@ -47,11 +50,12 @@
 "$" {return SELF; }
 "@*" {return REFS; }
 "@" {return REF; }
-"&" {return ADDR; }
+"&" {return PTR; }
 [\\] {return BS; }
 "=>" {return RDARROW; }
 "->" {return RSARROW; }
 "<-" {return LSARROW; }
+
 "~" {return BNOT; }
 "!" {return LNOT; }
 
@@ -74,10 +78,11 @@
 ">" {return GT; }
 
 "%" {return MOD; }
+"&" {return BAND; }
 "|" {return BOR; }
 "^" {return BXOR; }
-"<<" {return LShift; }
-">>" {return RShift; }
+"<<" {return LSHIFT; }
+">>" {return RSHIFT; }
 
 "==" {return EQ; }
 "!=" {return NEQ; }
@@ -99,6 +104,7 @@
 "fun" {return FUN; }
 "match" {return MATCH; }
 "with" {return WITH; }
+"new" {return NEW;}
 
 \'.\' {
     char c = yytext[1];
@@ -106,18 +112,31 @@
     return CHAR;
 }
 
-"_"|[a-zA-Z][a-zA-Z0-9]* {
-    std::string s = std::string(yytext, yyleng);
-    yylval.sval = s;
-    return NAME;
+\".*\" {
+    for(int i=0; i<yyleng-1; i++){
+        yytext[i] = yytext[i+1];
+    }
+    yytext[yyleng-2] = '\0';
+    yylval.sval = yytext;
+    return STRING;
+}
+
+[A-Z][a-zA-Z0-9]* {
+    yylval.sval = yytext;
+    return TN;
+}
+
+"_"|[a-z][a-zA-Z0-9]* {
+    yylval.sval = yytext;
+    return EN;
 }
 
 %%
-int main(){
-    yylex();
 
-    return 0;
+int yywrap(){
+   return 1;
 }
+
 
 
 
