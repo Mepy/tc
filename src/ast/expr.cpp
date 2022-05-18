@@ -397,7 +397,7 @@ void	API::AppArg(Exprp arg)
 	
 	if( ! Typing(arg, type))
 		throw "API::AppArg TypeNotEq;";
-
+	call->inst_front(arg);
 	args.push_back(arg->id);
 }
 

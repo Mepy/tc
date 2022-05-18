@@ -1,10 +1,10 @@
 CC = g++
 LLVMPATH = /usr/local/llvm
 CFLAGS = $(shell ${LLVMPATH}/bin/llvm-config --cxxflags --ldflags --libs --system-libs) -fexceptions -Wall -ggdb
-OBJ = visitor.o instr_codegen.o type_codegen.o
+OBJ = visitor.o inst.o type.o symb.o
 
 test : test.out 
-	./$< ../ast/get_put.hex > $@.ll && cat $@.ll \
+	./$< ../ast/incr_if.hex > $@.ll && cat $@.ll \
 	&& ${LLVMPATH}/bin/clang++ $@.ll ./lib/io.ll -o tc.out && ./tc.out
 
 test.out: test.o ${OBJ}
@@ -16,10 +16,13 @@ test.o: test.cpp visitor.hpp
 visitor.o: visitor.cpp visitor.hpp ir_loader.hpp
 	${CC} $< ${CFLAGS} -c -o $@ 
 
-instr_codegen.o: instr_codegen.cpp visitor.hpp
+inst.o: inst.cpp visitor.hpp
 	${CC} $< ${CFLAGS} -c -o $@ 
 
-type_codegen.o: type_codegen.cpp visitor.hpp
+type.o: type.cpp visitor.hpp
+	${CC} $< ${CFLAGS} -c -o $@
+
+symb.o : symb.cpp visitor.hpp
 	${CC} $< ${CFLAGS} -c -o $@
 
 struct : struct.cpp

@@ -37,14 +37,6 @@ API::API()
 	this->f = ((tc::ast::Type*)(&*iter)); ++iter;
 	}
 
-	{ // adt
-	auto id = this->type.nid();
-	this->type.insert(Type(id, Th::adt(), ir::type::ADT(id)));
-	this->adt = &(this->type[id]);
-	}
-
-
-
 
 	this->expr.insert(Expr(E_UNIT, Eh::u(), this->u, 0));
 	this->expr.bind(E_UNIT , "unit" );
@@ -95,6 +87,12 @@ API::API()
 	auto type = this->TypeFunEnd(u);
 	this->expr.insert(Expr(E_PUTS, Eh::func(), type, ir::Symbol::CPrg));
 	this->expr.bind(E_PUTS, "puts");
+	}
+
+	{ // adt
+	auto id = this->type.nid();
+	this->type.insert(Type(id, Th::adt(), ir::type::ADT(id)));
+	this->adt = &(this->type[id]);
 	}
 	
 }

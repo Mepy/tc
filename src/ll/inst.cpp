@@ -532,8 +532,42 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("Br: dst id not found.");
             }
             if (IdMapVal[ins.dst]->getType()->isIntegerTy(1)) {
-                // boolean
-                // auto boolVal = llvm::cast<llvm::IntegerType>(IdMapVal[ins.dst]);
+
+                auto func = this->Builder->GetInsertBlock()->getParent();
+                
+                llvm::BasicBlock *BB_True, *BB_False;
+                {
+                auto id_T = ins.src.id[0];
+                auto iter = this->BasicBlockMap.find(id_T);
+                if(iter==this->BasicBlockMap.end())
+                {
+                    BB_True = llvm::BasicBlock::Create(*TheContext, std::to_string(id_T), func);
+                    this->BlockStack.push(std::make_pair<>(
+                        BB_True, &this->module.blocks[id_T]
+                    ));
+                    this->BasicBlockMap.insert(std::make_pair<>(
+                        id_T, BB_True
+                    ));
+                }
+                else BB_True = iter->second;
+                }
+                {
+                auto id_F = ins.src.id[1];
+                auto iter = this->BasicBlockMap.find(id_F);
+                if(iter==this->BasicBlockMap.end())
+                {
+                    BB_False = llvm::BasicBlock::Create(*TheContext, std::to_string(id_F), func);
+                    this->BlockStack.push(std::make_pair<>(
+                        BB_False, &this->module.blocks[id_F]
+                    ));
+                    this->BasicBlockMap.insert(std::make_pair<>(
+                        id_F, BB_False
+                    ));
+                }
+                else BB_True = iter->second;
+                }
+
+                this->Builder->CreateCondBr(IdMapVal[ins.dst], BB_True, BB_False);
                 return IdMapVal[ins.dst];
             }
             else {
@@ -542,7 +576,24 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
         }
         case Ins::Jump:
         {
-            // Implemented in visitor.cpp
+            llvm::BasicBlock *BB;
+            {
+            auto id = ins.dst;
+            auto iter = this->BasicBlockMap.find(id);
+            if(iter==this->BasicBlockMap.end())
+            {
+                auto func = this->Builder->GetInsertBlock()->getParent();
+                BB = llvm::BasicBlock::Create(*TheContext, std::to_string(id), func);
+                this->BlockStack.push(std::make_pair<>(
+                    BB, &this->module.blocks[id]
+                ));
+                this->BasicBlockMap.insert(std::make_pair<>(
+                    id, BB
+                ));
+            }
+            else BB = iter->second;
+            }
+            this->Builder->CreateBr(BB);
             return nullptr;
         }
         case Ins::Ret:

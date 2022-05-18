@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
         llVisitor.load(argv[1]);
         // llVisitor.ASTIRtoLLVMIR();
         // std::cout << "Into dump.\n";
-        llVisitor.walk();
+        // llVisitor.walk();
         llVisitor.dumpLLVMIR();
     }
     catch(const std::runtime_error &e) 
