@@ -24,7 +24,7 @@ int main()
     API context;
     try
     {
-        test_imm(context);
+        test_func_ref(context);
     }
     catch(const char* str)
     {
@@ -275,6 +275,7 @@ void test_func_ref(API& context)
      * let bar = \ @x => @x@[1]     ;
      * check bar : { @&Int -> @Int };
      */
+    /*
     context.ExprFunBeg();
     context.ExprFunRefArg(Name("x")); // , context.TypeVar(Name("Int")) : Int
     context.Let(Name("foo"),context.ExprFunExpr(context.BinOp(
@@ -287,13 +288,17 @@ void test_func_ref(API& context)
         context.ExprVarRef(Name("x")), context.I(1)
     )));
 
+
+    context.Check(context.ExprVar(Name("bar")),);
+    */
     context.TypeFunBeg();
     context.TypeFunArg(
         context.TypeRef(context.TypePtr(context.TypeVar(Name("Int"))))
     );
-    context.Check(context.ExprVar(Name("bar")), context.TypeFunEnd(
+    context.TypeFunEnd(
        context.TypeRef(context.TypeVar(Name("Int")))
-    ));
+    );
+    context.save("check.hex");
 }
 
 void test_type(API& context)

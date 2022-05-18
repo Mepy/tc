@@ -1,68 +1,100 @@
 #include "visitor.hpp"
 
-llvm::Type *LLCodegenVisitor::codegen(const ir::Type &type, int i /*index*/)
+using Sort = ir::Type::Sort;
+void    LLCodegenVisitor::load_type()
 {
-    switch (type.sort)
+    auto& block = this->module.blocks[0];
+    auto size   = block.head.ord.size;
+    auto types  = block.extra.types;
+    for(auto i = 0;i<size; ++i)
     {
-        case ir::Type::Sort::SUNO:
+        auto type = types[i];
+        switch(type.sort)
         {
-            throw std::invalid_argument("TYPE: Sort Unknown.");
-        }
-        case ir::Type::Sort::Unit:
+        case Sort::Unit:
         {
-            TypeMap[i] = llvm::Type::getVoidTy(*TheContext);
-            return TypeMap[i];
-        }
-        case ir::Type::Sort::Bool:
-        {
-            TypeMap[i] = llvm::Type::getInt1Ty(*TheContext);
-            return TypeMap[i];
-        }
-        case ir::Type::Sort::Char:
-        {
-            TypeMap[i] = llvm::Type::getInt8Ty(*TheContext);
-            return TypeMap[i];
-        }
-        case ir::Type::Sort::Int:
-        {
-            TypeMap[i] = llvm::Type::getInt32Ty(*TheContext);
-            return TypeMap[i];
-        }
-        case ir::Type::Sort::Float:
-        {
-            TypeMap[i] = llvm::Type::getFloatTy(*TheContext);
-            return TypeMap[i];
-        }
-        case ir::Type::Sort::Ptr:
-        {
-            // Info(ID) refers to the type of the pointer
-            TypeMap[i] = llvm::PointerType::get(TypeMap[type.id], 0 /*Address Space*/);
-        }
-        case ir::Type::Sort::Array:
-        {
-            //impl in visitor.cpp
+            this->TypeMap.insert(std::make_pair<>(
+                i, llvm::Type::getVoidTy(*TheContext)
+            ));
             break;
         }
-        case ir::Type::Sort::Func:
+        case Sort::Bool:
         {
-            //impl in visitor.cpp
+            this->TypeMap.insert(std::make_pair<>(
+                i, llvm::Type::getInt1Ty(*TheContext)
+            ));
             break;
         }
-        case ir::Type::Sort::Tuple:
+        case Sort::Char:
+        {
+            this->TypeMap.insert(std::make_pair<>(
+                i, llvm::Type::getInt8Ty(*TheContext)
+            ));
+            break;
+        }
+        case Sort::Int:
+        {
+            this->TypeMap.insert(std::make_pair<>(
+                i, llvm::Type::getInt64Ty(*TheContext)
+            ));
+            break;
+        }
+        case Sort::Float:
+        {
+            this->TypeMap.insert(std::make_pair<>(
+                i, llvm::Type::getDoubleTy(*TheContext)
+            ));
+            break;
+        }
+        case Sort::Ptr:
+        {
+            auto src = this->TypeMap[type.id];
+            this->TypeMap.insert(std::make_pair<>(
+                i, llvm::PointerType::get(src, 0/*Address Space*/ )
+            ));
+            break;
+        }
+        case Sort::Array:
+        {
+            auto& block = this->module.blocks[type.id];
+            auto src = TypeMap[block.head.arr.type];
+            auto len = block.head.arr.Len;
+            this->TypeMap.insert(std::make_pair<>(
+                i, llvm::ArrayType::get(src, len)
+            ));
+            break;
+        }
+        case Sort::Func:
+        {
+            std::vector<llvm::Type*> argTypes;
+            auto& block = module.blocks[type.id];
+            auto size = block.head.ord.size;
+            auto ids = block.extra.ids;
+            auto retType = this->TypeMap[ids[0]];
+
+            for(auto i=1;i<size;i++)
+                argTypes.push_back(TypeMap[ids[i]]);
+            this->TypeMap.insert(std::make_pair<>(
+                i, llvm::FunctionType::get(retType, llvm::ArrayRef<llvm::Type*>(argTypes), false)
+            ));
+            break;
+        }
+        case Sort::Tuple:
         {
             throw std::runtime_error("Tuple types not supported.");
         }
-        case ir::Type::Sort::ADT:
+        case Sort::ADT:
         {
             throw std::runtime_error("ADT types not supported.");
         }
-        case ir::Type::Sort::ADTR:
+        case Sort::ADTR:
         {
             throw std::runtime_error("ADTR types not supported.");
         }
-    
         default:
-            break;
-    };
-    return nullptr;
+            throw std::invalid_argument("TYPE: Sort Unknown.");
+        }
+    
+    }
 }
+
