@@ -47,6 +47,15 @@
 ";" {return SEMI; }
 "," {return COMMA; }
 ":" {return COLON; }
+"+=" {return ADDASSIGN; }
+"-=" {return SUBASSIGN; }
+"*=" {return MULASSIGN; }
+"/=" {return DIVASSIGN; }
+"%=" {return MODASSIGN; }
+"+.=" {return FADDASSIGN; }
+"-.=" {return FSUBASSIGN; }
+"*.=" {return FMULASSIGN; }
+"/.=" {return FDIVASSIGN; }
 "=" {return ASSIGN; }
 "$" {return SELF; }
 "@*" {return REFS; }
@@ -55,7 +64,6 @@
 [\\] {return BS; }
 "=>" {return RDARROW; }
 "->" {return RSARROW; }
-"<-" {return LSARROW; }
 "**" {return ARR; }
 
 "~" {return BNOT; }
@@ -92,7 +100,7 @@
 "&-" {return PTRSUB; }
 
 "let" {return LET; }
-"var" {return VAR; }
+
 "if" {return IF; }
 "else" {return ELSE; }
 "while" {return WHILE; }

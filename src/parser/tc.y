@@ -25,17 +25,14 @@
 
 %token  LP RP LB RB LC RC 
 %token  SEMI COMMA COLON 
-%token  ASSIGN 
-%token  SELF REFS REF PTR 
-%token  BS RDARROW RSARROW LSARROW ARR
+%token  ASSIGN ADDASSIGN SUBASSIGN MULASSIGN DIVASSIGN MODASSIGN FADDASSIGN FSUBASSIGN FMULASSIGN FDIVASSIGN
+%token  SELF REFS REF PTR BS RDARROW RSARROW ARR
 %token  BNOT LNOT 
-        FADD FSUB FMUL FDIV
-        ADD SUB MUL DIV
+        FADD FSUB FMUL FDIV ADD SUB MUL DIV
         LAND LOR LXOR LEQ GEQ LT GT
         MOD BAND BOR BXOR LSHIFT RSHIFT
         EQ NEQ ADDPTR PTRADD PTRSUB
-%token  LET VAR IF ELSE WHILE BREAK CONT 
-        RET DEL TYPE CHECK FUN MATCH WITH NEW
+%token  LET IF ELSE WHILE BREAK CONT RET DEL TYPE CHECK FUN MATCH WITH NEW
 %token <ival> INT
 %token <fval> FLOAT
 %token <cval> CHAR
@@ -46,25 +43,126 @@
 %type <expr> Fun ExprFunDef 
 %type <expr> App
 %type <expr> Match
-%type <oper> UnOp BinOp1 BinOp2 BinOp3 BinOp4
+%type <oper> UnOp BinOp1 BinOp2 BinOp3 BinOp4 AssignOp
 
 
-%type <type> Type TypeVar TypeRef TypePtr TypeArr TypeFun TypeFunArg TypeDef
+%type <type> Type TypeVar TypeRef TypePtr TypeArr TypeFun TypeFunArg TypeDef 
 %type <cell> Cell CellVar CellEle CellRef
-%type <stmt> Let
+%type <stmt> Stmt Empty Block Let Var If While Break Cont Ret Exp Del Asgn NewType ADT Alias Check
 
 %start Start
 %%
 
-Start: Match; 
+Start: BlockStmtList; 
 
-Let: LET EN TypeDef ASSIGN Expr SEMI {
-    $$ = context.Let($2, $5, $3);
-};
+Stmt: 
+Empty | 
+Block | 
+Let   | 
+Var   | 
+If    | 
+While | 
+Break | 
+Cont  | 
+Ret   | 
+Exp   | 
+Del   | 
+Asgn  | 
+NewType |
+Check;
 
-Type: TypeVar | TypeRef | TypePtr | TypeArr | TypeFun;
+StmtList: Stmt StmtList
+
+
+Empty: SEMI { $$ = context.Empty(); };
+
+Block: 
+LC { context.BlockBegin();} BlockStmtList RC { $$ = context.BlockEnd(); };
+
+BlockStmtList: 
+Stmt { context.BlockStmt($1); } BlockStmtList | 
+{ ; } ;
+
+Let: 
+LET EN TypeDef ASSIGN Expr SEMI { $$ = context.Let($2, $5, $3); };
+
+Var: 
+LET REF EN TypeDef ASSIGN Expr SEMI { $$ = context.Var($3, $6, $4); };
+
+If: 
+IF LP Expr RP Stmt { $$ = context.If($3, $5, nullptr); } |
+IF LP Expr RP Stmt ELSE Stmt { $$ = context.If($3, $5, $7); };
+
+While:
+WHILE {context.WhileBeg(); } 
+LP Expr RP Stmt { $$ = context.While($4, $6); };
+
+Break: 
+BREAK INT SEMI { $$ = context.Break($2); } |
+BREAK SEMI { $$ = context.Break(); };
+
+Cont:
+CONT INT SEMI { $$ = context.Cont($2); } |
+CONT SEMI { $$ = context.Cont(); };
+
+Ret:
+RET Expr SEMI { $$ = context.Ret($2); } |
+RET SEMI { $$ = context.Ret(); };
+
+Exp:
+Expr SEMI { $$ = context.Exp($1); };
+
+Del:
+DEL Expr SEMI { $$ = context.Del($2); };
+
+Asgn: Cell AssignOp Expr SEMI { $$ = context.Asgn($1, $2, $3); }
+AssignOp:
+ASSIGN { $$ = Oper::Undefined; } |
+ADDASSIGN { $$ = Oper::Add; } |
+SUBASSIGN { $$ = Oper::Sub; } |
+MULASSIGN { $$ = Oper::Mul; } |
+DIVASSIGN { $$ = Oper::Div; } |
+FADDASSIGN { $$ = Oper::FAdd; } |
+FSUBASSIGN { $$ = Oper::FSub; } |
+FMULASSIGN { $$ = Oper::FMul; } |
+FDIVASSIGN { $$ = Oper::FDiv; } |
+MODASSIGN { $$ = Oper::Mod; };
+
+NewType: 
+NewTypeDef Alias { $$ = $2; } |
+NewTypeDef ADT { $$ = $2; };
+
+NewTypeDef: TYPE TN { context.TypeDef($2); } ASSIGN;
+
+Alias: 
+Type SEMI { $$ = context.Alias($1); };
+
+ADT: 
+ADTLists SEMI { $$ = context.ADT(); };
+
+ADTLists: 
+ADTList ADTLists | 
+{ ; };
+
+ADTList : 
+BOR EN { context.ADTBranchBegin($2); } TypeLists { context.ADTBranchEnd(); };
+
+TypeLists: 
+Type TypeLists { context.ADTBranchType($1); } |
+SELF TypeLists { context.ADTBranchType();   } |
+{ ; }
+
+Check: 
+CHECK Expr Type SEMI { $$ = context.Check($2, $3); }
+
+Type: 
+TypeVar | 
+TypeRef | 
+TypePtr | 
+TypeArr | 
+TypeFun;
+
 TypeVar: TN {
-    printf("%s ", $1);
     $$ = context.TypeVar($1);
 };
 
@@ -91,7 +189,10 @@ TypeDef: COLON Type{
     $$ = $2;
 } | { $$ = nullptr; }
 
-Cell: CellVar | CellEle | CellRef;
+Cell: 
+CellVar | 
+CellEle | 
+CellRef;
 
 CellVar: 
 REF EN { $$ = context.CellVar($2); } |
@@ -103,11 +204,25 @@ Cell LB Expr RB { $$ = context.CellEle($1, $3); };
 CellRef:
 MUL Expr { $$ = context.CellRef($2); }
 
-Expr: Fun | App | ExprVal | ExprRef | ExprVar | ExprVarRef |
-Arr | Ele | EleRef | EleAddr | New | Calc | F | I | C | S ; 
-
-
-
+Expr: 
+Fun         | 
+App         | 
+Match       | 
+ExprPtr     | 
+ExprVal     | 
+ExprRef     | 
+ExprVar     | 
+ExprVarRef  |
+Arr         | 
+Ele         | 
+EleRef      |   
+EleAddr     | 
+New         | 
+Calc        | 
+F           | 
+I           | 
+C           |
+S; 
 
 I: INT {
     printf("I: %ld\n", $1);
@@ -184,7 +299,7 @@ REF EN TypeDef {
 
 //add stmt later 
 ExprFunDef: 
-LP Expr RP { $$ = context.ExprFunExpr($2); };
+Stmt { $$ = context.ExprFunStmt($1); };
 
 Fun: FunStart {context.ExprFunBeg();} ExprFunArgLists RDARROW ExprFunDef {
     $$ = $5;
@@ -223,8 +338,7 @@ MatchList: BOR EN { context.MatchBranchBeg($2); } ENLists RDARROW MatchDef;
 
 // add stmt later
 MatchDef:  
-LP Expr RP { context.MatchBranchExpr($2); };
-
+Stmt { context.MatchBranchStmt($1); };
 
 
 // ************************** Calc **************************
@@ -250,6 +364,7 @@ BinCalc2 {
 BinOp1:
 BAND { $$ = Oper::BAnd; } |
 BOR { $$ = Oper::BOr; } | 
+BXOR { $$ = Oper::BXOr;} |
 LAND { $$ = Oper::LAnd; } |
 LOR { $$ = Oper::LOr;} |
 LXOR { $$ = Oper::LXOr; };
@@ -306,10 +421,10 @@ MOD { $$ = Oper::Mod; };
 
 
 int main() {
-    /* context.BlockBegin(); */
+    context.BlockBegin();
     yyparse();
-    /* context.save(context.BlockEnd());
-    context.save("tc.hex"); */
+    context.save(context.BlockEnd()); 
+    context.save("tc.hex"); 
 }
 
 void yyerror(char *s) {

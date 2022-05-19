@@ -1,3 +1,12 @@
- match bol with 
-        | tru xxx => (true)
-        | fls => (false)
+   
+       type Bol = 
+        | tru
+        | fls
+        ;
+   let boolean = \ bol => {
+    
+      let x =  match bol with 
+        | tru => { return true; }
+        | fls => { return false; };
+      return x;
+      };
