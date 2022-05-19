@@ -115,6 +115,12 @@
 "with" {return WITH; }
 "new" {return NEW;}
 
+"'\\n'" {
+    char c = '\n';
+    yylval.cval = c;
+    return CHAR;
+}
+
 \'.\' {
     char c = yytext[1];
     yylval.cval = c;

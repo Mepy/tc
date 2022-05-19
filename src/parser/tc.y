@@ -281,9 +281,9 @@ EleAddr: Expr PTR LB Expr RB {
     $$ = context.ExprEleAddr($1, $4);
 }
 
-New: NEW Expr {
-    $$ = context.New($2);
-}
+New: 
+NEW Expr ARR Expr { $$ = context.New($2); }
+
 
 // **************************Fun **************************
 FunStart: FUN | BS;
