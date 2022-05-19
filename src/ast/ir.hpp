@@ -17,11 +17,13 @@ enum Kind : Byte4 { /* Block 's */
     
     INST = 0x54534E49, /* INST */ // ANF instruction
     ARGS = 0x53475241, /* ARGS */ // call  's arguments, just ids of expr
-    BRCH = 0x48435242, /* BRCH */ // destr 's branches, just ids of block
+    MTCH = 0x4843544D, /* MTCH */ // match's branches, just ids of expr
+    
     
     SYMB = 0x424D5953, /* SYMB */ // Symbol
     PARA = 0x41524150, /* PARA */ // func  's parameters, just ids of expr
     FUNC = 0x434E5546, /* FUNC */ // for function's info
+    BRCH = 0x48435242, /* BRCH */ // for branch's info
     CLOS = 0x534F4C43, /* CLOS */ // for closure's function info 
 
     TYPE = 0x45505954, /* TYPE */ // Type info, 
@@ -187,6 +189,7 @@ struct Symbol
         NonD  = 0x446E6F4E, /* NonD */ // Non-Determinate introduced by Param, NOT Pure Function
 
         Ctor  = 0x726F7443, /* Ctor */ // Constructor
+        Brch  = 0x68637242, /* Brch */ // Branch of Match
 
         CFun  = 0x6E754643, /* CFun */ // Function that is Closed and     Pure
         CPrg  = 0x67725043, /* CPrg */ // Function that is Closed and NOT Pure
@@ -235,7 +238,7 @@ struct Type
         Char  = 0x31437954, /* TyC1 */
         Int   = 0x38497954, /* TyI8 */
         Float = 0x38467954, /* TyF8 */
-        Ptr   = 0x262A7954, /* Ty*& */
+        Ptr   = 0x26407954, /* Ty@& */
         Array = 0x5D5B7954, /* Ty[] */
         Func  = 0x3E2D7954, /* Ty-> */
         Tuple = 0x29287954, /* Ty() */

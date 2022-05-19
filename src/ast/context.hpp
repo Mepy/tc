@@ -216,6 +216,10 @@ struct Context
         auto block = &(this->block[id]);
         return block;
     }
+    ir::Block* new_branch(ID constructor, ID params, ID body)
+    {
+        return new_block(ir::Kind::BRCH, constructor, (Byte8(body)<<32)|Byte8(params));
+    }
     ir::Block* new_func(ID type, ID params, ID body)
     {
         return new_block(ir::Kind::FUNC, type, (Byte8(body)<<32)|Byte8(params));

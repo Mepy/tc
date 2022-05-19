@@ -120,6 +120,9 @@ Each **Symbol** occupies 8 Bytes, with format :
     In other words, it includes no **Instruction**s whose **Sort** = **Get** or **Set**.
     *Info* = ID of block whose **Kind** = **FUNC**.
 
+- **Brch**  : **Br**an**ch** of Match
+    Similar to **CPrg**.
+    *Info* = ID of block whose **Kind** = **BRCH**.
 
 - **Open**  : **Open** Function or Programme
     Refer to outer scope symbols, whose **Sort** = **Para**.
@@ -182,6 +185,14 @@ The **ARG**ument**S** of one call of a function.
 |...|...|...|
 
 **ARG**ument**S** are IDs of symbols, therefore each occupying 4 Bytes.
+#### MTCH
+The info of branches of expr::**M**a**TCH**.
+|Address(Byte)|Field|Explanation|
+|:-:|:-:|:-:|
+|[0x04:0x07]|*Size*|How many branches this block has|
+|...|...|...|
+
+Branches are IDs of symbols, therefore each occupying 4 Bytes.
 
 #### CSTR
 **C**-style **STR**ing.

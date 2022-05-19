@@ -5,7 +5,6 @@ using Name = tc::ast::Name;
 
 void test(API& context);
 void test_let_x_101(API& context);
-void test_if(API& context);
 void test_while(API& context);
 void test_type(API& context);
 void test_func_ref(API& context);
@@ -18,18 +17,55 @@ void test_delay_func_type(API& context);
 void test_match(API& context);
 void test_i2f_f2i(API& context);
 void test_get_put(API& context);
+void test_incr_if(API& context);
 
 int main()
 {
     API context;
     try
     {
-        test_func_ref(context);
+        test_incr_if(context);
     }
     catch(const char* str)
     {
         std::cerr << str << '\n';
     }
+}
+
+void test_incr_if(API& context)
+{
+    /* // incr_if.tc
+     * let f = \ x => x + x + 4;
+     * let x = 3 + 5;
+     * if(false)
+     *      puti(1);
+     * else
+     *      puti(0);
+     */
+    context.BlockBegin();
+
+    context.ExprFunBeg();
+    context.ExprFunArg("x");
+    context.BlockStmt(context.Let("f", context.ExprFunExpr(
+        context.BinOp(context.BinOp(
+            context.ExprVar("x"), tc::ast::Oper::Add, context.ExprVar("x"))
+            , tc::ast::Oper::Add
+            , context.I(4)
+        ))
+    ));
+    context.BlockStmt(context.Let("x", context.BinOp(
+        context.I(3), tc::ast::Oper::Add, context.I(5)
+    )));
+    context.AppBeg(context.ExprVar("puti"));
+    context.AppArg(context.I(1));
+    auto t = context.Exp(context.ExprAppEnd());
+    context.AppBeg(context.ExprVar("puti"));
+    context.AppArg(context.I(0));
+    auto f = context.Exp(context.ExprAppEnd());
+    context.BlockStmt(context.If(context.ExprVar("false"),t,f));
+
+    context.save(context.BlockEnd());
+    context.save("incr_if.hex");
 }
 
 void test_get_put(API& context)
@@ -235,7 +271,7 @@ void test_fact(API& context)
     /* // fact.tc
      * let fact = \ n => 
      *     if ( n<2 ) return 1 
-     *     else return n * fact(n-1)
+     *     else return n * $(n-1)
      *     ;
      */
 
@@ -341,15 +377,6 @@ void test_type(API& context)
     std::cout<<std::endl;
 
     context.save("type.hex");
-}
-void test_if(API& context)
-{
-    auto _if = context.If(
-        context.ExprVar("false")
-    ,   context.Let(Name("Y"), context.I(1))
-    ,   context.Let(Name("N"), context.I(0))
-    );
-    context.save("test.hex");
 }
 
 // while if break else continue

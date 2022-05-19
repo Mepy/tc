@@ -73,10 +73,10 @@ inline Instruction F2I(ID dst, ID src)
 { return Instruction(Instruction::F2I, dst, src, 0x467E3C49 /* I<~F */ ); }
 
 inline Instruction Br(ID cond, ID fst, ID snd)
-{ return Instruction(Instruction::Br, cond, fst, snd); }
+{ return Instruction(Instruction::Br, cond, fst+2, snd+2); }
 inline Instruction Jump(ID block)
 { 
-    auto ins = Instruction(Instruction::Jump, block);
+    auto ins = Instruction(Instruction::Jump, block+2);
     ins.src.RESERVED = RESERVED;
     return ins; 
 }

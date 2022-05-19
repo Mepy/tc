@@ -129,6 +129,7 @@ struct Block
             ibfs>>head.ord;
             break;
         }
+        case MTCH:
         case PARA:
         case ARGS:
         case TFUN:

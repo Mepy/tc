@@ -92,6 +92,7 @@ void    LLCodegenVisitor::load_type()
             throw std::runtime_error("ADTR types not supported.");
         }
         default:
+            std::cout<<" sort = "<<type.sort<<std::endl;
             throw std::invalid_argument("TYPE: Sort Unknown.");
         }
     

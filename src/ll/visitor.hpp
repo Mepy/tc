@@ -14,6 +14,7 @@ using Cat = ir::Cat;
 using Kind =ir::Kind;
 using Ins = ir::Instruction;
 using Sym = ir::Symbol;
+using ID  = tc::ast::ID;
 // using Type = ir::Type; -> ambiguity
 // using Sort = ir::Type::Sort;
 using Block = ir::codegen::Block;
@@ -50,8 +51,6 @@ protected:
     std::map<std::uint32_t, std::uint32_t> StringDstMap;
     //map id of block of type TFUN to vector of llvm::Type *
     std::map<std::uint32_t, llvm::FunctionType *> TypeFuncMap;
-    //map block-id to llvm::FunctionCallee
-    std::map<std::uint32_t, llvm::FunctionCallee> FuncMap;
     //map arg-id to function arguments (vector of llvm::Value*)
     std::map<std::uint32_t, std::vector<llvm::Value*>> ArgsMap; 
     //map formatting arguments to llvm::Constant* (strings)
@@ -59,8 +58,12 @@ protected:
 
 
     codegen::Module module;
-    std::map<tc::ast::ID, llvm::BasicBlock*> block_entry;
-
+    // currently code generating
+    llvm::Function *func;
+    // map symbol id to Function when called
+    std::map<ID, llvm::Function*> FuncMap;
+    std::map<ID, llvm::BasicBlock*> BasicBlockMap;
+    std::stack<std::pair<llvm::BasicBlock*, Block*> > BlockStack;
 public:
     LLCodegenVisitor() {
         // Open a new context and module.
@@ -86,24 +89,37 @@ public:
     {
         module.load(path_of_ASTir);
         load_type();
-        builtin();
+        load_symb();
+        main_beg();
+        codegen();
+        main_end();
     }
     // fill in this->TypeMap
     void load_type();
-    void builtin();
-    llvm::BasicBlock* walk_block(Block* block);
-    void walk();
-    void ASTIRtoLLVMIR();
+    // declare functions
+    void load_symb();
 
-
-    
+    void main_beg();
+    void main_end();
+    void codegen()
+    {
+        for(; ! this->BlockStack.empty();)
+        {
+            auto pair = this->BlockStack.top(); this->BlockStack.pop();
+            this->Builder->SetInsertPoint(pair.first);
+            codegen(pair.second);
+        }
+    }
+    void codegen(Block* block)
+    {
+        auto size = block->head.ord.size;
+        auto insts = block->extra.insts;
+        for(auto ptr=insts; ptr-insts<size; ++ptr)
+            codegen(*ptr);
+    }
 
     void dumpLLVMIR();
     void dumpAllMap(); 
-    void builtinFuncInit();
-
-    llvm::FunctionType *getFuncType(Block *block);
-    
 
     llvm::Value *codegen(const Ins &ins) override;
     // llvm::Value *codegen(const Sym &sym) override;

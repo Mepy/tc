@@ -168,12 +168,20 @@ struct Match : public Shape
     :Shape(Flag::Match), expr(expr){}
 };
 
+struct Branch : public Shape
+{
+    IDs params;
+    Stmtp body;
+    ID    cons;
+    Branch(ID cons):Shape(Flag::Branch), cons(cons){}
+};
+
 namespace helper{
 
 inline Shapep func(){ return new Func(); }
 inline Shapep call(ID func){ return new Call(func); }
 inline Shapep match(ID expr){ return new Match(expr); }
-inline Shapep branch(){ return new Func(Shape::Branch); }
+inline Shapep branch(ID cons){ return new Branch(cons); }
 
 }
 
