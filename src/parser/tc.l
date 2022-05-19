@@ -49,12 +49,13 @@
 "=" {return ASSIGN; }
 "$" {return SELF; }
 "@*" {return REFS; }
-"@" {return REF; }
+"@" { return REF; }
 "&" {return PTR; }
 [\\] {return BS; }
 "=>" {return RDARROW; }
 "->" {return RSARROW; }
 "<-" {return LSARROW; }
+"**" {return ARR; }
 
 "~" {return BNOT; }
 "!" {return LNOT; }
@@ -78,7 +79,6 @@
 ">" {return GT; }
 
 "%" {return MOD; }
-"&" {return BAND; }
 "|" {return BOR; }
 "^" {return BXOR; }
 "<<" {return LSHIFT; }

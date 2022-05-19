@@ -147,23 +147,25 @@ Cell* API::CellVar(Name name){
 }
 
 Expr* API::ExprVar(Name name){
+    std::cout << "ExprVar" << std::endl;
     return nullptr;
 }
 
 Expr* API::ExprVarRef(Name name){
+    std::cout << "ExprVarRef" << std::endl;
     return nullptr;
 }
 
 void  API::AppBeg(Expr* func){
-
+    std::cout << "AppBeg" << std::endl;
 }
 
 void  API::AppForceRetRef(){
-
+    std::cout << "AppForceBeg" << std::endl;
 }
 
 void  API::AppArg(Expr* arg){
-
+    std::cout << "AppArg" << std::endl;
 }
 
 Cell* API::CellAppEnd(){
@@ -171,10 +173,12 @@ Cell* API::CellAppEnd(){
 }
 
 Expr* API::ExprAppEnd(){
+    std::cout << "ExprAppEnd" << std::endl;
     return nullptr;
 }
 
 Expr* API::ExprArr(Expr* expr, Size size){
+    std::cout << "ExprArr" << std::endl;
     return nullptr;
 }
 
@@ -183,14 +187,17 @@ Cell* API::CellEle(Cell* cell, Expr* index){
 }
 
 Expr* API::ExprEle(Expr* expr, Expr* index){
+    std::cout << "ExprEle" << std::endl;
     return nullptr;
 }
 
 Expr* API::ExprEleRef(Expr* expr, Expr* index){
+    std::cout << "ExprEleRef" << std::endl;
     return nullptr;
 }
 
 Expr* API::ExprEleAddr(Expr* expr, Expr* index){
+    std::cout << "ExprEleAddr" << std::endl;
     return nullptr;
 }
 
@@ -199,14 +206,17 @@ Cell* API::CellRef(Expr* expr){
 }
 
 Expr* API::ExprPtr(Cell* cell){
+    std::cout << "ExprPtr" << std::endl;
     return nullptr;
 }
 
 Expr* API::ExprVal(Expr* expr){
+    std::cout << "ExprVal" << std::endl;
     return nullptr;
 }
 
 Expr* API::ExprRef(Expr* expr){
+    std::cout << "ExprRef" << std::endl;
     return nullptr;
 }
 
@@ -301,15 +311,3 @@ Expr* API::BinOp(Expr* lhs, Oper oper, Expr* rhs){
 Expr* API::New(Expr* expr){
     return nullptr;
 }
-
-
-
-
- 
-
-
-// int main(){
-//     struct API x;
-//     x.BlockBegin();
-//     return 0;
-// }
