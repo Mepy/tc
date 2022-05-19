@@ -243,12 +243,12 @@ void  API::ExprFunBeg(){
 }
 
 void  API::ExprFunRefArg(Name name, Type* type){
-    std::cout << "ExprFunRefArg " << std::endl;
+    std::cout << name <<  " ExprFunRefArg " << std::endl;
 
 }
 
 void  API::ExprFunArg(Name name, Type* type){
-    std::cout << "ExprFunArg " << std::endl;
+    std::cout << name << " ExprFunArg " << std::endl;
 
 }
 
@@ -309,5 +309,6 @@ Expr* API::BinOp(Expr* lhs, Oper oper, Expr* rhs){
 }
 
 Expr* API::New(Expr* expr){
+    std::cout << "New" << std::endl;
     return nullptr;
 }

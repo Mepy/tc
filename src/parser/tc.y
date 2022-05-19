@@ -3,7 +3,7 @@
     #include <math.h>
     #include <string>
     #include "head.hpp"
-    extern int yylex();
+    int yylex(void);
     void yyerror(char* s);
     API context;
 %}
@@ -42,7 +42,7 @@
 %token <sval> STRING TN EN
 
 %type <expr> Expr I F C S Calc UnCalc BinCalc1 BinCalc2 BinCalc3 BinCalc4
-%type <expr> ExprPtr ExprVal ExprRef ExprVar ExprVarRef Arr Ele EleRef EleAddr New
+%type <expr> ExprVal ExprRef ExprVar ExprVarRef Arr Ele EleRef EleAddr New
 %type <expr> Fun ExprFunDef App
 %type <oper> UnOp BinOp1 BinOp2 BinOp3 BinOp4
 
@@ -55,12 +55,13 @@
 
 Start: Expr;
 
-Let: LET EN TypeDef ASSIGN Expr SEMI {
+/* Let: LET EN TypeDef ASSIGN Expr SEMI {
     $$ = context.Let($2, $5, $3);
-}
+} */
 
 Type: TypeVar | TypeRef | TypePtr | TypeArr | TypeFun;
 TypeVar: TN {
+    printf("%s ", $1);
     $$ = context.TypeVar($1);
 };
 
@@ -88,9 +89,8 @@ TypeDef: COLON Type{
 } | { $$ = nullptr; }
 
 
-Expr: Fun | ExprVal | ExprRef | ExprVar | ExprVarRef |
+Expr: Fun | App | ExprVal | ExprRef | ExprVar | ExprVarRef |
 Arr | Ele | EleRef | EleAddr | New | Calc | F | I | C | S ; 
-
 
 I: INT {
     printf("I: %ld\n", $1);
@@ -125,6 +125,7 @@ ExprVar: EN {
     $$ = context.ExprVar($1);
 }
 
+
 ExprVarRef: REF EN {
     printf("%s ", $2);
     $$ = context.ExprVarRef($2);
@@ -151,36 +152,28 @@ New: NEW Expr {
 }
 
 // **************************Fun **************************
-Fun: FunStart {context.ExprFunBeg();} ExprFunArgLists RDARROW ExprFunDef {
-    $$ = $5;
-};
-
 FunStart: FUN | BS;
 
 ExprFunArgLists : 
-ExprFunArg ExprFunArgLists |
-ExprFunRefArg ExprFunArgLists | 
+EN TypeDef { 
+    context.ExprFunArg(Name($1), $2); 
+} ExprFunArgLists |
+REF EN TypeDef { 
+    context.ExprFunRefArg(Name($2), $3); 
+} ExprFunArgLists |
 { ; };
-
-ExprFunArg : EN TypeDef {
-    printf("%s ", $1);
-    context.ExprFunArg($1, $2);
-};
-
-ExprFunRefArg: REF EN TypeDef {
-    printf("%s ", $2);
-    context.ExprFunRefArg($2, $3);
-};
 
 //add stmt later 
 ExprFunDef: Expr {
     $$ = context.ExprFunExpr($1);
 };
 
+Fun: FunStart {context.ExprFunBeg();} ExprFunArgLists RDARROW ExprFunDef {
+    $$ = $5;
+};
+
 
 // ************************** App **************************
-/* App: AppStart AppRetRef LP AppArg RP { $$ = context.ExprAppEnd(); }; 
-
 AppStart:
 Expr { context.AppBeg($1); } |
 SELF { context.AppBeg(nullptr); };
@@ -191,9 +184,10 @@ REF { context.AppForceRetRef();} |
 
 AppArg: 
 Expr { context.AppArg($1);} COMMA AppArg |
-Expr { context.AppArg($1);} | { ; }; */
+Expr { context.AppArg($1);} | 
+{ ; };
 
-
+App: AppStart AppRetRef LP AppArg RP { $$ = context.ExprAppEnd(); }; 
 
 /* App: 
 ExprVal { context.AppBeg($1); } AppRetRef LP AppArg RP { $$ = context.ExprAppEnd(); } |

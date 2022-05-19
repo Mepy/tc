@@ -1,5 +1,6 @@
 %{
     #include <stdlib.h>
+    #include <string.h>
     #include <string>
     #include <iostream>
     #include "head.hpp"
@@ -113,23 +114,29 @@
 }
 
 \".*\" {
+    char *s = (char *)malloc(yyleng+1);
     for(int i=0; i<yyleng-1; i++){
-        yytext[i] = yytext[i+1];
+        s[i] = yytext[i+1];
     }
-    yytext[yyleng-2] = '\0';
-    yylval.sval = yytext;
+    s[yyleng-2] = 0;
+    yylval.sval = s;
     return STRING;
 }
 
+[a-z][a-zA-Z0-9]* {
+    char *s = (char *)malloc(yyleng+1);
+    strcpy(s, yytext);
+    yylval.sval = s;
+    return EN;
+}
+
 [A-Z][a-zA-Z0-9]* {
-    yylval.sval = yytext;
+    char *s = (char *)malloc(yyleng+1);
+    strcpy(s, yytext);
+    yylval.sval = s;
     return TN;
 }
 
-"_"|[a-z][a-zA-Z0-9]* {
-    yylval.sval = yytext;
-    return EN;
-}
 
 %%
 

@@ -1,1 +1,1 @@
-fun x y => 1
+fun x:Int y z => x + y + z
