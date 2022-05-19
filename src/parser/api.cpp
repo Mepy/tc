@@ -143,16 +143,17 @@ Type* API::TypeFunEnd(Type* rety){
 
 /* Cell & Expr */
 Cell* API::CellVar(Name name){
+    std::cout << "CellVar " << name << std::endl;
     return nullptr;
 }
 
 Expr* API::ExprVar(Name name){
-    std::cout << "ExprVar" << std::endl;
+    std::cout << "ExprVar " << name << std::endl;
     return nullptr;
 }
 
 Expr* API::ExprVarRef(Name name){
-    std::cout << "ExprVarRef" << std::endl;
+    std::cout << "ExprVarRef " << name << std::endl;
     return nullptr;
 }
 
@@ -183,6 +184,7 @@ Expr* API::ExprArr(Expr* expr, Size size){
 }
 
 Cell* API::CellEle(Cell* cell, Expr* index){
+    std::cout << "CellEle" << std::endl; 
     return nullptr;
 }
 
@@ -202,6 +204,7 @@ Expr* API::ExprEleAddr(Expr* expr, Expr* index){
 }
 
 Cell* API::CellRef(Expr* expr){
+    std::cout << "CellRef" << std::endl;
     return nullptr;
 }
 
@@ -243,12 +246,12 @@ void  API::ExprFunBeg(){
 }
 
 void  API::ExprFunRefArg(Name name, Type* type){
-    std::cout << name <<  " ExprFunRefArg " << std::endl;
+    std::cout  <<  " ExprFunRefArg " << name << std::endl;
 
 }
 
 void  API::ExprFunArg(Name name, Type* type){
-    std::cout << name << " ExprFunArg " << std::endl;
+    std::cout << name << " ExprFunArg " << name << std::endl;
 
 }
 
@@ -263,19 +266,19 @@ Expr* API::ExprFunStmt(Stmt* stmt){
 }
 
 void  API::MatchBeg(Expr* expr){
-
+    std::cout << "MatchBeg" << std::endl;
 }
 
 void  API::MatchBranchBeg(Name name){
-
+    std::cout << "MatchBranchBeg " << name << std::endl;
 }
 
 void  API::MatchBranchArg(Name name){
-
+    std::cout << "MatchBranchArg " << name << std::endl;
 }
 
 void  API::MatchBranchExpr(Expr* expr){
-
+    std::cout << "MatchBranchExpr " << std::endl;
 }
 
 void  API::MatchBranchStmt(Stmt* stmt){
@@ -283,6 +286,7 @@ void  API::MatchBranchStmt(Stmt* stmt){
 }
 
 Expr* API::MatchEnd(){
+    std::cout << "MatchEnd" << std::endl;
     return nullptr;
 }
 

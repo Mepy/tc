@@ -119,75 +119,6 @@ extern int yydebug;
     EN = 325
   };
 #endif
-/* Tokens.  */
-#define LP 258
-#define RP 259
-#define LB 260
-#define RB 261
-#define LC 262
-#define RC 263
-#define SEMI 264
-#define COMMA 265
-#define COLON 266
-#define ASSIGN 267
-#define SELF 268
-#define REFS 269
-#define REF 270
-#define PTR 271
-#define BS 272
-#define RDARROW 273
-#define RSARROW 274
-#define LSARROW 275
-#define ARR 276
-#define BNOT 277
-#define LNOT 278
-#define FADD 279
-#define FSUB 280
-#define FMUL 281
-#define FDIV 282
-#define ADD 283
-#define SUB 284
-#define MUL 285
-#define DIV 286
-#define LAND 287
-#define LOR 288
-#define LXOR 289
-#define LEQ 290
-#define GEQ 291
-#define LT 292
-#define GT 293
-#define MOD 294
-#define BAND 295
-#define BOR 296
-#define BXOR 297
-#define LSHIFT 298
-#define RSHIFT 299
-#define EQ 300
-#define NEQ 301
-#define ADDPTR 302
-#define PTRADD 303
-#define PTRSUB 304
-#define LET 305
-#define VAR 306
-#define IF 307
-#define ELSE 308
-#define WHILE 309
-#define BREAK 310
-#define CONT 311
-#define RET 312
-#define DEL 313
-#define TYPE 314
-#define CHECK 315
-#define FUN 316
-#define MATCH 317
-#define WITH 318
-#define NEW 319
-#define INT 320
-#define FLOAT 321
-#define CHAR 322
-#define STRING 323
-#define TN 324
-#define EN 325
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
@@ -206,7 +137,7 @@ union YYSTYPE
     Expr* expr;
     Oper oper;
 
-#line 210 "parser.hpp"
+#line 141 "parser.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;
