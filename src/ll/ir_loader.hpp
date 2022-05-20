@@ -109,6 +109,7 @@ struct Block
         {
             auto& ord = head.ord;
             auto& size = ord.size;
+            ibfs>>size;
             extra.bytes = new Byte[size*sizeof(Char)];
             for(auto ptr = extra.chars
             ;   ptr-extra.chars<size
@@ -148,8 +149,8 @@ struct Block
             break;
         }
         default:
+            throw "UNKNOWN Kind." + std::to_string(kind);
             break;
-            // throw "UNKNOWN Kind." + std::to_string(kind);
         }
     }
 };
