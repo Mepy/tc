@@ -18,18 +18,59 @@ void test_match(API& context);
 void test_i2f_f2i(API& context);
 void test_get_put(API& context);
 void test_incr_if(API& context);
+void test_array_new(API& context);
+
 
 int main()
 {
     API context;
     try
     {
-        test_incr_if(context);
+        test_array_new(context);
     }
     catch(const char* str)
     {
         std::cerr << str << '\n';
     }
+}
+
+void test_array_new(API& context)
+{
+    /* // array_new.tc
+    let n    = geti() ;
+    let arr1 = 0 ** n ;
+    let arr2 = 0 ** 10;
+    let ptr1 = new arr1;
+    let ptr2 = new arr2;
+    let ptr3 = new 0;
+     */
+
+    context.BlockBegin();
+
+    context.AppBeg(context.ExprVar("geti"));
+    context.BlockStmt(
+        context.Let("n", context.ExprAppEnd())
+    );
+
+    context.BlockStmt(
+        context.Let("arr1", context.ExprArr(context.I(0), context.ExprVar("n")))
+    );
+    context.BlockStmt(
+        context.Let("arr2", context.ExprArr(context.I(0), context.I(10)))
+    );
+
+    context.BlockStmt(
+        context.Let("ptr1", context.New(context.ExprVar("arr1")))
+    );
+    context.BlockStmt(
+        context.Let("ptr2", context.New(context.ExprVar("arr2")))
+    );
+    context.BlockStmt(
+        context.Let("ptr3", context.New(context.I(0)))
+    );
+
+    context.save(context.BlockEnd());
+    context.save("array_new.hex");
 }
 
 void test_incr_if(API& context)

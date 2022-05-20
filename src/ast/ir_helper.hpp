@@ -53,8 +53,12 @@ inline Instruction CStr(ID dst, ID block)
 }
 inline Instruction Alloc(ID dst, ID src)
 { return Instruction(Instruction::Alloc, dst, src, 0x6B617453 /* Stak */); }
+inline Instruction Array(ID dst, ID init, ID size)
+{ return Instruction(Instruction::Array, dst, init, size); }
 inline Instruction New(ID dst, ID src)
 { return Instruction(Instruction::New  , dst, src, 0x70616548 /* Heap */ ); }
+inline Instruction NewAr(ID dst, ID init, ID size)
+{ return Instruction(Instruction::NewAr, dst, init, size); }
 inline Instruction Return(ID dst)
 {
     auto ins = Instruction(Instruction::Ret, dst);

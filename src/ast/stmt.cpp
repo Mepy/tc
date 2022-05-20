@@ -136,7 +136,7 @@ Stmtp	API::If(Exprp cond, Stmtp fst, Stmtp snd) // = nullptr
 {
 	Typing(cond, this->b);
 
-	auto stmt = new Stmt(new stmt::_if(cond, fst, snd));
+	auto stmt = new Stmt(new stmt::_if(cond, fst, nullptr));
 
 	// IR
 	auto beg = stmt->beg = this->new_block();
@@ -145,10 +145,15 @@ Stmtp	API::If(Exprp cond, Stmtp fst, Stmtp snd) // = nullptr
 	beg->insts.eat(cond->insts);
 
 	auto fst_id = If_Br(this, fst, end->id);
-	auto snd_id = If_Br(this, snd, end->id);
 
-	beg->insts.push_back(Ih::Br(cond->id, fst_id, snd_id));
-
+	if(nullptr==snd)
+		beg->insts.push_back(Ih::Br(cond->id, fst_id, end->id));
+	else
+	{
+		auto snd_id = If_Br(this, snd, end->id);
+		beg->insts.push_back(Ih::Br(cond->id, fst_id, snd_id));
+	}
+	
 	return stmt;
 }
 
