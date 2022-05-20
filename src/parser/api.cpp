@@ -40,7 +40,7 @@ void API::BlockBegin(){
 }
 
 void API::BlockStmt(Stmt *stmt){
-    std::cout << "BlockStmt" << std::endl;
+    std::cout << "BlockStmt" << std::endl << std::endl;
 }
 
 Stmt* API::BlockEnd(){
@@ -212,8 +212,8 @@ Expr* API::ExprAppEnd(){
     return nullptr;
 }
 
-Expr* API::ExprArr(Expr* expr, Size size){
-    std::cout << "ExprArr" << std::endl;
+Expr* API::ExprArr(Expr* expr, Expr* size){
+    std::cout << "ExprArr " << size << std::endl;
     return nullptr;
 }
 

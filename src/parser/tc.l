@@ -59,6 +59,9 @@
 "=" {return ASSIGN; }
 "$" {return SELF; }
 "@*" {return REFS; }
+"@("|"@ (" {return REFLP; }
+"@["|"@ [" {return REFLB; }
+"&["|"& [" {return PTRLB; }
 "@" { return REF; }
 "&" {return PTR; }
 [\\] {return BS; }
@@ -137,7 +140,7 @@
     return STRING;
 }
 
-[a-z][_a-zA-Z0-9]* {
+"_"|[a-z][a-zA-Z0-9]* {
     char *s = (char *)malloc(yyleng+1);
     strcpy(s, yytext);
     yylval.sval = s;
