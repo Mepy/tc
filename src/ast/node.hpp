@@ -34,8 +34,12 @@ struct Stmt
     ir::Block*    end;
     Insts       insts;
 
-    Stmt(stmt::Shape* shape)
-    :shape(shape), beg(nullptr), end(nullptr){}
+    // true -> Any stmt following this stmt won't be executed.
+    bool       is_end; 
+    Typep      retype;
+
+    Stmt(stmt::Shape* shape, bool is_end=false, Typep retype=nullptr)
+    :shape(shape), beg(nullptr), end(nullptr), is_end(is_end), retype(retype){}
 };
 
 struct Type

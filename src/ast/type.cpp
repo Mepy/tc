@@ -33,13 +33,15 @@ bool	API::TypeEq(Exprp lhs, Exprp rhs)
 	return true;
 }
 
-bool	API::Typing(Exprp expr, Typep type) 
+void	API::Typing(Exprp expr, Typep type, const char *msg) 
 {
 	try{ this->unify(*(expr->type), *type); }
-	catch(const char* msg)
+	catch(const char *_)
 	{
-		std::cerr<<"Unification Error : "<<msg<<std::endl;
-		return false;
+		if(nullptr==msg)
+			throw  _;
+		else
+			throw msg;
 	}
 	// unify will modify expr->type
 	// ensure expr->type has such property : 
@@ -48,8 +50,6 @@ bool	API::Typing(Exprp expr, Typep type)
 	auto shape = ((type::Typ*)(expr->type->shape));
 	if(type::Shape::Infer==shape->flag&&shape->id!=0)
 		expr->type = &(this->type[shape->id]);
-
-	return true;
 }
 
 // nullptr -> Infer 0

@@ -165,8 +165,8 @@ struct Context
     // for \ a1 ... an => body 's recursive
     stack<Exprp> funcs; // for $ 
 
-    // both for func and match's branch
-    stack<Exprp> funcs_retyck;
+    // for cons a1 ... an => body 's recursive
+    stack<Exprp> branches;
 
     // for func(a1, ..., an) 's   recursive
     stack<Exprp> calls;
@@ -208,6 +208,17 @@ struct Context
     ast::Type& unify_I_N(ast::Type& t1, ast::Type& t2);
     ast::Type& unify_I_U(ast::Type& t1, ast::Type& t2);
     ast::Type& unify_I_I(ast::Type& t1, ast::Type& t2);
+
+    // optional := might be nullptr
+    ast::Type* unify_opt(ast::Type* t1, ast::Type* t2)
+    {
+        if(nullptr==t1)
+            return t2;
+        else if(nullptr==t2)
+            return t1;
+        else 
+            return &unify(*t1, *t2);
+    }
 
     ir::Block* new_block(ir::Kind kind=ir::Kind::INST, Size size=0, Byte8 extra=RESERVED)
     {
