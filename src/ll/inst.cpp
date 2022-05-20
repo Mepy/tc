@@ -59,12 +59,8 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
         {
             if (StringMap.find(ins.src.id[0]) != StringMap.end())
             {
-                // throw std::runtime_error("string already defined");
-                // auto *CStr_ptr = Builder->CreateGlobalStringPtr(
-                //     StringMap[ins.src.id[0]]
-                // );
-                // IdMapVal[ins.dst] = CStr_ptr;
-                // return IdMapVal[ins.dst];
+                // CSTR always after ins
+                throw std::runtime_error("string already defined");
             }
             else 
             {
@@ -77,21 +73,21 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                    str += CSTRblock.extra.chars[i];
                 }
                 llvm::StringRef str_ref(str);
-                llvm::Value *CStr_ptr = Builder->CreateGlobalStringPtr(str_ref);
-                llvm::Value *name = llvm::ConstantDataArray::getString(
-                        *TheContext, 
-                        str_ref
-                    );
-                // Create alloc for string
-                IdMapAlloc[ins.dst] = Builder->CreateAlloca(
-                    name->getType(),
-                    llvm::ConstantExpr::getSizeOf(name->getType()),
-                    "CSTR");
-                // Store string
-                Builder->CreateStore(
-                    name,
-                    IdMapAlloc[ins.dst]
-                );
+                IdMapVal[ins.dst] = Builder->CreateGlobalString(str_ref);
+                // llvm::Value *name = llvm::ConstantDataArray::getString(
+                //         *TheContext, 
+                //         str_ref
+                //     );
+                // // Create alloc for string
+                // IdMapVal[ins.dst] = Builder->CreateAlloca(
+                //     name->getType(),
+                //     llvm::ConstantExpr::getSizeOf(name->getType()),
+                //     "CSTR");
+                // // Store string
+                // Builder->CreateStore(
+                //     name,
+                //     IdMapVal[ins.dst]
+                // );
                 return nullptr;
             }
             break;
@@ -231,9 +227,9 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
         // Pointer Arithmetic ops
         case Ins::PAdd:
         {
-            auto Ptr1_it = IdMapAlloc.find(ins.src.id[0]);
+            auto Ptr1_it = IdMapVal.find(ins.src.id[0]);
             auto Val2_it = IdMapVal.find(ins.src.id[1]);
-            if (Ptr1_it == IdMapAlloc.end() || Val2_it == IdMapVal.end())
+            if (Ptr1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
             {
                 throw std::invalid_argument("PAdd: src id not found.");
             }
@@ -242,17 +238,18 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             #if DEBUG
             std::cout << ret_ptr->getType()->isPointerTy() << std::endl;
             #endif
-            IdMapAlloc[ins.dst] = Builder->CreateAlloca(
-                ret_ptr->getType());
-            Builder->CreateStore(ret_ptr, IdMapAlloc[ins.dst]);
+            IdMapVal[ins.dst] = ret_ptr;
+                // Builder->CreateAlloca(
+                // ret_ptr->getType()->getPointerElementType());
+            // Builder->CreateStore(ret_ptr, IdMapVal[ins.dst]);
             return ret_ptr;
             break;
         }
         case Ins::PSub:
         {
-            auto Ptr1_it = IdMapAlloc.find(ins.src.id[0]);
-            auto Ptr2_it = IdMapAlloc.find(ins.src.id[1]);
-            if (Ptr1_it == IdMapAlloc.end() || Ptr2_it == IdMapAlloc.end())
+            auto Ptr1_it = IdMapVal.find(ins.src.id[0]);
+            auto Ptr2_it = IdMapVal.find(ins.src.id[1]);
+            if (Ptr1_it == IdMapVal.end() || Ptr2_it == IdMapVal.end())
             {
                 throw std::invalid_argument("PSub: src id not found.");
             }
@@ -263,10 +260,10 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             }
             // Ensure that the pointers are pointing to the same object
             // Not sure if it is the right way to validate this
-            if (Ptr1_it->second->getOperand(0) != Ptr2_it->second->getOperand(0))
-            {
-                throw std::invalid_argument("PSub: Pointers do not point to the same object.");
-            }
+            // if (Ptr1_it->second->getOperand(0) != Ptr2_it->second->getOperand(0))
+            // {
+            //     throw std::invalid_argument("PSub: Pointers do not point to the same object.");
+            // }
             llvm::Value *ret_val = 
                 Builder->CreatePtrDiff(Ptr1_it->second, Ptr2_it->second, "");
             IdMapVal[ins.dst] = ret_val;
@@ -275,13 +272,13 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
         case Ins::PMov:
         {
             // Assign the pointer to the destination
-            auto Ptr1_it = IdMapAlloc.find(ins.src.id[0]);
-            if (Ptr1_it == IdMapAlloc.end())
+            auto Ptr1_it = IdMapVal.find(ins.src.id[0]);
+            if (Ptr1_it == IdMapVal.end())
             {
                 throw std::invalid_argument("PMov: src id not found.");
             }
             auto &alloc_ref = Ptr1_it->second;
-            IdMapAlloc[ins.dst] = alloc_ref;
+            IdMapVal[ins.dst] = alloc_ref;
             return alloc_ref;
             break;
         }
@@ -442,9 +439,9 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
         // Ptr comparison
         case Ins::PLt:
         {
-            auto Ptr1_it = IdMapAlloc.find(ins.src.id[0]);
-            auto Ptr2_it = IdMapAlloc.find(ins.src.id[1]);
-            if (Ptr1_it == IdMapAlloc.end() || Ptr2_it == IdMapAlloc.end())
+            auto Ptr1_it = IdMapVal.find(ins.src.id[0]);
+            auto Ptr2_it = IdMapVal.find(ins.src.id[1]);
+            if (Ptr1_it == IdMapVal.end() || Ptr2_it == IdMapVal.end())
             {
                 throw std::invalid_argument("PLt: src id not found.");
             }
@@ -454,19 +451,19 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             }
             // Ensure that the pointers are pointing to the same object
             // Not sure if it is the right way to validate this
-            if (Ptr1_it->second->getOperand(0) != Ptr2_it->second->getOperand(0))
-            {
-                throw std::invalid_argument("PLt: src ptr not pointing to the same object.");
-            }
+            // if (Ptr1_it->second->getOperand(0) != Ptr2_it->second->getOperand(0))
+            // {
+            //     throw std::invalid_argument("PLt: src ptr not pointing to the same object.");
+            // }
             llvm::Value *ret_val = Builder->CreateICmpSLT(
                 llvm::dyn_cast<llvm::ConstantInt>(Ptr1_it->second), 
                 llvm::dyn_cast<llvm::ConstantInt>(Ptr2_it->second), "");
         }
         case Ins::PLe:
         {
-            auto Ptr1_it = IdMapAlloc.find(ins.src.id[0]);
-            auto Ptr2_it = IdMapAlloc.find(ins.src.id[1]);
-            if (Ptr1_it == IdMapAlloc.end() || Ptr2_it == IdMapAlloc.end())
+            auto Ptr1_it = IdMapVal.find(ins.src.id[0]);
+            auto Ptr2_it = IdMapVal.find(ins.src.id[1]);
+            if (Ptr1_it == IdMapVal.end() || Ptr2_it == IdMapVal.end())
             {
                 throw std::invalid_argument("PLe: src id not found.");
             }
@@ -476,19 +473,19 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             }
             // Ensure that the pointers are pointing to the same object
             // Not sure if it is the right way to validate this
-            if (Ptr1_it->second->getOperand(0) != Ptr2_it->second->getOperand(0))
-            {
-                throw std::invalid_argument("PLe: src ptr not pointing to the same object.");
-            }
+            // if (Ptr1_it->second->getOperand(0) != Ptr2_it->second->getOperand(0))
+            // {
+            //     throw std::invalid_argument("PLe: src ptr not pointing to the same object.");
+            // }
             llvm::Value *ret_val = Builder->CreateICmpSLE(
                 llvm::dyn_cast<llvm::ConstantInt>(Ptr1_it->second), 
                 llvm::dyn_cast<llvm::ConstantInt>(Ptr2_it->second), "");
         }
         case Ins::PGt:
         {
-            auto Ptr1_it = IdMapAlloc.find(ins.src.id[0]);
-            auto Ptr2_it = IdMapAlloc.find(ins.src.id[1]);
-            if (Ptr1_it == IdMapAlloc.end() || Ptr2_it == IdMapAlloc.end())
+            auto Ptr1_it = IdMapVal.find(ins.src.id[0]);
+            auto Ptr2_it = IdMapVal.find(ins.src.id[1]);
+            if (Ptr1_it == IdMapVal.end() || Ptr2_it == IdMapVal.end())
             {
                 throw std::invalid_argument("PGt: src id not found.");
             }
@@ -498,19 +495,19 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             }
             // Ensure that the pointers are pointing to the same object
             // Not sure if it is the right way to validate this
-            if (Ptr1_it->second->getOperand(0) != Ptr2_it->second->getOperand(0))
-            {
-                throw std::invalid_argument("PGt: src ptr not pointing to the same object.");
-            }
+            // if (Ptr1_it->second->getOperand(0) != Ptr2_it->second->getOperand(0))
+            // {
+            //     throw std::invalid_argument("PGt: src ptr not pointing to the same object.");
+            // }
             llvm::Value *ret_val = Builder->CreateICmpSGT(
                 llvm::dyn_cast<llvm::ConstantInt>(Ptr1_it->second), 
                 llvm::dyn_cast<llvm::ConstantInt>(Ptr2_it->second), "");
         }
         case Ins::PGe:
         {
-            auto Ptr1_it = IdMapAlloc.find(ins.src.id[0]);
-            auto Ptr2_it = IdMapAlloc.find(ins.src.id[1]);
-            if (Ptr1_it == IdMapAlloc.end() || Ptr2_it == IdMapAlloc.end())
+            auto Ptr1_it = IdMapVal.find(ins.src.id[0]);
+            auto Ptr2_it = IdMapVal.find(ins.src.id[1]);
+            if (Ptr1_it == IdMapVal.end() || Ptr2_it == IdMapVal.end())
             {
                 throw std::invalid_argument("PLe: src id not found.");
             }
@@ -520,19 +517,19 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             }
             // Ensure that the pointers are pointing to the same object
             // Not sure if it is the right way to validate this
-            if (Ptr1_it->second->getOperand(0) != Ptr2_it->second->getOperand(0))
-            {
-                throw std::invalid_argument("PLe: src ptr not pointing to the same object.");
-            }
+            // if (Ptr1_it->second->getOperand(0) != Ptr2_it->second->getOperand(0))
+            // {
+            //     throw std::invalid_argument("PLe: src ptr not pointing to the same object.");
+            // }
             llvm::Value *ret_val = Builder->CreateICmpSGE(
                 llvm::dyn_cast<llvm::ConstantInt>(Ptr1_it->second), 
                 llvm::dyn_cast<llvm::ConstantInt>(Ptr2_it->second), "");
         }
         case Ins::PEq:
         {
-            auto Ptr1_it = IdMapAlloc.find(ins.src.id[0]);
-            auto Ptr2_it = IdMapAlloc.find(ins.src.id[1]);
-            if (Ptr1_it == IdMapAlloc.end() || Ptr2_it == IdMapAlloc.end())
+            auto Ptr1_it = IdMapVal.find(ins.src.id[0]);
+            auto Ptr2_it = IdMapVal.find(ins.src.id[1]);
+            if (Ptr1_it == IdMapVal.end() || Ptr2_it == IdMapVal.end())
             {
                 throw std::invalid_argument("PEq: src id not found.");
             }
@@ -542,19 +539,19 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             }
             // Ensure that the pointers are pointing to the same object
             // Not sure if it is the right way to validate this
-            if (Ptr1_it->second->getOperand(0) != Ptr2_it->second->getOperand(0))
-            {
-                throw std::invalid_argument("PEq: src ptr not pointing to the same object.");
-            }
+            // if (Ptr1_it->second->getOperand(0) != Ptr2_it->second->getOperand(0))
+            // {
+            //     throw std::invalid_argument("PEq: src ptr not pointing to the same object.");
+            // }
             llvm::Value *ret_val = Builder->CreateICmpEQ(
                 llvm::dyn_cast<llvm::ConstantInt>(Ptr1_it->second), 
                 llvm::dyn_cast<llvm::ConstantInt>(Ptr2_it->second), "");
         }
         case Ins::PNe:
         {
-            auto Ptr1_it = IdMapAlloc.find(ins.src.id[0]);
-            auto Ptr2_it = IdMapAlloc.find(ins.src.id[1]);
-            if (Ptr1_it == IdMapAlloc.end() || Ptr2_it == IdMapAlloc.end())
+            auto Ptr1_it = IdMapVal.find(ins.src.id[0]);
+            auto Ptr2_it = IdMapVal.find(ins.src.id[1]);
+            if (Ptr1_it == IdMapVal.end() || Ptr2_it == IdMapVal.end())
             {
                 throw std::invalid_argument("PNe: src id not found.");
             }
@@ -564,10 +561,10 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             }
             // Ensure that the pointers are pointing to the same object
             // Not sure if it is the right way to validate this
-            if (Ptr1_it->second->getOperand(0) != Ptr2_it->second->getOperand(0))
-            {
-                throw std::invalid_argument("PNe: src ptr not pointing to the same object.");
-            }
+            // if (Ptr1_it->second->getOperand(0) != Ptr2_it->second->getOperand(0))
+            // {
+            //     throw std::invalid_argument("PNe: src ptr not pointing to the same object.");
+            // }
             llvm::Value *ret_val = Builder->CreateICmpNE(
                 llvm::dyn_cast<llvm::ConstantInt>(Ptr1_it->second), 
                 llvm::dyn_cast<llvm::ConstantInt>(Ptr2_it->second), "");
@@ -846,6 +843,9 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                     auto geti = TheModule->getFunction("geti");
                     auto dst = Builder->CreateCall(geti);
                     IdMapVal[ins.dst] = dst;
+                    #if DEBUG
+                    std::cout << "getint: " << dst << std::endl;
+                    #endif
                     return dst;
                 }
                 case 6: /*putint; for details, see ir.hpp->conventions*/
@@ -876,10 +876,45 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             //                         , 
             //                         ArgsMap[ins.src.id[1]]);
         }
-
         case Ins::Array:
         {
-
+            throw std::invalid_argument("Array: not implemented.");
+            // auto init_it = IdMapVal.find(ins.src.id[0]);
+            // if (init_it == IdMapVal.end())
+            // {
+            //     throw std::invalid_argument("Array: src(init val) id not found.");
+            // }
+            // auto size_it = IdMapVal.find(ins.src.id[1]);
+            // if (size_it == IdMapVal.end())
+            // {
+            //     throw std::invalid_argument("Array: src(size) id not found.");
+            // }
+            // auto constIntSize = llvm::dyn_cast<llvm::ConstantInt>(size_it->second);
+            // #if DEBUG
+            // std::cout << "Array: " << constIntSize << std::endl;
+            // #endif
+            // llvm::ArrayType *arr_type = llvm::ArrayType::get(
+            //     init_it->second->getType(),
+            //     constIntSize->getZExtValue()
+            // );
+            // #if DEBUG
+            // std::cout << "Array: " << arr_type << std::endl;
+            // #endif
+            // std::vector<llvm::Constant*> arr_init_vals(
+            //     llvm::dyn_cast<llvm::ConstantInt>(size_it->second)->getZExtValue(),
+            //     llvm::dyn_cast<llvm::ConstantInt>(init_it->second)
+            // );
+            // #if DEBUG
+            // std::cout << "Array: "  << std::endl;
+            // #endif
+            // IdMapVal[ins.dst] = llvm::ConstantArray::get(
+            //     arr_type, 
+            //     llvm::ArrayRef<llvm::Constant*>(arr_init_vals)
+            // );
+            // #if DEBUG
+            // std::cout << "Array: " << IdMapVal[ins.dst] << std::endl;
+            // #endif
+            return nullptr;
         }
         case Ins::Alloc:
         {
@@ -891,44 +926,103 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             llvm::Value *ret_val = val_it->second;
             llvm::Type *type = ret_val->getType();
 
-            IdMapAlloc[ins.dst] = Builder->CreateAlloca(type, nullptr /*size*/, name);
-            Builder->CreateStore(ret_val, IdMapAlloc[ins.dst]);
+            IdMapVal[ins.dst] = Builder->CreateAlloca(type, nullptr /*size*/, name);
+            Builder->CreateStore(ret_val, IdMapVal[ins.dst]);
             return ret_val;
+        }
+        case Ins::New:
+        {
+            // Call the _Znwm function from libc
+            // The first argument is the size of the memory to allocate
+            // The second argument is the alignment of the memory to allocate
+            // The return value is a pointer to the allocated memory
+            // The memory is uninitialized
+            // The memory is allocated on the stack
+            // The memory is not freed when the function returns
+            auto val_it = IdMapVal.find(ins.src.id[0]);
+            if (val_it == IdMapVal.end() ){
+                throw std::invalid_argument("New: src id not found.");
+            }
+            std::string name = std::to_string(val_it->first);
+            auto ret_ptr = Builder->CreateCall(
+                TheModule->getFunction("_Znwm"),
+                {
+                    llvm::ConstantExpr::getSizeOf(val_it->second->getType()),
+                    // llvm::ConstantInt::get(llvm::Type::getInt32Ty(*TheContext), 1)
+                }
+            );
+            IdMapVal[ins.dst] = llvm::dyn_cast<llvm::AllocaInst>(ret_ptr);
+            return nullptr;
+        }
+        case Ins::NewAr:
+        {
+            // Call the _Znam function from libc
+            auto val_it = IdMapVal.find(ins.src.id[0]);
+            if (val_it == IdMapVal.end() ){
+                throw std::invalid_argument("NewAr: src(init) id not found.");
+            }
+            auto size_it = IdMapVal.find(ins.src.id[1]);
+            if (size_it == IdMapVal.end() ){
+                throw std::invalid_argument("NewAr: src(len) id not found.");
+            }
+            std::string name = std::to_string(val_it->first);
+            auto ret_ptr = Builder->CreateCall(
+                TheModule->getFunction("_Znam"),
+                {
+                    llvm::ConstantExpr::getSizeOf(val_it->second->getType()),
+                    // llvm::ConstantInt::get(llvm::Type::getInt32Ty(*TheContext), 1)
+                }
+            );
+            IdMapVal[ins.dst] = llvm::dyn_cast<llvm::AllocaInst>(ret_ptr);
+            return nullptr;
         }
 
         case Ins::Set:
         {
-            if (IdMapAlloc[ins.dst] == nullptr ) {
+            if (IdMapVal[ins.dst] == nullptr ) {
                 throw std::invalid_argument("Set: dst(ptr) id not found.");
             }
             if (IdMapVal[ins.src.id[0]] == nullptr ) {
                 throw std::invalid_argument("Set: src(val) id not found.");
             }
+            auto& src = IdMapVal[ins.src.id[0]];
+            auto& dst = IdMapVal[ins.dst];
             llvm::Value *index;
-            if (IdMapAlloc[ins.dst]->isArrayAllocation() ) 
+            if (dst->getType()->isArrayTy() ) 
             {
                 llvm::Value *index = llvm::ConstantInt::get(
                     llvm::Type::getInt32Ty(*TheContext), ins.src.id[1]);
 
-                llvm::Value *val_ptr = Builder->CreateGEP(
-                    IdMapAlloc[ins.src.id[0]]->getType(),
-                    IdMapAlloc[ins.src.id[0]], 
+                llvm::Value *val_store_ptr = Builder->CreateGEP(
+                    dst->getType()->getArrayElementType(),
+                    dst, 
                     index, 
                     std::to_string(ins.src.id[0])
                 );
 
-                Builder->CreateStore(IdMapVal[ins.src.id[0]], val_ptr);
+                Builder->CreateStore(src, val_store_ptr);
             }
-            else
+            else if (src->getType()->isPointerTy() ) 
             {
-                // if (ins.src.id[1] != 0) 
-                // {
+                if (ins.src.id[1] != 0) 
+                {
                     // TODO: this can be a warning, not an error?
-                // throw std::invalid_argument("Set: src(ptr) id mapped to non-ptr. But offset is non-zero.");
-                // }
-                // index = llvm::ConstantInt::get(
-                //     llvm::Type::getInt32Ty(*TheContext), 0);
-                Builder->CreateStore(IdMapVal[ins.src.id[0]], IdMapAlloc[ins.dst]);
+                    throw std::invalid_argument("Set: src(ptr) id mapped to ptr; But offset is non-zero.");
+                }
+                if (src->getType()->getPointerElementType()->isArrayTy())
+                {   // pointer to array type: in CStr
+                    #if DEBUG
+                    std::cout << "Set: src(ptr) to array (CStr).\n";
+                    #endif
+                    auto cast = Builder->CreateBitCast(src, 
+                        src->getType()->getPointerElementType()->getArrayElementType()->getPointerTo()
+                    ); // cast from ptr to array to ptr to element
+                    Builder->CreateStore(
+                        src, 
+                        cast);
+                    return nullptr;
+                }
+                Builder->CreateStore(src, dst);
             }
             return nullptr;
         }
@@ -938,41 +1032,51 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             std::cout << "Get: " << ins.dst << " <- " << ins.src.id[0] << std::endl;
             // std::cout << src->isArrayAllocation() << std::endl;
             #endif
-            /*
-            if (IdMapAlloc.find(ins.src.id[0]) == IdMapAlloc.end() ) {
+            if (IdMapVal.find(ins.src.id[0]) == IdMapVal.end() ) {
                 throw std::invalid_argument("Get: src(ptr) id not found.");
             }
-            */
-            auto &src = IdMapVal[ins.src.id[0]];
-            if (src->isArrayAllocation())
-            {
-                //pointer-type: add offset to it
-                llvm::Value *index = IdMapVal[ins.src.id[1]];
-                
-                llvm::Value *val_ptr = Builder->CreateGEP(
-                    Builder->CreateLoad(src)->getType(),
+            auto& src = (IdMapVal[ins.src.id[0]]);
+            if (src->getType()->isArrayTy() ) {
+                // needs testing
+                llvm::Value *index = llvm::ConstantInt::get(
+                    llvm::Type::getInt32Ty(*TheContext), ins.src.id[1]);
+                auto val_ptr = Builder->CreateGEP(
+                    src->getType(),
                     src, 
                     index, 
                     std::to_string(ins.src.id[0])
                 );
-
-                IdMapVal[ins.dst] = Builder->CreateLoad(
-                    val_ptr->getType()->getPointerElementType(), 
-                    val_ptr);
+                IdMapVal[ins.dst] = Builder->CreateLoad(val_ptr);
             }
-            else 
+            if(src->getType()->isPointerTy())
             {
+                //CreateGEP pointer
                 #if DEBUG
                 std::cout << "Get: src(ptr) id mapped to non-array.\n";
                 #endif
                 // non-array: should not have non-zero offset field
-                if (!src->getType()->isPointerTy() && ins.src.id[1] != 0) 
+                // Since ptrs have their add ops
+                if (ins.src.id[1] != 0) 
                 {
                     // TODO: this can be a warning, not an error?
-                    throw std::invalid_argument("Get: src(ptr) id mapped to non-array and non-ptr type, but offset is non-zero.");
+                    throw std::invalid_argument("Get: src(ptr) id mapped to ptr type, but offset is non-zero.");
                 }
+                if (src->getType()->getPointerElementType()->isArrayTy())
+                {   // pointer to array type: in CStr
+                    #if DEBUG
+                    std::cout << "Get: src(ptr) to array (CStr).\n";
+                    #endif
+                    auto cast = Builder->CreateBitCast(src, 
+                        src->getType()->getPointerElementType()->getArrayElementType()->getPointerTo()
+                    ); // cast from ptr to array to ptr to element
+                    IdMapVal[ins.dst] = Builder->CreateLoad(
+                        cast->getType()->getPointerElementType(), 
+                        cast);
+                    return IdMapVal[ins.dst];
+                }
+                //else: product of CreateGEP, simply load
                 IdMapVal[ins.dst] = Builder->CreateLoad(
-                    src->getType()->getElementType(), 
+                    src->getType()->getPointerElementType(), 
                     src);
             }
             return IdMapVal[ins.dst];
