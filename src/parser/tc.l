@@ -108,7 +108,7 @@
 "continue" {return CONT; }
 "return" {return RET; }
 "del" {return DEL; }
-"type" {return TYPE; }
+"type" {return _TYPE; }
 "check" {return CHECK; }
 "fun" {return FUN; }
 "match" {return MATCH; }
@@ -137,14 +137,14 @@
     return STRING;
 }
 
-[a-z][a-zA-Z0-9]* {
+[a-z][_a-zA-Z0-9]* {
     char *s = (char *)malloc(yyleng+1);
     strcpy(s, yytext);
     yylval.sval = s;
     return EN;
 }
 
-[A-Z][a-zA-Z0-9]* {
+[A-Z][_a-zA-Z0-9]* {
     char *s = (char *)malloc(yyleng+1);
     strcpy(s, yytext);
     yylval.sval = s;
