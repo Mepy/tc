@@ -1,5 +1,6 @@
 %{
     #include <stdlib.h>
+    #include <string.h>
     #include <string>
     #include <iostream>
     #include "head.hpp"
@@ -46,15 +47,24 @@
 ";" {return SEMI; }
 "," {return COMMA; }
 ":" {return COLON; }
+"+=" {return ADDASSIGN; }
+"-=" {return SUBASSIGN; }
+"*=" {return MULASSIGN; }
+"/=" {return DIVASSIGN; }
+"%=" {return MODASSIGN; }
+"+.=" {return FADDASSIGN; }
+"-.=" {return FSUBASSIGN; }
+"*.=" {return FMULASSIGN; }
+"/.=" {return FDIVASSIGN; }
 "=" {return ASSIGN; }
 "$" {return SELF; }
 "@*" {return REFS; }
-"@" {return REF; }
+"@" { return REF; }
 "&" {return PTR; }
 [\\] {return BS; }
 "=>" {return RDARROW; }
 "->" {return RSARROW; }
-"<-" {return LSARROW; }
+"**" {return ARR; }
 
 "~" {return BNOT; }
 "!" {return LNOT; }
@@ -78,7 +88,6 @@
 ">" {return GT; }
 
 "%" {return MOD; }
-"&" {return BAND; }
 "|" {return BOR; }
 "^" {return BXOR; }
 "<<" {return LSHIFT; }
@@ -91,7 +100,7 @@
 "&-" {return PTRSUB; }
 
 "let" {return LET; }
-"var" {return VAR; }
+
 "if" {return IF; }
 "else" {return ELSE; }
 "while" {return WHILE; }
@@ -106,6 +115,12 @@
 "with" {return WITH; }
 "new" {return NEW;}
 
+"'\\n'" {
+    char c = '\n';
+    yylval.cval = c;
+    return CHAR;
+}
+
 \'.\' {
     char c = yytext[1];
     yylval.cval = c;
@@ -113,23 +128,29 @@
 }
 
 \".*\" {
+    char *s = (char *)malloc(yyleng+1);
     for(int i=0; i<yyleng-1; i++){
-        yytext[i] = yytext[i+1];
+        s[i] = yytext[i+1];
     }
-    yytext[yyleng-2] = '\0';
-    yylval.sval = yytext;
+    s[yyleng-2] = 0;
+    yylval.sval = s;
     return STRING;
 }
 
+[a-z][a-zA-Z0-9]* {
+    char *s = (char *)malloc(yyleng+1);
+    strcpy(s, yytext);
+    yylval.sval = s;
+    return EN;
+}
+
 [A-Z][a-zA-Z0-9]* {
-    yylval.sval = yytext;
+    char *s = (char *)malloc(yyleng+1);
+    strcpy(s, yytext);
+    yylval.sval = s;
     return TN;
 }
 
-"_"|[a-z][a-zA-Z0-9]* {
-    yylval.sval = yytext;
-    return EN;
-}
 
 %%
 

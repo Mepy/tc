@@ -3,7 +3,7 @@
     #include <math.h>
     #include <string>
     #include "head.hpp"
-    extern int yylex();
+    int yylex(void);
     void yyerror(char* s);
     API context;
 %}
@@ -25,33 +25,143 @@
 
 %token  LP RP LB RB LC RC 
 %token  SEMI COMMA COLON 
-%token  ASSIGN 
-%token  SELF REFS REF PTR 
-%token  BS RDARROW RSARROW LSARROW
+%token  ASSIGN ADDASSIGN SUBASSIGN MULASSIGN DIVASSIGN MODASSIGN FADDASSIGN FSUBASSIGN FMULASSIGN FDIVASSIGN
+%token  SELF REFS REF PTR BS RDARROW RSARROW ARR
 %token  BNOT LNOT 
-        FADD FSUB FMUL FDIV
-        ADD SUB MUL DIV
+        FADD FSUB FMUL FDIV ADD SUB MUL DIV
         LAND LOR LXOR LEQ GEQ LT GT
         MOD BAND BOR BXOR LSHIFT RSHIFT
         EQ NEQ ADDPTR PTRADD PTRSUB
-%token  LET VAR IF ELSE WHILE BREAK CONT 
-        RET DEL TYPE CHECK FUN MATCH WITH NEW
+%token  LET IF ELSE WHILE BREAK CONT RET DEL TYPE CHECK FUN MATCH WITH NEW
 %token <ival> INT
 %token <fval> FLOAT
 %token <cval> CHAR
 %token <sval> STRING TN EN
 
 %type <expr> Expr I F C S Calc UnCalc BinCalc1 BinCalc2 BinCalc3 BinCalc4
-%type <expr> Fun ExprFunDef
-%type <oper> UnOp BinOp1 BinOp2 BinOp3 BinOp4
-%type <type> Type TypeVar TypeRef TypePtr TypeArr TypeFun TypeFunArg TypeDef
-%type <cell> CellVar App CellEle CellRef
+%type <expr> ExprPtr ExprVal ExprRef ExprVar ExprVarRef Arr Ele EleRef EleAddr New
+%type <expr> Fun ExprFunDef 
+%type <expr> App
+%type <expr> Match
+%type <oper> UnOp BinOp1 BinOp2 BinOp3 BinOp4 AssignOp
+
+
+%type <type> Type TypeVar TypeRef TypePtr TypeArr TypeFun TypeFunArg TypeDef 
+%type <cell> Cell CellVar CellEle CellRef
+%type <stmt> Stmt Empty Block Let Var If While Break Cont Ret Exp Del Asgn NewType ADT Alias Check
+
 %start Start
 %%
 
-Start: Type |Expr;
+Start: BlockStmtList; 
 
-Type: TypeVar | TypeRef | TypePtr | TypeArr | TypeFun;
+Stmt: 
+Empty | 
+Block | 
+Let   | 
+Var   | 
+If    | 
+While | 
+Break | 
+Cont  | 
+Ret   | 
+Exp   | 
+Del   | 
+Asgn  | 
+NewType |
+Check;
+
+StmtList: Stmt StmtList
+
+
+Empty: SEMI { $$ = context.Empty(); };
+
+Block: 
+LC { context.BlockBegin();} BlockStmtList RC { $$ = context.BlockEnd(); };
+
+BlockStmtList: 
+Stmt { context.BlockStmt($1); } BlockStmtList | 
+{ ; } ;
+
+Let: 
+LET EN TypeDef ASSIGN Expr SEMI { $$ = context.Let($2, $5, $3); };
+
+Var: 
+LET REF EN TypeDef ASSIGN Expr SEMI { $$ = context.Var($3, $6, $4); };
+
+If: 
+IF LP Expr RP Stmt { $$ = context.If($3, $5, nullptr); } |
+IF LP Expr RP Stmt ELSE Stmt { $$ = context.If($3, $5, $7); };
+
+While:
+WHILE {context.WhileBeg(); } 
+LP Expr RP Stmt { $$ = context.While($4, $6); };
+
+Break: 
+BREAK INT SEMI { $$ = context.Break($2); } |
+BREAK SEMI { $$ = context.Break(); };
+
+Cont:
+CONT INT SEMI { $$ = context.Cont($2); } |
+CONT SEMI { $$ = context.Cont(); };
+
+Ret:
+RET Expr SEMI { $$ = context.Ret($2); } |
+RET SEMI { $$ = context.Ret(); };
+
+Exp:
+Expr SEMI { $$ = context.Exp($1); };
+
+Del:
+DEL Expr SEMI { $$ = context.Del($2); };
+
+Asgn: Cell AssignOp Expr SEMI { $$ = context.Asgn($1, $2, $3); }
+AssignOp:
+ASSIGN { $$ = Oper::Undefined; } |
+ADDASSIGN { $$ = Oper::Add; } |
+SUBASSIGN { $$ = Oper::Sub; } |
+MULASSIGN { $$ = Oper::Mul; } |
+DIVASSIGN { $$ = Oper::Div; } |
+FADDASSIGN { $$ = Oper::FAdd; } |
+FSUBASSIGN { $$ = Oper::FSub; } |
+FMULASSIGN { $$ = Oper::FMul; } |
+FDIVASSIGN { $$ = Oper::FDiv; } |
+MODASSIGN { $$ = Oper::Mod; };
+
+NewType: 
+NewTypeDef Alias { $$ = $2; } |
+NewTypeDef ADT { $$ = $2; };
+
+NewTypeDef: TYPE TN { context.TypeDef($2); } ASSIGN;
+
+Alias: 
+Type SEMI { $$ = context.Alias($1); };
+
+ADT: 
+ADTLists SEMI { $$ = context.ADT(); };
+
+ADTLists: 
+ADTList ADTLists | 
+{ ; };
+
+ADTList : 
+BOR EN { context.ADTBranchBegin($2); } TypeLists { context.ADTBranchEnd(); };
+
+TypeLists: 
+Type TypeLists { context.ADTBranchType($1); } |
+SELF TypeLists { context.ADTBranchType();   } |
+{ ; }
+
+Check: 
+CHECK Expr Type SEMI { $$ = context.Check($2, $3); }
+
+Type: 
+TypeVar | 
+TypeRef | 
+TypePtr | 
+TypeArr | 
+TypeFun;
+
 TypeVar: TN {
     $$ = context.TypeVar($1);
 };
@@ -79,47 +189,159 @@ TypeDef: COLON Type{
     $$ = $2;
 } | { $$ = nullptr; }
 
+Cell: 
+CellVar | 
+CellEle | 
+CellRef;
 
+CellVar: 
+REF EN { $$ = context.CellVar($2); } |
+EN { $$ = context.CellVar($1); };
 
-Expr: F | I | C | S | Calc | Fun;
+CellEle: 
+Cell LB Expr RB { $$ = context.CellEle($1, $3); };
+
+CellRef:
+MUL Expr { $$ = context.CellRef($2); }
+
+Expr: 
+Fun         | 
+App         | 
+Match       | 
+ExprPtr     | 
+ExprVal     | 
+ExprRef     | 
+ExprVar     | 
+ExprVarRef  |
+Arr         | 
+Ele         | 
+EleRef      |   
+EleAddr     | 
+New         | 
+Calc        | 
+F           | 
+I           | 
+C           |
+S; 
 
 I: INT {
+    printf("I: %ld\n", $1);
     $$ = context.I($1); 
 };
+
 F: FLOAT { 
+    printf("F: %02f\n", $1);
     $$ = context.F($1); 
 };
+
 C: CHAR {
+    printf("C: %c\n", $1);
     $$ = context.C($1); 
 };
+
 S: STRING {
+    printf("S: %s\n", $1);
     $$ = context.S($1); 
 };
+
+ExprPtr: PTR Cell {
+    $$ = context.ExprPtr($2);
+}
+
+ExprVal: MUL Expr {
+    $$ = context.ExprVal($2);
+};
+
+ExprRef: REFS Expr {
+    $$ = context.ExprRef($2);
+}
+
+ExprVar: EN {
+    $$ = context.ExprVar($1);
+}
+
+
+ExprVarRef: REF EN {
+    $$ = context.ExprVarRef($2);
+}
+
+Arr: Expr ARR INT {
+    $$ = context.ExprArr($1, $3);
+}
+
+Ele: Expr LB Expr RB {
+    $$ = context.ExprEle($1, $3);
+}
+
+EleRef: Expr REF LB Expr RB {
+    $$ = context.ExprEleRef($1, $4);
+}
+
+EleAddr: Expr PTR LB Expr RB {
+    $$ = context.ExprEleAddr($1, $4);
+}
+
+New: 
+NEW Expr ARR Expr { $$ = context.New($2); }
+
+
+// **************************Fun **************************
+FunStart: FUN | BS;
+
+ExprFunArgLists : 
+EN TypeDef { 
+    context.ExprFunArg($1, $2); 
+} ExprFunArgLists |
+REF EN TypeDef { 
+    context.ExprFunRefArg($2, $3); 
+} ExprFunArgLists |
+{ ; };
+
+//add stmt later 
+ExprFunDef: 
+Stmt { $$ = context.ExprFunStmt($1); };
 
 Fun: FunStart {context.ExprFunBeg();} ExprFunArgLists RDARROW ExprFunDef {
     $$ = $5;
 };
 
-FunStart: FUN | BS;
 
-ExprFunArgLists : 
-ExprFunArg ExprFunArgLists |
-ExprFunRefArg ExprFunArgLists | 
+// ************************** App **************************
+AppStart:
+Expr { context.AppBeg($1); } |
+SELF { context.AppBeg(nullptr); };
+
+AppRetRef:
+REF { context.AppForceRetRef();} | 
 { ; };
 
-ExprFunArg : EN TypeDef {
-    context.ExprFunArg($1, $2);
-};
+AppArg: 
+Expr { context.AppArg($1);} COMMA AppArg |
+Expr { context.AppArg($1);} | 
+{ ; };
 
-ExprFunRefArg: REF EN TypeDef {
-    context.ExprFunRefArg($2, $3);
-};
+App: AppStart AppRetRef LP AppArg RP { $$ = context.ExprAppEnd(); }; 
 
-//add stmt later 
-ExprFunDef: Expr {
-    $$ = $1;
-};
+/* App: 
+ExprVal { context.AppBeg($1); } AppRetRef LP AppArg RP { $$ = context.ExprAppEnd(); } |
+ExprRef { context.AppBeg($1); } AppRetRef LP AppArg RP { $$ = context.ExprAppEnd(); } |
+ExprVar { context.AppBeg($1); } AppRetRef LP AppArg RP { $$ = context.ExprAppEnd(); } |
+ExprVarRef { context.AppBeg($1); } AppRetRef LP AppArg RP { $$ = context.ExprAppEnd(); } |
+SELF { context.AppBeg(nullptr); } AppRetRef LP AppArg RP { $$ = context.ExprAppEnd(); }; */
 
+// ************************** Match *************************
+Match: MATCH Expr { context.MatchBeg($2); } WITH MatchLists{ $$ = context.MatchEnd(); }
+
+MatchLists: MatchList MatchLists | ;
+ENLists: EN { context.MatchBranchArg($1); } ENLists | ;
+MatchList: BOR EN { context.MatchBranchBeg($2); } ENLists RDARROW MatchDef;
+
+// add stmt later
+MatchDef:  
+Stmt { context.MatchBranchStmt($1); };
+
+
+// ************************** Calc **************************
 Calc: UnCalc | BinCalc1; 
 
 UnCalc:  
@@ -142,6 +364,7 @@ BinCalc2 {
 BinOp1:
 BAND { $$ = Oper::BAnd; } |
 BOR { $$ = Oper::BOr; } | 
+BXOR { $$ = Oper::BXOr;} |
 LAND { $$ = Oper::LAnd; } |
 LOR { $$ = Oper::LOr;} |
 LXOR { $$ = Oper::LXOr; };
@@ -193,14 +416,15 @@ FMUL { $$ = Oper::FMul; } |
 FDIV { $$ = Oper::FDiv; } |
 MOD { $$ = Oper::Mod; };
 
+
 %%
 
 
 int main() {
-    /* context.BlockBegin(); */
+    context.BlockBegin();
     yyparse();
-    /* context.save(context.BlockEnd());
-    context.save("tc.hex"); */
+    context.save(context.BlockEnd()); 
+    context.save("tc.hex"); 
 }
 
 void yyerror(char *s) {

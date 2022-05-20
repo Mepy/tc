@@ -25,4 +25,4 @@ parser.cpp : tc.y
 	bison -d -o $@ $<
 
 clean :
-	rm *.o *.c *.h *.hex tc
+	rm *.o *.c *.h *.hex parser.cpp parser.hpp lexer.cpp test.out
