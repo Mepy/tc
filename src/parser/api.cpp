@@ -218,17 +218,17 @@ Expr* API::ExprArr(Expr* expr, Expr* size){
 }
 
 Cell* API::CellVarEle(Name name, Expr* index){
-    std::cout << "CellVarEle" << name << std::endl; 
+    std::cout << "CellVarEle " << name << std::endl; 
     return nullptr;
 }
 
 Cell* API::CellEle(Cell* cell, Expr* index){
-    std::cout << "CellEle" << std::endl; 
+    std::cout << "CellEle " << std::endl; 
     return nullptr;
 }
 
 Expr* API::ExprEle(Expr* expr, Expr* index){
-    std::cout << "ExprEle" << std::endl;
+    std::cout << "ExprEle " << std::endl;
     return nullptr;
 }
 

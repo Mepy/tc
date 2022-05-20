@@ -1,4 +1,3 @@
-let foo = \=> {
-    return 3;
-};
-
+let l = 0 ** 100;
+let x = l[10] == 3 && 50 > l[4];
+let y = 0;

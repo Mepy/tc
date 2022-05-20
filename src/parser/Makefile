@@ -8,11 +8,11 @@ MakeOBJ = ${CC} ${CFLAGS} $< -c
 test : test.out
 	cat test.tc && cat test.tc | ./$< && rm ./$<
 
-# test.out : ${OBJ}
-# 	g++ $^ ../ast/ast.o -o $@
-
 test.out : ${OBJ}
-	g++ $^ api.o -o $@
+	g++ $^ ../ast/ast.o -o $@
+
+# test.out : ${OBJ}
+# 	g++ $^ api.o -o $@
 
 build : ${OBJ}
 	g++ $^ -o $@ -lm

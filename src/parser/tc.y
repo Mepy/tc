@@ -38,12 +38,12 @@
 %token <cval> CHAR
 %token <sval> STRING TN EN
 
-%type <expr> Expr I F C S Calc UnCalc BinCalc1 BinCalc2 BinCalc3 BinCalc4
+%type <expr> Expr I F C S Calc UnCalc BinCalc1 BinCalc2 BinCalc3 BinCalc4 BinCalc5
 %type <expr> ExprPtr ExprVal ExprRef ExprVar ExprVarRef Arr Ele EleRef EleAddr New
 %type <expr> Fun ExprFunDef 
 %type <expr> App
 %type <expr> Match
-%type <oper> UnOp BinOp1 BinOp2 BinOp3 BinOp4 AssignOp
+%type <oper> UnOp BinOp1 BinOp2 BinOp3 BinOp4 AssignOp 
 
 %type <type> Type TypeVar TypeRef TypePtr TypeArr TypeFun TypeFunArg TypeDef 
 %type <cell> Cell CellVar CellEle CellRef CellVarEle
@@ -54,6 +54,7 @@
 %left LSHIFT RSHIFT
 %left LEQ GEQ LT GT EQ NEQ
 %left ADDPTR PTRADD PTRSUB
+%left ARR
 %right BNOT LNOT 
 
 %start Start
@@ -203,7 +204,8 @@ CellVar:
 REF EN { $$ = context.CellVar($2); } |
 EN { $$ = context.CellVar($1); };
 
-CellVarEle : EN LB Expr RB { $$ = context.CellVarEle($1, $3); };
+CellVarEle : 
+EN LB Expr RB { $$ = context.CellVarEle($1, $3); };
 
 CellEle: 
 Cell LB Expr RB { $$ = context.CellEle($1, $3); };
@@ -307,9 +309,9 @@ REF EN TypeDef {
 //add stmt later 
 ExprFunDef: 
 Stmt { $$ = context.ExprFunStmt($1); };
+FunFront : 
 
-FunFront : FunStart {context.ExprFunBeg();} ExprFunArgLists RDARROW { context.ExprFunPre(); } 
-    ;
+FunStart {context.ExprFunBeg();} ExprFunArgLists RDARROW { context.ExprFunPre(); } ;
 Fun: FunFront ExprFunDef {
     $$ = $2;
 };
@@ -363,7 +365,7 @@ SUB  { $$ = Oper::Neg; } |
 FSUB { $$ = Oper::Neg; };
 
 BinCalc1: 
-Expr BinOp1 Expr {
+BinCalc2 BinOp1 BinCalc2 {
     $$ = context.BinOp($1, $2, $3);
 } | 
 BinCalc2 {
@@ -378,7 +380,7 @@ LOR { $$ = Oper::LOr;} |
 LXOR { $$ = Oper::LXOr; };
 
 BinCalc2: 
-Expr BinOp2 Expr {
+BinCalc3 BinOp2 BinCalc3 {
     $$ = context.BinOp($1, $2, $3);
 } | 
 BinCalc3 {
@@ -395,7 +397,7 @@ LSHIFT { $$ = Oper::LShift; } |
 RSHIFT { $$ = Oper::RShift; };
 
 BinCalc3: 
-Expr BinOp3 Expr {
+BinCalc4 BinOp3 BinCalc4 {
     $$ = context.BinOp($1, $2, $3);
 } | 
 BinCalc4 {
@@ -411,12 +413,18 @@ PTRADD { $$ = Oper::PtrAdd; } |
 PTRSUB { $$ = Oper::PtrSub; };
 
 BinCalc4: 
-Expr BinOp4 Expr {
+BinCalc5 BinOp4 BinCalc5 {
     $$ = context.BinOp($1, $2, $3);
 } | 
-LP BinCalc1 RP {
-    $$ = $2;
+BinCalc5 {
+    $$ = $1;
 };
+
+BinCalc5:
+LP Expr RP {
+    $$ = $2;
+} | 
+Expr { $$ =$1;};
 
 BinOp4:
 MUL { $$ = Oper::Mul; } |
