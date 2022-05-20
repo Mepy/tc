@@ -59,7 +59,7 @@ struct API : public Context
     Cell* CellAppEnd();
     Expr* ExprAppEnd();
 
-    Expr* ExprArr(Expr* expr, Size size);
+    Expr* ExprArr(Expr* expr, Expr* size);
     Cell* CellEle(Cell* cell, Expr* index);
     Expr* ExprEle(Expr* expr, Expr* index);
     Expr* ExprEleRef(Expr* expr, Expr* index);

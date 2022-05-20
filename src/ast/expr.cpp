@@ -177,12 +177,12 @@ Cell*	API::CellVar(Name name)
 {
 	auto id = this->expr[name];
 	if(0==id)
-		throw "API::CellVar Name Not Found;";
+		throw ("API::CellVar " + name + " Not Found;").c_str();
 	auto cell = &(this->expr[id]);
 	auto type = cell->type;
 
 	if(type::Shape::Ref!=type->shape->flag)
-		throw "API::CellVar Not A Ref;";
+		throw ("API::CellVar " + name + " Not A Ref;").c_str();
 	
 	return (Cell*)cell;
 }
@@ -192,7 +192,7 @@ Exprp	API::ExprVar(Name name)
 	auto id = this->expr[name];
 
 	if(0==id)
-		throw "API::ExprVar Name Not Found;";
+		throw ("API::ExprVar " + name + " Not Found;").c_str();
 
 	auto expr = &(this->expr[id]);
 
@@ -1095,30 +1095,63 @@ Exprp	API::BinOp(Exprp lhs, Oper oper, Exprp rhs)
 	}
 }
 
+Exprp	API::ExprArr(Exprp init, Exprp size)
+{
+	auto eid = this->expr.nid();
+
+	Typing(size, this->i);
+
+	Typep type;
+	if(expr::Shape::I==size->shape->flag) // Const size
+	{
+		auto size_value = ((expr::I*)(size->shape))->i;
+		if(size_value<0)
+			throw "API::ExprArr size < 0;";
+		
+		type = this->TypeArr(init->type, size_value);
+	}
+	else // NonD size
+		type = this->TypeInfer(init->type);
+
+	auto init_id = init->id;
+	auto size_id = size->id;
+	this->expr.insert(Expr(eid, Eh::array(init_id, size_id), type, Ih::Array(eid, init_id, size_id), Sort::NonD));
+	auto expr = &(this->expr[eid]);
+
+	expr->inst_front(init);
+	expr->inst_front(size);
+
+	return expr;
+}
+
+
 Exprp	API::New(Exprp init)
 {
 	auto eid = this->expr.nid();
 
-	auto i_type = init->type;
-	switch(i_type->shape->flag)
+	if(expr::Shape::Array==init->shape->flag) // NewAr
 	{
-	case type::Shape::Array:
-	{
-		auto shape = ((type::Array*)(i_type->shape));
-		auto tid = shape->id;
-		auto _type = &(this->type[tid]);
-
-		auto type = this->TypePtr(_type);
-
-		this->expr.insert(Expr(eid, Eh::new_array(init->id), type));
-		break;
+		auto shape = ((expr::Binary*)(init->shape));
+		auto init_id = shape->lhs;
+		auto size_id = shape->rhs;
+		auto type = this->TypeInfer(this->expr[init_id].type);
+		this->expr.insert(
+			Expr(eid, Eh::new_array(init_id, size_id), type
+				, Ih::NewAr(eid, init_id, size_id), Sort::NonD)
+		);
 	}
-	default:
-		auto type = this->TypePtr(i_type);
-		this->expr.insert(Expr(eid, Eh::new_expr(init->id), type));
-		break;
+	else // New
+	{
+		auto type = this->TypePtr(init->type);
+		auto init_id = init->id;
+		this->expr.insert(
+			Expr(eid, Eh::new_expr(init_id), type
+				, Ih::New(eid, init_id), Sort::NonD)
+		);
 	}
 	auto expr = &(this->expr[eid]);
+
+	expr->inst_front(init);
 
 	return expr;
 }

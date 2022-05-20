@@ -32,7 +32,7 @@
         LAND LOR LXOR LEQ GEQ LT GT
         MOD BAND BOR BXOR LSHIFT RSHIFT
         EQ NEQ ADDPTR PTRADD PTRSUB
-%token  LET IF ELSE WHILE BREAK CONT RET DEL TYPE CHECK FUN MATCH WITH NEW
+%token  LET IF ELSE WHILE BREAK CONT RET DEL _TYPE CHECK FUN MATCH WITH NEW
 %token <ival> INT
 %token <fval> FLOAT
 %token <cval> CHAR
@@ -129,7 +129,7 @@ NewType:
 NewTypeDef Alias { $$ = $2; } |
 NewTypeDef ADT { $$ = $2; };
 
-NewTypeDef: TYPE TN { context.TypeDef($2); } ASSIGN;
+NewTypeDef: _TYPE TN { context.TypeDef($2); } ASSIGN;
 
 Alias: 
 Type SEMI { $$ = context.Alias($1); };
@@ -262,7 +262,7 @@ ExprVarRef: REF EN {
     $$ = context.ExprVarRef($2);
 }
 
-Arr: Expr ARR INT {
+Arr: Expr ARR Expr {
     $$ = context.ExprArr($1, $3);
 }
 
@@ -418,10 +418,16 @@ MOD { $$ = Oper::Mod; };
 
 
 int main() {
-    context.BlockBegin();
-    yyparse();
-    context.save(context.BlockEnd()); 
-    context.save("tc.hex");  
+    try{
+        context.BlockBegin();
+        yyparse();
+        context.save(context.BlockEnd()); 
+        context.save("tc.hex"); 
+    }
+    catch(const char *s)
+    {
+        printf("%s\n", s);
+    }
 }
 
 void yyerror(char *s) {

@@ -117,6 +117,7 @@ struct Instruction
         Array = 0x79617241, /* Aray */
         Alloc = 0x636F6C41, /* Aloc */ 
         New   = 0x2A77654E, /* New* */
+        NewAr = 0x5D775B4E, /* N[w] */
         Del   = 0x2A6C6544, /* Del* */
 
         Set   = 0x21746553, /* Set! */

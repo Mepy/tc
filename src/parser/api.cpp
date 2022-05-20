@@ -212,7 +212,7 @@ Expr* API::ExprAppEnd(){
     return nullptr;
 }
 
-Expr* API::ExprArr(Expr* expr, Size size){
+Expr* API::ExprArr(Expr* expr, Expr* size){
     std::cout << "ExprArr " << size << std::endl;
     return nullptr;
 }
