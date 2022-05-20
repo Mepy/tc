@@ -284,6 +284,11 @@ Cell*	API::CellRef(Exprp expr)
 	return ((Cell*)(this->ExprRef(expr)));
 }
 
+Cell*	API::CellVarEle(Name name, Exprp index)
+{
+	auto array = this->ExprVar(name);
+	return this->CellEle((Cell*)array, index);
+}
 Cell*	API::CellEle(Cell* cell, Exprp index)
 {
 	auto array = (Exprp)cell;
@@ -522,6 +527,25 @@ Exprp	API::ExprFunStmt(Stmtp stmt)
 
 	this->funcs.pop();
 
+	// As for retype, if retype = Infer 0
+	// And following type unification do not infer it
+	// Therefore retype = type[0] == Unit
+	{
+	auto shape = ((type::Fun*)(func->type->shape));
+	auto type = stmt->retype;
+	if(nullptr!=type)
+	{
+		if(false==stmt->is_end)
+			throw "API::ExprFunStmt stmt needs return completely;";
+		shape->retype = type->id;
+	}
+	else
+	{
+		shape->retype = T_UNIT;
+		std::cerr<<"WARNING : stmt return unit;"<<std::endl;
+	}
+	}
+
 	auto shape = ((expr::Func*)(func->shape));
 	shape->body = stmt;
 
@@ -534,9 +558,6 @@ Exprp	API::ExprFunStmt(Stmtp stmt)
 	func->params = params->id+2;
 	func->body   = body->id+2;
 	
-	// As for retype, if retype = Infer 0
-	// And following type unification do not infer it
-	// Therefore retype = type[0] == Unit
 	
 	return func;
 }

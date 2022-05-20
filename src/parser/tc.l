@@ -140,7 +140,7 @@
     return STRING;
 }
 
-"_"|[a-z][a-zA-Z0-9]* {
+"_"|[a-z][_a-zA-Z0-9]* {
     char *s = (char *)malloc(yyleng+1);
     strcpy(s, yytext);
     yylval.sval = s;

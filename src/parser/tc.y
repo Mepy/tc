@@ -47,7 +47,7 @@
 
 
 %type <type> Type TypeVar TypeRef TypePtr TypeArr TypeFun TypeFunArg TypeDef 
-%type <cell> Cell CellVar CellEle CellRef
+%type <cell> Cell CellVar CellVarEle CellEle CellRef
 %type <stmt> Stmt Empty Block Let Var If While Break Cont Ret Exp Del Asgn NewType ADT Alias Check
 
 %start Start
@@ -188,12 +188,15 @@ TypeDef: COLON Type{
 
 Cell: 
 CellVar | 
+CellVarEle |
 CellEle | 
 CellRef;
 
 CellVar: 
 REF EN { $$ = context.CellVar($2); } |
 EN { $$ = context.CellVar($1); };
+
+CellVarEle : EN LB Expr RB { $$ = context.CellVarEle($1, $3); };
 
 CellEle: 
 Cell LB Expr RB { $$ = context.CellEle($1, $3); };
@@ -298,8 +301,10 @@ REF EN TypeDef {
 ExprFunDef: 
 Stmt { $$ = context.ExprFunStmt($1); };
 
-Fun: FunStart {context.ExprFunBeg();} ExprFunArgLists RDARROW ExprFunDef {
-    $$ = $5;
+FunFront : FunStart {context.ExprFunBeg();} ExprFunArgLists RDARROW { context.ExprFunPre(); } 
+    ;
+Fun: FunFront ExprFunDef {
+    $$ = $2;
 };
 
 

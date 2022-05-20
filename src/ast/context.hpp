@@ -178,6 +178,7 @@ struct Context
 
     Name type_name;
     Typep u, b, c, i, f, adt;
+    Exprp unit;
     Exprp i2f, f2i;
 
     enum T_ID : ID

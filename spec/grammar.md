@@ -68,7 +68,8 @@ App        |  Expr::App          /* TyCk : Ref T    -> Ref T */
            /* AppBeg AppArg ... AppArg
             * CellAppEnd() 
             */
-CellEle    |  Cell "[" Expr "] " /* TyCk : T[N] i64 -> Ref T */
+CellVarEle |  expr_name "[" Expr "]"
+CellEle    |  Cell "[" Expr "]" /* TyCk : T[N] i64 -> Ref T */
 CellRef    |  "*"  Expr          /* TyCk : Ptr T    -> Ref T */
            ;
 

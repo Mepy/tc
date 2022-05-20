@@ -257,6 +257,8 @@ Stmtp	API::Cont(Size size)
 
 Stmtp	API::Ret(Exprp expr) // = nullptr
 {
+	if(nullptr==expr)
+		expr=this->unit;
 	auto stmt = new Stmt(new stmt::_ret(expr), true, expr->type);
 
 	// IR

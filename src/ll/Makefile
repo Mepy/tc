@@ -4,7 +4,7 @@ CFLAGS = $(shell ${LLVMPATH}/bin/llvm-config --cxxflags --ldflags --libs --syste
 OBJ = visitor.o inst.o type.o symb.o
 
 test : test.out 
-	./$< ../ast/incr_if.hex > $@.ll && cat $@.ll \
+	./$< ../parser/tc.hex > $@.ll && cat $@.ll \
 	&& ${LLVMPATH}/bin/clang++ $@.ll ./lib/io.ll -o tc.out && ./tc.out
 
 test.out: test.o ${OBJ}

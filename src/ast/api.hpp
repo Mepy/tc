@@ -60,7 +60,8 @@ struct API : public Context
     Expr* ExprAppEnd();
 
     Expr* ExprArr(Expr* expr, Expr* size);
-    Cell* CellEle(Cell* cell, Expr* index);
+    Cell* CellVarEle(Name name, Expr* index);
+    Cell* CellEle(Cell* expr, Expr* index);
     Expr* ExprEle(Expr* expr, Expr* index);
     Expr* ExprEleRef(Expr* expr, Expr* index);
     Expr* ExprEleAddr(Expr* expr, Expr* index);

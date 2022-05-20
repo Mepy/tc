@@ -213,7 +213,12 @@ Expr* API::ExprAppEnd(){
 }
 
 Expr* API::ExprArr(Expr* expr, Expr* size){
-    std::cout << "ExprArr " << size << std::endl;
+    std::cout << "ExprArr " << std::endl;
+    return nullptr;
+}
+
+Cell* API::CellVarEle(Name name, Expr* index){
+    std::cout << "CellVarEle" << name << std::endl; 
     return nullptr;
 }
 
@@ -287,6 +292,10 @@ void  API::ExprFunRefArg(Name name, Type* type){
 void  API::ExprFunArg(Name name, Type* type){
     std::cout << "ExprFunArg " << name << std::endl;
 
+}
+
+void  API::ExprFunPre(){
+    std::cout << "ExprFunPre " << std::endl;
 }
 
 Expr* API::ExprFunExpr(Expr* expr){

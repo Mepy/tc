@@ -938,10 +938,12 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             std::cout << "Get: " << ins.dst << " <- " << ins.src.id[0] << std::endl;
             // std::cout << src->isArrayAllocation() << std::endl;
             #endif
+            /*
             if (IdMapAlloc.find(ins.src.id[0]) == IdMapAlloc.end() ) {
                 throw std::invalid_argument("Get: src(ptr) id not found.");
             }
-            auto &src = IdMapAlloc[ins.src.id[0]];
+            */
+            auto &src = IdMapVal[ins.src.id[0]];
             if (src->isArrayAllocation())
             {
                 //pointer-type: add offset to it
