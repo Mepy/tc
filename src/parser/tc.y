@@ -26,7 +26,7 @@
 %token  LP RP LB RB LC RC 
 %token  SEMI COMMA COLON 
 %token  ASSIGN ADDASSIGN SUBASSIGN MULASSIGN DIVASSIGN MODASSIGN FADDASSIGN FSUBASSIGN FMULASSIGN FDIVASSIGN
-%token  SELF REFS REF PTR BS RDARROW RSARROW ARR
+%token  SELF REFS REFLB REFLP PTRLB REF PTR BS RDARROW RSARROW ARR
 %token  BNOT LNOT 
         FADD FSUB FMUL FDIV ADD SUB MUL DIV
         LAND LOR LXOR LEQ GEQ LT GT
@@ -64,14 +64,11 @@ If    |
 While | 
 Break | 
 Cont  | 
-Ret   | 
-Exp   | 
 Del   | 
 Asgn  | 
 NewType |
 Check;
 
-StmtList: Stmt StmtList
 
 
 Empty: SEMI { $$ = context.Empty(); };
@@ -206,19 +203,19 @@ MUL Expr { $$ = context.CellRef($2); }
 
 Expr: 
 Fun         | 
-App         | 
 Match       | 
 ExprPtr     | 
 ExprVal     | 
-ExprRef     | 
+ExprRef     |  
 ExprVar     | 
-ExprVarRef  |
+ExprVarRef  | 
 Arr         | 
-Ele         | 
+Ele         |  
 EleRef      |   
-EleAddr     | 
+EleAddr     |  
 New         | 
 Calc        | 
+App         | 
 F           | 
 I           | 
 C           |
@@ -273,12 +270,12 @@ Ele: Expr LB Expr RB {
     $$ = context.ExprEle($1, $3);
 }
 
-EleRef: Expr REF LB Expr RB {
-    $$ = context.ExprEleRef($1, $4);
+EleRef: Expr REFLB Expr RB {
+    $$ = context.ExprEleRef($1, $3);
 }
 
-EleAddr: Expr PTR LB Expr RB {
-    $$ = context.ExprEleAddr($1, $4);
+EleAddr: Expr PTRLB Expr RB {
+    $$ = context.ExprEleAddr($1, $3);
 }
 
 New: 
@@ -311,16 +308,14 @@ AppStart:
 Expr { context.AppBeg($1); } |
 SELF { context.AppBeg(nullptr); };
 
-AppRetRef:
-REF { context.AppForceRetRef();} | 
-{ ; };
-
 AppArg: 
 Expr { context.AppArg($1);} COMMA AppArg |
 Expr { context.AppArg($1);} | 
 { ; };
 
-App: AppStart AppRetRef LP AppArg RP { $$ = context.ExprAppEnd(); }; 
+App: 
+AppStart LP AppArg RP { $$ = context.ExprAppEnd(); } |
+AppStart REFLP {context.AppForceRetRef();} AppArg RP { $$ = context.ExprAppEnd(); };
 
 /* App: 
 ExprVal { context.AppBeg($1); } AppRetRef LP AppArg RP { $$ = context.ExprAppEnd(); } |
@@ -348,6 +343,7 @@ UnCalc:
 UnOp Expr{
     $$ = context.UnOp($1, $2);
 }
+
 UnOp :
 BNOT { $$ = Oper::BNot; } |
 LNOT { $$ = Oper::LNot; } |
@@ -355,8 +351,8 @@ SUB  { $$ = Oper::Neg; } |
 FSUB { $$ = Oper::Neg; };
 
 BinCalc1: 
-Expr BinOp1 Expr{
-    $$ = context.BinOp($1, $2, $3);
+Expr {printf("end1\n"); } BinOp1 Expr {printf("end2\n");} {
+    $$ = context.BinOp($1, $3, $4);
 } | 
 BinCalc2 {
     $$ = $1;
@@ -370,7 +366,7 @@ LOR { $$ = Oper::LOr;} |
 LXOR { $$ = Oper::LXOr; };
 
 BinCalc2: 
-Expr BinOp2 Expr{
+Expr BinOp2 Expr {
     $$ = context.BinOp($1, $2, $3);
 } | 
 BinCalc3 {
@@ -387,7 +383,7 @@ LSHIFT { $$ = Oper::LShift; } |
 RSHIFT { $$ = Oper::RShift; };
 
 BinCalc3: 
-Expr BinOp3 Expr{
+Expr BinOp3 Expr {
     $$ = context.BinOp($1, $2, $3);
 } | 
 BinCalc4 {
@@ -403,12 +399,13 @@ PTRADD { $$ = Oper::PtrAdd; } |
 PTRSUB { $$ = Oper::PtrSub; };
 
 BinCalc4: 
-Expr BinOp4 Expr{
+Expr BinOp4 Expr {
     $$ = context.BinOp($1, $2, $3);
 } | 
 LP BinCalc1 RP {
     $$ = $2;
 };
+
 BinOp4:
 MUL { $$ = Oper::Mul; } |
 DIV { $$ = Oper::Div; } |
@@ -424,7 +421,7 @@ int main() {
     context.BlockBegin();
     yyparse();
     context.save(context.BlockEnd()); 
-    context.save("tc.hex"); 
+    context.save("tc.hex");  
 }
 
 void yyerror(char *s) {
