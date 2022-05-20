@@ -1,3 +1,84 @@
-let l = 0 ** 100;
-let x = l[10] == 3 && 50 > l[4];
-let y = 0;
+    let putc = fun c:Char => {
+        return;
+    };
+
+let swap = fun @x @y:Int =>{
+    let t = x;
+       @x = y;
+       @y = t;
+};
+
+
+let sort = fun arr:&Int left right =>{
+    if(left >= right){
+        return 0;
+    }
+    else {
+        ;
+    }
+
+    let @l = left;
+    let @r = right;
+    let @p = left;
+
+    while(true)
+    {
+        while(l<r && arr[r]>=arr[p])
+            r = r - 1;
+        
+        if(l==r){
+            break;
+        }
+        else {
+            ;
+        }
+
+        let _ = swap(arr@[p], arr@[r]);
+        let _ = swap(@p, @r);
+        
+        while(l < r && arr[l] <= arr[p])
+            l = l + 1;
+        
+        if(l == r) {
+            break;
+        }
+        else {
+            ;
+        }
+
+        let _ = swap(arr@[p], arr@[l]);
+        let _ = swap(@p, @l);
+    }
+
+    let _ = $(arr, left, r    );
+    let _ = $(arr, l   , right);
+    return 0;
+};
+
+let main = fun =>{
+    let n    = geti();
+    let arr  = new 0 ** n;
+    let @i   = 0;
+    let @ptr = arr;
+    while(i<n)
+    {
+        *ptr = geti();
+        ptr  = ptr + 1;
+        i    = i   + 1;
+    }
+    let _ = sort(ptr, 0, n-1);
+    i=0;
+    ptr=arr;
+
+
+
+    while(i<n)
+    {
+        let _ = puti(ptr[0]);
+        let _ = putc('\n');  
+        ptr = ptr + 1;
+        i   = i + 1;
+    }
+    del ptr;
+    return 0;
+};
