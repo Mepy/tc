@@ -81,29 +81,30 @@
 "-" {return SUB; }
 "*" {return MUL; }
 "/" {return DIV; }
+"%" {return MOD; }
 
 "&&" {return LAND; }
 "||" {return LOR; }
 "^^" {return LXOR; }
+
 "<=" {return LEQ; }
 ">=" {return GEQ; }
 "<" {return LT; }
 ">" {return GT; }
+"==" {return EQ; }
+"!=" {return NEQ; }
 
-"%" {return MOD; }
 "|" {return BOR; }
 "^" {return BXOR; }
 "<<" {return LSHIFT; }
 ">>" {return RSHIFT; }
 
-"==" {return EQ; }
-"!=" {return NEQ; }
+
 "+&" {return ADDPTR; }
 "&+" {return PTRADD; }
 "&-" {return PTRSUB; }
 
 "let" {return LET; }
-
 "if" {return IF; }
 "else" {return ELSE; }
 "while" {return WHILE; }

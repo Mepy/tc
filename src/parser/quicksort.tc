@@ -6,7 +6,7 @@ let swap = fun @x @y:Int =>{
 
 let sort = fun arr:&Int left right =>{
     if(left >= right)
-        return unit;
+        return 0;
 
     let @l = left;
     let @r = right;

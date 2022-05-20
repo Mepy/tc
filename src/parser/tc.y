@@ -45,10 +45,16 @@
 %type <expr> Match
 %type <oper> UnOp BinOp1 BinOp2 BinOp3 BinOp4 AssignOp
 
-
 %type <type> Type TypeVar TypeRef TypePtr TypeArr TypeFun TypeFunArg TypeDef 
-%type <cell> Cell CellVar CellVarEle CellEle CellRef
-%type <stmt> Stmt Empty Block Let Var If While Break Cont Ret Exp Del Asgn NewType ADT Alias Check
+%type <cell> Cell CellVar CellEle CellRef CellVarEle
+%type <stmt> Stmt Empty Block Let Var If While Break Cont Ret Del Asgn NewType ADT Alias Check
+
+%left ADD SUB MUL DIV FADD FSUB FMUL FDIV MOD
+%left LAND LOR LXOR BOR BXOR  
+%left LSHIFT RSHIFT
+%left LEQ GEQ LT GT EQ NEQ
+%left ADDPTR PTRADD PTRSUB
+%right BNOT LNOT 
 
 %start Start
 %%
@@ -56,16 +62,17 @@
 Start: BlockStmtList; 
 
 Stmt: 
-Empty | 
-Block | 
-Let   | 
-Var   | 
-If    | 
-While | 
-Break | 
-Cont  | 
-Del   | 
-Asgn  | 
+Empty   | 
+Block   | 
+Let     | 
+Var     | 
+If      | 
+While   | 
+Break   | 
+Cont    | 
+Del     | 
+Asgn    | 
+Ret     |
 NewType |
 Check;
 
@@ -105,9 +112,9 @@ CONT SEMI { $$ = context.Cont(); };
 Ret:
 RET Expr SEMI { $$ = context.Ret($2); } |
 RET SEMI { $$ = context.Ret(); };
-
+/* 
 Exp:
-Expr SEMI { $$ = context.Exp($1); };
+Expr SEMI { $$ = context.Exp($1); }; */
 
 Del:
 DEL Expr SEMI { $$ = context.Del($2); };
@@ -356,8 +363,8 @@ SUB  { $$ = Oper::Neg; } |
 FSUB { $$ = Oper::Neg; };
 
 BinCalc1: 
-Expr {printf("end1\n"); } BinOp1 Expr {printf("end2\n");} {
-    $$ = context.BinOp($1, $3, $4);
+Expr BinOp1 Expr {
+    $$ = context.BinOp($1, $2, $3);
 } | 
 BinCalc2 {
     $$ = $1;

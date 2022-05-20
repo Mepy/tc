@@ -1,3 +1,4 @@
-let foo = fun  => {
-   return 3;
+let foo = \=> {
+    return 3;
 };
+
