@@ -151,7 +151,7 @@ Stmtp	API::If(Exprp cond, Stmtp fst, Stmtp snd) // = nullptr
 {
 	Typing(cond, this->b);
 
-	auto stmt = new Stmt(new stmt::_if(cond, fst, nullptr), fst->is_end&&snd->is_end);
+	auto stmt = new Stmt(new stmt::_if(cond, fst, nullptr), fst->is_end&&nullptr!=snd&&snd->is_end);
 	// IR
 	auto beg = stmt->beg = this->new_block();
 	auto end = stmt->end = this->new_block();

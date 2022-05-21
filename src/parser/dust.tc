@@ -1,0 +1,8 @@
+let arr   = 0 ** 2;
+let left  = 0;
+let right = 1;
+let b1   = left<right ;
+let b2 = arr[left] >= arr[right];
+check b1 Bool;
+check b2 Bool;
+let b3 = b1 && b2;

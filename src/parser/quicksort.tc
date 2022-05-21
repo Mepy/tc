@@ -1,3 +1,7 @@
+    let putc = fun c:Char => {
+        return;
+    };
+
 let swap = fun @x @y:Int =>{
     let t = x;
        @x = y;
@@ -6,12 +10,9 @@ let swap = fun @x @y:Int =>{
 
 
 let sort = fun arr:&Int left right =>{
-    if(left >= right){
-        return 0;
-    }
-    else {
-        ;
-    }
+    if(left >= right)
+        return ;
+
 
     let @l = left;
     let @r = right;
@@ -22,12 +23,9 @@ let sort = fun arr:&Int left right =>{
         while(l<r && arr[r]>=arr[p])
             r = r - 1;
         
-        if(l==r){
+        if(l==r)
             break;
-        }
-        else {
-            ;
-        }
+
 
         let _ = swap(arr@[p], arr@[r]);
         let _ = swap(@p, @r);
@@ -35,12 +33,9 @@ let sort = fun arr:&Int left right =>{
         while(l < r && arr[l] <= arr[p])
             l = l + 1;
         
-        if(l == r) {
+        if(l == r)
             break;
-        }
-        else {
-            ;
-        }
+
 
         let _ = swap(arr@[p], arr@[l]);
         let _ = swap(@p, @l);
@@ -48,7 +43,7 @@ let sort = fun arr:&Int left right =>{
 
     let _ = $(arr, left, r    );
     let _ = $(arr, l   , right);
-    return 0;
+    return ;
 };
 
 let main = fun =>{
@@ -66,9 +61,7 @@ let main = fun =>{
     i=0;
     ptr=arr;
 
-    let putc = fun c:Char => {
-        ;
-    };
+
 
     while(i<n)
     {
@@ -80,3 +73,5 @@ let main = fun =>{
     del ptr;
     return 0;
 };
+
+let _ = main();
