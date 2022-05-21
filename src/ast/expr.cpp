@@ -403,6 +403,12 @@ void	API::AppArg(Exprp arg)
 	{
 		auto shape = ((type::Array*)(arg->type->shape));
 		unify(*type, *this->TypePtr(&this->type[shape->id]));
+		auto id = this->expr.nid();
+		this->expr.insert(Expr(id, Eh::decay(id), type, Ih::PtrMov(id, arg->id), Sort::NonD));
+		
+		auto _arg = &this->expr[id];
+		_arg->inst_front(arg);
+		arg = _arg;
 	}
 	else
 		Typing(arg, type, "API::AppArg TypeNotEq;");
@@ -558,12 +564,23 @@ Exprp	API::ExprFunStmt(Stmtp stmt)
 
 	auto params = this->new_IDs(ir::Kind::PARA, shape->params);
 
-	auto body = this->new_block();
-    body->insts.eat(stmt->insts);
-
 	func->sort = Sort::CPrg;
 	func->params = params->id+2;
-	func->body   = body->id+2;
+
+	if(nullptr==stmt->beg)
+	{
+		auto body = this->new_block();
+		body->insts.eat(stmt->insts);
+		func->body   = body->id+2;
+	}
+	else
+	{
+		func->body = stmt->beg->id+2;
+	}
+    
+
+
+	
 	
 	
 	return func;
