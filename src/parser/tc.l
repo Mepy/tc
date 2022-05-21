@@ -59,6 +59,9 @@
 "=" {return ASSIGN; }
 "$" {return SELF; }
 "@*" {return REFS; }
+"@("|"@ (" {return REFLP; }
+"@["|"@ [" {return REFLB; }
+"&["|"& [" {return PTRLB; }
 "@" { return REF; }
 "&" {return PTR; }
 [\\] {return BS; }
@@ -78,29 +81,30 @@
 "-" {return SUB; }
 "*" {return MUL; }
 "/" {return DIV; }
+"%" {return MOD; }
 
 "&&" {return LAND; }
 "||" {return LOR; }
 "^^" {return LXOR; }
+
 "<=" {return LEQ; }
 ">=" {return GEQ; }
 "<" {return LT; }
 ">" {return GT; }
+"==" {return EQ; }
+"!=" {return NEQ; }
 
-"%" {return MOD; }
 "|" {return BOR; }
 "^" {return BXOR; }
 "<<" {return LSHIFT; }
 ">>" {return RSHIFT; }
 
-"==" {return EQ; }
-"!=" {return NEQ; }
+
 "+&" {return ADDPTR; }
 "&+" {return PTRADD; }
 "&-" {return PTRSUB; }
 
 "let" {return LET; }
-
 "if" {return IF; }
 "else" {return ELSE; }
 "while" {return WHILE; }
@@ -108,7 +112,7 @@
 "continue" {return CONT; }
 "return" {return RET; }
 "del" {return DEL; }
-"type" {return TYPE; }
+"type" {return _TYPE; }
 "check" {return CHECK; }
 "fun" {return FUN; }
 "match" {return MATCH; }
@@ -137,14 +141,14 @@
     return STRING;
 }
 
-[a-z][a-zA-Z0-9]* {
+"_"|[a-z][_a-zA-Z0-9]* {
     char *s = (char *)malloc(yyleng+1);
     strcpy(s, yytext);
     yylval.sval = s;
     return EN;
 }
 
-[A-Z][a-zA-Z0-9]* {
+[A-Z][_a-zA-Z0-9]* {
     char *s = (char *)malloc(yyleng+1);
     strcpy(s, yytext);
     yylval.sval = s;

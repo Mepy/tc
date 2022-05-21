@@ -29,20 +29,35 @@ void	API::BlockStmt(Stmtp stmt)
 		return;
 
 	auto block = this->blocks.top();
+
+	if(true==block->is_end)
+	{
+		std::cerr<<"WARNING : The stmt makes no difference after return, continue or break;\n"
+				 <<"          Drop it automatically;"
+				 <<std::endl;
+		return;
+	}
+	
 	auto shape = ((stmt::_block*)(block->shape));
 	shape->stmts.push_back(stmt);
+
+	block->retype = unify_opt(block->retype, stmt->retype);
+	block->is_end = stmt->is_end;
 
 	// IR
 	if(nullptr==block->beg)
 	{
+		auto& insts = block->insts;
+
 		if(nullptr==stmt->beg)
-			block->insts.concat_back(stmt->insts);
+			insts.concat_back(stmt->insts);
 		else
 		{
 			block->beg = stmt->beg;
 			block->end = stmt->end;
-			if(0!=block->insts.size())
-				block->beg->insts.concat_front(block->insts);
+			block->retype = stmt->retype;
+			if(0!=insts.size())
+				block->beg->insts.concat_front(insts);
 		}
 	}
 	
@@ -136,8 +151,7 @@ Stmtp	API::If(Exprp cond, Stmtp fst, Stmtp snd) // = nullptr
 {
 	Typing(cond, this->b);
 
-	auto stmt = new Stmt(new stmt::_if(cond, fst, nullptr));
-
+	auto stmt = new Stmt(new stmt::_if(cond, fst, nullptr), fst->is_end&&snd->is_end);
 	// IR
 	auto beg = stmt->beg = this->new_block();
 	auto end = stmt->end = this->new_block();
@@ -147,11 +161,15 @@ Stmtp	API::If(Exprp cond, Stmtp fst, Stmtp snd) // = nullptr
 	auto fst_id = If_Br(this, fst, end->id);
 
 	if(nullptr==snd)
+	{
 		beg->insts.push_back(Ih::Br(cond->id, fst_id, end->id));
+		stmt->retype = fst->retype;
+	}
 	else
 	{
 		auto snd_id = If_Br(this, snd, end->id);
 		beg->insts.push_back(Ih::Br(cond->id, fst_id, snd_id));
+		stmt->retype = unify_opt(fst->retype, snd->retype);
 	}
 	
 	return stmt;
@@ -171,6 +189,8 @@ Stmtp	API::While(Exprp cond, Stmtp body) // nullptr
 	Typing(cond, this->b);
 	auto stmt = this->whiles.back(); this->whiles.pop_back();
 	stmt->shape = new stmt::_while(cond, body);
+
+	stmt->retype = body->retype;
 
 	// IR
 	auto beg = stmt->beg;
@@ -208,7 +228,7 @@ Stmtp	API::Break(Size size)
 	if(size>this->whiles.size())
 		throw "API::Break Out Too Much.";
 
-	auto stmt = new Stmt(new stmt::_break(size));
+	auto stmt = new Stmt(new stmt::_break(size), true);
 
 	// IR
 	auto end = this->whiles[this->whiles.size()-size]->end->id;
@@ -225,7 +245,7 @@ Stmtp	API::Cont(Size size)
 	if(size>this->whiles.size())
 		throw "API::Cont  Out Too Much.";
 	
-	auto stmt = new Stmt(new stmt::_cont(size));
+	auto stmt = new Stmt(new stmt::_cont(size), true);
 
 	// IR
 	auto beg = this->whiles[this->whiles.size()-size]->beg->id;
@@ -236,25 +256,18 @@ Stmtp	API::Cont(Size size)
 
 Stmtp	API::Ret(Exprp expr) // = nullptr
 {
-	if(this->funcs_retyck.empty())
-		throw "API:Ret not in function's body;";
-
-	auto fun = this->funcs_retyck.top();
-	auto shape = (type::Fun*)(fun->type->shape);
-	
-	auto tid = shape->retype;
-	auto type = &(this->type[tid]);
-
-	Typing(expr, type);
-
-	auto stmt = new Stmt(new stmt::_ret(expr));
+	if(nullptr==expr)
+		expr=this->unit;
+	auto stmt = new Stmt(new stmt::_ret(expr), true, expr->type);
 
 	// IR
 	stmt->insts.eat(expr->insts);
 	stmt->insts.push_back(Ih::Return(expr->id));
+	// [TODO] : Match difference
 
 	return stmt;
 }
+
 Stmtp	API::Exp(Exprp expr)
 {
 	auto stmt = new Stmt(new stmt::_exp(expr));

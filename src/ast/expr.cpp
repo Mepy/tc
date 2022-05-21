@@ -284,6 +284,11 @@ Cell*	API::CellRef(Exprp expr)
 	return ((Cell*)(this->ExprRef(expr)));
 }
 
+Cell*	API::CellVarEle(Name name, Exprp index)
+{
+	auto array = this->ExprVar(name);
+	return this->CellEle((Cell*)array, index);
+}
 Cell*	API::CellEle(Cell* cell, Exprp index)
 {
 	auto array = (Exprp)cell;
@@ -379,7 +384,6 @@ void    API::AppForceRetRef()
 }
 void	API::AppArg(Exprp arg)
 {
-
 	auto call = this->calls.top();
 	auto call_shape = ((expr::Call*)(call->shape));
 
@@ -395,8 +399,7 @@ void	API::AppArg(Exprp arg)
 	if(type::Shape::Ref!=type->shape->flag)
 		arg = AutoDereference(arg);
 	
-	if( ! Typing(arg, type))
-		throw "API::AppArg TypeNotEq;";
+	Typing(arg, type, "API::AppArg TypeNotEq;");
 	call->inst_front(arg);
 	args.push_back(arg->id);
 }
@@ -463,17 +466,10 @@ void	API::ExprFunBeg()
 	this->type.scope_beg();
 	this->expr.scope_beg();
 
-	auto retype = this->TypeInfer();
-
-	auto tid = this->type.nid();
-	this->type.insert(Type(tid, Th::fun(retype->id)));
-	auto type = &(this->type[tid]);
-
 	auto eid = this->expr.nid();
-	this->expr.insert(Expr(eid, Eh::func(), type));
+	this->expr.insert(Expr(eid, Eh::func(), nullptr));
 	auto func = &(this->expr[eid]);
 	this->funcs.push(func);
-	this->funcs_retyck.push(func);
 }
 
 void	API::ExprFunRefArg(Name name, Typep type) // = nullptr
@@ -495,12 +491,27 @@ void	API::ExprFunArg(Name name, Typep type) // = nullptr
 	if(name!="_")
 		this->expr.bind(id, name);
 
-	auto func = this->funcs_retyck.top();
+	auto func = this->funcs.top();
 
 	((expr::Func*)(func->shape))
 		->params.push_back(id);
-	((type::Fun*)(func->type->shape))
-		->params.push_back(type->id);
+}
+
+void	API::ExprFunPre()
+{
+	auto func = this->funcs.top();
+
+	auto retype = this->TypeInfer();
+	auto tid = this->type.nid();
+	this->type.insert(Type(tid, Th::fun(retype->id)));
+	auto type = func->type = &(this->type[tid]);
+
+	auto t_shape = ((type::Fun*)(type->shape));
+	auto f_shape = ((expr::Func*)(func->shape));
+	for(auto param : f_shape->params)
+		t_shape->params.push_back(
+			this->expr[param].type->id
+		);
 }
 
 Exprp	API::ExprFunExpr(Exprp expr)
@@ -515,7 +526,25 @@ Exprp	API::ExprFunStmt(Stmtp stmt)
 	auto func = this->funcs.top();
 
 	this->funcs.pop();
-	this->funcs_retyck.pop();
+
+	// As for retype, if retype = Infer 0
+	// And following type unification do not infer it
+	// Therefore retype = type[0] == Unit
+	{
+	auto shape = ((type::Fun*)(func->type->shape));
+	auto type = stmt->retype;
+	if(nullptr!=type)
+	{
+		if(false==stmt->is_end)
+			throw "API::ExprFunStmt stmt needs return completely;";
+		shape->retype = type->id;
+	}
+	else
+	{
+		shape->retype = T_UNIT;
+		std::cerr<<"WARNING : stmt return unit;"<<std::endl;
+	}
+	}
 
 	auto shape = ((expr::Func*)(func->shape));
 	shape->body = stmt;
@@ -529,9 +558,6 @@ Exprp	API::ExprFunStmt(Stmtp stmt)
 	func->params = params->id+2;
 	func->body   = body->id+2;
 	
-	// As for retype, if retype = Infer 0
-	// And following type unification do not infer it
-	// Therefore retype = type[0] == Unit
 	
 	return func;
 }
@@ -587,7 +613,7 @@ void	API::MatchBranchBeg(Name name)
 
 	auto branch = &(this->expr[branch_id]);
 	
-	this->funcs_retyck.push(branch);
+	this->branches.push(branch);
 	this->type.scope_beg();
 	this->expr.scope_beg();
 
@@ -597,7 +623,7 @@ void	API::MatchBranchArg(Name name)
 {
 	//	if(name=='_') // [TODO] : _
 	//		return ;
-	auto branch = this->funcs_retyck.top();
+	auto branch = this->branches.top();
 	auto shape = ((expr::Branch*)(branch->shape));
 	auto index = shape->params.size();
 	auto& params = ((type::Fun*)(branch->type->shape))->params;
@@ -620,7 +646,7 @@ void	API::MatchBranchStmt(Stmtp stmt)
 {
 	this->type.scope_end();
 	this->expr.scope_end();
-	auto func = this->funcs_retyck.top(); this->funcs_retyck.pop();
+	auto func = this->branches.top(); this->branches.pop();
 
 	auto shape = ((expr::Func*)(func->shape));
 	shape->body = stmt;
@@ -887,18 +913,15 @@ Exprp	API::BinOp(Exprp lhs, Oper oper, Exprp rhs)
 	case PtrAdd:
 		Typing(rhs, i);
 		// if lhs : Infer T
-		if(false==Typing(lhs, this->TypePtr(this->TypeInfer())))
-			throw "API::BinOp &+ Not a Ptr T;";
+		Typing(lhs, this->TypePtr(this->TypeInfer()), "API::BinOp &+ Not a Ptr T;");
 		return this->Binary(expr::Shape::PtrAdd, lhs, rhs, lhs->type);
 	case PtrSub:
 		Typing(rhs, i);
-		if(false==Typing(lhs, this->TypePtr(this->TypeInfer())))
-			throw "API::BinOp &- Not a Ptr T;";
+		Typing(lhs, this->TypePtr(this->TypeInfer()), "API::BinOp &- Not a Ptr T;");
 		return this->Binary(expr::Shape::PtrSub, lhs, rhs, lhs->type);
 	case AddPtr:
 		Typing(lhs, i); 
-		if(false==Typing(lhs, this->TypePtr(this->TypeInfer())))
-			throw "API::BinOp +& Not a Ptr T;";
+		Typing(lhs, this->TypePtr(this->TypeInfer()), "API::BinOp +& Not a Ptr T;");
 		return this->Binary(expr::Shape::PtrAdd, rhs, lhs, rhs->type);
 	case Mod:
 	case LShift: 
@@ -921,7 +944,7 @@ Exprp	API::BinOp(Exprp lhs, Oper oper, Exprp rhs)
 		Typing(rhs, b);
 		return this->Binary(
 			expr::Shape::Flag((oper-LNot)+int(expr::Shape::LNot))
-			, lhs, rhs, i
+			, lhs, rhs, b
 		);
 	case FAdd:
 	case FSub:

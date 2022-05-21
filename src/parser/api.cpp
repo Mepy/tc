@@ -40,7 +40,7 @@ void API::BlockBegin(){
 }
 
 void API::BlockStmt(Stmt *stmt){
-    std::cout << "BlockStmt" << std::endl;
+    std::cout << "BlockStmt" << std::endl << std::endl;
 }
 
 Stmt* API::BlockEnd(){
@@ -212,18 +212,23 @@ Expr* API::ExprAppEnd(){
     return nullptr;
 }
 
-Expr* API::ExprArr(Expr* expr, Size size){
-    std::cout << "ExprArr" << std::endl;
+Expr* API::ExprArr(Expr* expr, Expr* size){
+    std::cout << "ExprArr " << std::endl;
+    return nullptr;
+}
+
+Cell* API::CellVarEle(Name name, Expr* index){
+    std::cout << "CellVarEle " << name << std::endl; 
     return nullptr;
 }
 
 Cell* API::CellEle(Cell* cell, Expr* index){
-    std::cout << "CellEle" << std::endl; 
+    std::cout << "CellEle " << std::endl; 
     return nullptr;
 }
 
 Expr* API::ExprEle(Expr* expr, Expr* index){
-    std::cout << "ExprEle" << std::endl;
+    std::cout << "ExprEle " << std::endl;
     return nullptr;
 }
 
@@ -287,6 +292,10 @@ void  API::ExprFunRefArg(Name name, Type* type){
 void  API::ExprFunArg(Name name, Type* type){
     std::cout << "ExprFunArg " << name << std::endl;
 
+}
+
+void  API::ExprFunPre(){
+    std::cout << "ExprFunPre " << std::endl;
 }
 
 Expr* API::ExprFunExpr(Expr* expr){

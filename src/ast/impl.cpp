@@ -40,6 +40,8 @@ API::API()
 
 	this->expr.insert(Expr(E_UNIT, Eh::u(), this->u, 0));
 	this->expr.bind(E_UNIT , "unit" );
+	this->unit = &this->expr[E_UNIT];
+
 	this->expr.insert(Expr(E_TRUE, Eh::b(true), this->b, 0));
 	this->expr.bind(E_TRUE , "true" );
 	this->expr.insert(Expr(E_FALSE, Eh::b(false), this->b, 0));

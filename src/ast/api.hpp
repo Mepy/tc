@@ -60,7 +60,8 @@ struct API : public Context
     Expr* ExprAppEnd();
 
     Expr* ExprArr(Expr* expr, Expr* size);
-    Cell* CellEle(Cell* cell, Expr* index);
+    Cell* CellVarEle(Name name, Expr* index);
+    Cell* CellEle(Cell* expr, Expr* index);
     Expr* ExprEle(Expr* expr, Expr* index);
     Expr* ExprEleRef(Expr* expr, Expr* index);
     Expr* ExprEleAddr(Expr* expr, Expr* index);
@@ -79,6 +80,7 @@ struct API : public Context
     void  ExprFunBeg();
     void  ExprFunRefArg(Name name, Type* type=nullptr);
     void  ExprFunArg(Name name, Type* type=nullptr);
+    void  ExprFunPre();
     Expr* ExprFunExpr(Expr* expr);
     Expr* ExprFunStmt(Stmt* stmt);
 
@@ -104,7 +106,7 @@ struct API : public Context
     void  save(Stmt* root);
     void  save(string path, Expr* expr);
 private:
-    bool  Typing(Expr* expr, Type* type=nullptr);
+    void  Typing(Expr* expr, Type* type=nullptr, const char* msg=nullptr);
     bool  TypeEq(Expr* lhs, Expr* rhs);
     Expr* Dereference(Expr* expr);
     Expr* AutoDereference(Expr* expr);

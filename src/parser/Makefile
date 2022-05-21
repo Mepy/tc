@@ -1,22 +1,30 @@
+CC  = g++ 
+STD = c++14
 OBJ = lexer.o parser.o
+CFLAGS = -std=${STD}
+MakeOBJ = ${CC} ${CFLAGS} $< -c
+
 
 test : test.out
-	cat test.tc && cat test.tc | ./$<
+	cat test.tc && cat test.tc | ./$< && rm ./$<
 
-test.out : api.o ${OBJ}
-	g++ $^ -o $@
+test.out : ${OBJ}
+	g++ $^ ../ast/ast.o -o $@
+
+# test.out : ${OBJ}
+# 	g++ $^ api.o -o $@
 
 build : ${OBJ}
 	g++ $^ -o $@ -lm
 
 api.o : api.cpp 
-	g++ $< -c
+	${MakeOBJ}
 
 lexer.o : lexer.cpp parser.cpp
-	g++ $< -c
+	${MakeOBJ}
 
 parser.o : parser.cpp
-	g++ $< -c
+	${MakeOBJ}
 
 lexer.cpp : tc.l
 	flex -o $@ $< 
