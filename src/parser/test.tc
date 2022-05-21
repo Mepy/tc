@@ -1,6 +1,6 @@
-    let putc = fun c:Char => {
+let putc = fun c:Char => {
         return;
-    };
+};
 
 let swap = fun @x @y:Int =>{
     let t = x;
@@ -8,3 +8,40 @@ let swap = fun @x @y:Int =>{
        @y = t;
 };
 
+
+let sort = fun arr:&Int left right =>{
+    if(left >= right)
+        return ;
+
+
+    let @l = left;
+    let @r = right;
+    let @p = left;
+
+    while(true)
+    {
+        while(l<r && arr[r]>=arr[p])
+            r = r - 1;
+        
+        if(l==r)
+            break;
+
+
+        let _ = swap(arr@[p], arr@[r]);
+        let _ = swap(@p, @r);
+        
+        while(l < r && arr[l] <= arr[p])
+            l = l + 1;
+        
+        if(l == r)
+            break;
+
+
+        let _ = swap(arr@[p], arr@[l]);
+        let _ = swap(@p, @l);
+    }
+
+    let _ = $(arr, left, r    );
+    let _ = $(arr, l   , right);
+    return ;
+};

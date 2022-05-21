@@ -5,6 +5,21 @@
     #include <iostream>
     #include "head.hpp"
     #include "parser.hpp"
+
+    void escape_string(char *s, char* src, char dst){
+        while(1){
+            char *p = strstr(s, src);
+            if (p == 0) 
+                break;
+            int offset = strlen(src) - 1;
+            p[0] = dst;
+            for(int i = 1; i <= strlen(p) - offset; i++){
+                p[i] = p[i+offset];
+            }
+        }  
+    };
+
+
     int col_count = 0;
     int row_count = 0;
 %}
@@ -132,11 +147,25 @@
 }
 
 \".*\" {
-    char *s = (char *)malloc(yyleng+1);
-    for(int i=0; i<yyleng-1; i++){
+
+    char * EscapeS[] = {
+        (char *)"\\n",
+        (char *)'\\t'
+    };
+
+    char EscapeC[] = {
+        '\n',
+        '\t'
+    };
+
+    char *s = (char *)malloc(yyleng-1);
+    memset(s, 0, yyleng-1);
+    for(int i=0; i<yyleng-2; i++)
         s[i] = yytext[i+1];
-    }
-    s[yyleng-2] = 0;
+
+    escape_string(s, EscapeS[0], EscapeC[0]);
+
+
     yylval.sval = s;
     return STRING;
 }

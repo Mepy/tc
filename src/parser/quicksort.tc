@@ -1,6 +1,6 @@
-    let putc = fun c:Char => {
+let putc = fun c:Char => {
         return;
-    };
+};
 
 let swap = fun @x @y:Int =>{
     let t = x;
