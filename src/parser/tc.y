@@ -47,7 +47,7 @@
 
 %type <type> Type TypeVar TypeRef TypePtr TypeArr TypeFun TypeFunArg TypeDef 
 %type <cell> Cell CellVar CellEle CellRef CellVarEle
-%type <stmt> Stmt Empty Block Let Var If While Break Cont Ret Del Asgn NewType ADT Alias Check
+%type <stmt> Stmt Empty Block Let Var If While Break Cont Ret Del Asgn Exp NewType ADT Alias Check
 
 %left ADD SUB MUL DIV FADD FSUB FMUL FDIV MOD
 %left LAND LOR LXOR BOR BXOR  
@@ -75,6 +75,7 @@ Del     |
 Asgn    | 
 Ret     |
 NewType |
+Exp     |
 Check;
 
 
@@ -113,9 +114,9 @@ CONT SEMI { $$ = context.Cont(); };
 Ret:
 RET Expr SEMI { $$ = context.Ret($2); } |
 RET SEMI { $$ = context.Ret(); };
-/* 
+
 Exp:
-Expr SEMI { $$ = context.Exp($1); }; */
+App SEMI { $$ = context.Exp($1); };
 
 Del:
 DEL Expr SEMI { $$ = context.Del($2); };
@@ -234,22 +235,22 @@ C           |
 S; 
 
 I: INT {
-    printf("I: %ld\n", $1);
+    // printf("I: %ld\n", $1);
     $$ = context.I($1); 
 };
 
 F: FLOAT { 
-    printf("F: %02f\n", $1);
+    // printf("F: %02f\n", $1);
     $$ = context.F($1); 
 };
 
 C: CHAR {
-    printf("C: %c\n", $1);
+    // printf("C: %c\n", $1);
     $$ = context.C($1); 
 };
 
 S: STRING {
-    printf("S: %s\n", $1);
+    // printf("S: %s\n", $1);
     $$ = context.S($1); 
 };
 

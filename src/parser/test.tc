@@ -2,12 +2,13 @@ let putc = fun c:Char => {
         return 0;
 };
 
-let swap = fun @x @y:Int =>{
+let swap = fun @x:Int @y:Int =>{
     let t = x;
-       @x = y;
-       @y = t;
+        @x = y;
+        @y = t;
     return 0;
 };
+
 
 let sort = fun arr:&Int l r =>{
     if(l>=r) return 0;

@@ -20,11 +20,11 @@ public:
         is.read((       char*)&ref, sizeof(T));
         return *this;
     }
-    inline ibfstream& seek(std::__1::streampos pos)
+    inline ibfstream& seek(std::streampos pos)
     { is.seekg(pos); return *this; }
-    inline std::__1::streampos tell()
+    inline std::streampos tell()
     { return is.tellg(); }
-    inline ibfstream& move(std::__1::streamoff off)
+    inline ibfstream& move(std::streamoff off)
     { is.seekg(off, std::ios::cur); return *this; }
 };
 
