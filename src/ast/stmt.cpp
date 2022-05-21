@@ -42,6 +42,7 @@ void	API::BlockStmt(Stmtp stmt)
 	shape->stmts.push_back(stmt);
 
 	block->retype = unify_opt(block->retype, stmt->retype);
+	// std::cerr<<" block stmt is_end = "<<(stmt->is_end?"true":"false")<<std::endl;
 	block->is_end = stmt->is_end;
 
 	// IR
@@ -143,7 +144,7 @@ ID If_Br(Context* context, Stmtp stmt, ID next)
 		auto  dst  = inst.dst;
 		if(sort==ir::Instruction::Sort::Br
 		|| sort==ir::Instruction::Sort::Jump)
-			return dst;
+			return dst-2;
 	}
 
 	auto block = context->new_block();
@@ -153,6 +154,7 @@ ID If_Br(Context* context, Stmtp stmt, ID next)
 }
 Stmtp	API::If(Exprp cond, Stmtp fst, Stmtp snd) // = nullptr
 {
+	
 	Typing(cond, this->b);
 
 	auto stmt = new Stmt(new stmt::_if(cond, fst, nullptr), fst->is_end&&nullptr!=snd&&snd->is_end);
@@ -166,14 +168,17 @@ Stmtp	API::If(Exprp cond, Stmtp fst, Stmtp snd) // = nullptr
 
 	if(nullptr==snd)
 	{
+		std::cout<<"If "<<cond->id<<", fst_id "<<fst_id<<", snd_id = "<<end->id<<std::endl;
 		beg->insts.push_back(Ih::Br(cond->id, fst_id, end->id));
 		stmt->retype = fst->retype;
 	}
 	else
 	{
-		auto snd_id = If_Br(this, snd, end->id);
-		beg->insts.push_back(Ih::Br(cond->id, fst_id, snd_id));
 		stmt->retype = unify_opt(fst->retype, snd->retype);
+		auto snd_id = If_Br(this, snd, end->id);
+		std::cout<<"If "<<cond->id<<", fst_id = "<<fst_id<<", snd_id = "<<snd_id<<std::endl;
+		beg->insts.push_back(Ih::Br(cond->id, fst_id, snd_id));
+		
 	}
 	
 	return stmt;
@@ -193,7 +198,6 @@ Stmtp	API::While(Exprp cond, Stmtp body) // nullptr
 	Typing(cond, this->b);
 	auto stmt = this->whiles.back(); this->whiles.pop_back();
 	stmt->shape = new stmt::_while(cond, body);
-
 	stmt->retype = body->retype;
 
 	// IR
@@ -206,14 +210,16 @@ Stmtp	API::While(Exprp cond, Stmtp body) // nullptr
 	if(nullptr!=body->beg)
 	{
 		cond_block->insts.push_back(Ih::Br(cond->id, body->beg->id, end->id));
-		body->end->insts.push_back(Ih::Jump(cond_block->id));
+		if(false==body->is_end)
+			body->end->insts.push_back(Ih::Jump(cond_block->id));
 	}
 	else
 	{
 		auto body_block = this->new_block();
 		body_block->insts.eat(body->insts);
 		cond_block->insts.push_back(Ih::Br(cond->id, body_block->id, end->id));
-		body_block->insts.push_back(Ih::Jump(cond_block->id));
+		if(false==body->is_end)
+			body_block->insts.push_back(Ih::Jump(cond_block->id));
 	}
 
 	return stmt;
@@ -236,6 +242,7 @@ Stmtp	API::Break(Size size)
 
 	// IR
 	auto end = this->whiles[this->whiles.size()-size]->end->id;
+	std::cerr<<" break to block "<<end+2<<std::endl;
 	stmt->insts.push_back(Ih::Jump(end));
 
 	return stmt;

@@ -752,6 +752,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 auto iter = this->BasicBlockMap.find(id_T);
                 if(iter==this->BasicBlockMap.end())
                 {
+
                     BB_True = llvm::BasicBlock::Create(*TheContext, "block_"+std::to_string(id_T), func);
                     this->BlockStack.push(std::make_pair<>(
                         BB_True, &this->module.blocks[id_T]
@@ -775,7 +776,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                         id_F, BB_False
                     ));
                 }
-                else BB_True = iter->second;
+                else BB_False = iter->second;
                 }
 
                 this->Builder->CreateCondBr(IdMapVal[ins.dst], BB_True, BB_False);
@@ -939,7 +940,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             if (val_it == IdMapVal.end() ){
                 throw std::invalid_argument("Alloc: src id not found.");
             }
-            std::string name = "symb_" + std::to_string(val_it->first);
+            std::string name = "symb_" + std::to_string(ins.dst);
             llvm::Value *ret_val = val_it->second;
             llvm::Type *type = ret_val->getType();
 
