@@ -542,6 +542,7 @@ Exprp	API::ExprFunStmt(Stmtp stmt)
 	else
 	{
 		shape->retype = T_UNIT;
+		stmt->insts.push_back(Ih::Return(0));
 		std::cerr<<"WARNING : stmt return unit;"<<std::endl;
 	}
 	}

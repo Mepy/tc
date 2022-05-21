@@ -305,6 +305,8 @@ Stmtp	API::Asgn(Cellp cell, Oper oper, Exprp value)
 	if(Oper::Undefined!=oper)
 		value = this->BinOp(ref, oper, value);
 
+	Typing(ref, this->TypeRef(value->type));
+	
 	auto stmt = new Stmt(new stmt::_asgn(ref, value));
 
 	stmt->insts.push_back(Ih::Set(ref->id, value->id));

@@ -2,7 +2,7 @@
         return;
     };
 
-let swap = fun @x:Int @y:Int =>{
+let swap = fun @x @y:Int =>{
     let t = x;
        @x = y;
        @y = t;
