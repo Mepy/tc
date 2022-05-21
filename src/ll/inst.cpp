@@ -963,7 +963,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             if (val_it == IdMapVal.end() ){
                 throw std::invalid_argument("New: src id not found.");
             }
-            std::string name = std::to_string(val_it->first);
+            std::string name = "malloc_" + std::to_string(val_it->first);
             llvm::Instruction* Malloc = 
                 llvm::CallInst::CreateMalloc(
                     Builder->GetInsertBlock(),
@@ -974,11 +974,15 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                     nullptr, /*function default*/
                     "malloc"
                 );
+            
+            IdMapVal[ins.dst] = Builder->CreateBitCast(
+                Malloc->getOperand(0), llvm::PointerType::getUnqual(val_it->second->getType()), name);
+
             #if DEBUG
             std::cout << "New: " << "end" << std::endl;
             #endif
             
-            IdMapVal[ins.dst] = Malloc->getOperand(0);
+            // IdMapVal[ins.dst] = Malloc->getOperand(0);
             Builder->CreateStore(val_it->second, IdMapVal[ins.dst]);
             return nullptr;
         }
@@ -993,6 +997,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             if (size_it == IdMapVal.end() ){
                 throw std::invalid_argument("NewAr: src(len) id not found.");
             }
+            std::string name = "malloc_" + std::to_string(val_it->first);
             llvm::Instruction* Malloc = 
                 llvm::CallInst::CreateMalloc(
                     Builder->GetInsertBlock(),
@@ -1003,15 +1008,32 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                     nullptr, /*function default*/
                     "malloc"
                 );
+            IdMapVal[ins.dst] = Builder->CreateBitCast(
+                Malloc->getOperand(0), llvm::PointerType::getUnqual(val_it->second->getType()), name);
+            
 
-            IdMapVal[ins.dst] = Builder->CreateBitCast(Malloc->getOperand(0), val_it->second->getType()->getPointerTo());
-            auto memset = TheModule->getFunction("memset");
-            if (memset == nullptr)
-            {
-                throw std::invalid_argument("NewAr: memset not found.");
-            }
+                        
+            // #if DEBUG
+            // std::cout << IdMapVal[ins.dst]->getType()->isPointerTy() << std::endl;
+            // IdMapVal[ins.dst] = Builder->CreateLoad(Malloc->getOperand(0));
+            
+            auto memset = TheModule->getOrInsertFunction("memset", 
+                llvm::FunctionType::get(
+                    llvm::Type::getVoidTy(*TheContext),
+                    {
+                        llvm::Type::getInt8PtrTy(*TheContext),
+                        llvm::Type::getInt8PtrTy(*TheContext),
+                        llvm::Type::getInt32Ty(*TheContext)
+                    },
+                    false
+                )
+            );
+            // if (memset == nullptr)
+            // {
+            //     throw std::invalid_argument("NewAr: memset not found.");
+            // }
             Builder->CreateCall(memset, {IdMapVal[ins.dst], val_it->second, size_it->second});
-
+            
             #if DEBUG
             std::cout << "NewAr: " << "end, no init" << std::endl;
             #endif
@@ -1135,7 +1157,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             return IdMapVal[ins.dst];
         }
         default:
-            throw std::invalid_argument("Unknown block.");
+            throw std::invalid_argument("Unknown block." + std::to_string(ins.sort));
             break;
     }
     return nullptr;
