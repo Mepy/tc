@@ -867,7 +867,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 }
                 default:
                 {   
-                    // implemented in visitor.cpp
+                    IdMapVal[ins.dst] = Builder->CreateCall(FuncMap[ins.src.id[0]], ArgsMap[ins.src.id[1]]);
                     return nullptr;
                 }
             }
