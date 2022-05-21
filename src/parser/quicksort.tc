@@ -1,67 +1,58 @@
 let putc = fun c:Char => {
-        return;
+        return 0;
 };
 
 let swap = fun @x @y:Int =>{
     let t = x;
        @x = y;
        @y = t;
+    return 0;
 };
 
 
-let sort = fun arr:&Int left right =>{
-    if(left >= right)
-        return ;
+let sort = fun arr:&Int l r =>{
+    if(l>=r) return 0;
 
+    let @i = l;
+    let @j = r;
+    let p = arr[l];
 
-    let @l = left;
-    let @r = right;
-    let @p = left;
-
-    while(true)
+    while(i<j)
     {
-        while(l<r && arr[r]>=arr[p])
-            r = r - 1;
-        
-        if(l==r)
-            break;
+        while(i<j)
+        {
+            if(arr[j]>=p) j = j - 1;
+            else break;
+        }
+        arr[i] = arr[j];
 
-
-        let _ = swap(arr@[p], arr@[r]);
-        let _ = swap(@p, @r);
-        
-        while(l < r && arr[l] <= arr[p])
-            l = l + 1;
-        
-        if(l == r)
-            break;
-
-
-        let _ = swap(arr@[p], arr@[l]);
-        let _ = swap(@p, @l);
+        while(i<j)
+        {
+            if(arr[i]<=p) i = i + 1;
+            else break;
+        }
+        arr[j] = arr[i];
     }
-
-    let _ = $(arr, left, r    );
-    let _ = $(arr, l   , right);
-    return ;
+    arr[i] = p;
+    let _ = $(arr, l, i-1);
+    let _ = $(arr, j+1, r);
+    return 0;
 };
 
 let main = fun =>{
     let n    = geti();
-    let arr  = new 0 ** n;
+    let arr  = 0 ** 10000;
     let @i   = 0;
-    let @ptr = arr;
+    let @ptr = arr&[0];
     while(i<n)
     {
         *ptr = geti();
         ptr  = ptr + 1;
         i    = i   + 1;
     }
-    let _ = sort(ptr, 0, n-1);
+    let _ = sort(arr&[0], 0, n-1);
     i=0;
-    ptr=arr;
-
-
+    ptr=arr&[0];
 
     while(i<n)
     {
@@ -70,7 +61,6 @@ let main = fun =>{
         ptr = ptr + 1;
         i   = i + 1;
     }
-    del ptr;
     return 0;
 };
 
