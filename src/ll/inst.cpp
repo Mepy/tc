@@ -101,8 +101,8 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             if(Val2_it == IdMapVal.end())
                 throw std::invalid_argument("IAdd: src id[1] not found.");
             auto dst = 
-                Builder->CreateAdd(Val1_it->second, Val2_it->second);
-            // llvm::BinaryOperator::CreateAdd(Val1_it->second, Val2_it->second, "");
+                Builder->CreateAdd(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
+            // llvm::BinaryOperator::CreateAdd(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = dst;
             return dst;
         }
@@ -115,7 +115,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("ISub: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateSub(Val1_it->second, Val2_it->second, "");
+                Builder->CreateSub(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;            
         }
@@ -128,7 +128,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("IMul: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateMul(Val1_it->second, Val2_it->second, "");
+                Builder->CreateMul(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -142,7 +142,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("IDiv: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateSDiv(Val1_it->second, Val2_it->second, "");
+                Builder->CreateSDiv(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -154,7 +154,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             {
                 throw std::invalid_argument("IMod: src id not found.");
             }
-            auto ret_val = Builder->CreateSRem(Val1_it->second, Val2_it->second, "");
+            auto ret_val = Builder->CreateSRem(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -167,7 +167,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("FAdd: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateFAdd(Val1_it->second, Val2_it->second, "");
+                Builder->CreateFAdd(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;            
         }
@@ -180,7 +180,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("FSub: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateFSub(Val1_it->second, Val2_it->second, "");
+                Builder->CreateFSub(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -193,7 +193,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("FMul: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateFMul(Val1_it->second, Val2_it->second, "");
+                Builder->CreateFMul(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -206,7 +206,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("FDiv: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateFDiv(Val1_it->second, Val2_it->second, "");
+                Builder->CreateFDiv(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -219,7 +219,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("FMod: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateFRem(Val1_it->second, Val2_it->second, "");
+                Builder->CreateFRem(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -234,7 +234,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("PAdd: src id not found.");
             }
             llvm::Value *ret_ptr = 
-                Builder->CreateGEP(Ptr1_it->second, Val2_it->second, "");
+                Builder->CreateGEP(Ptr1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             #if DEBUG
             std::cout << ret_ptr->getType()->isPointerTy() << std::endl;
             #endif
@@ -265,7 +265,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             //     throw std::invalid_argument("PSub: Pointers do not point to the same object.");
             // }
             llvm::Value *ret_val = 
-                Builder->CreatePtrDiff(Ptr1_it->second, Ptr2_it->second, "");
+                Builder->CreatePtrDiff(Ptr1_it->second, Ptr2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -292,7 +292,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("LShift: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateShl(Val1_it->second, Val2_it->second, "");
+                Builder->CreateShl(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -305,7 +305,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("RShift: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateLShr(Val1_it->second, Val2_it->second, "");
+                Builder->CreateLShr(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -317,7 +317,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("BNot: src id not found.");
             }
             // do bit-wise negation in builder
-            llvm::Value *ret_val = Builder->CreateNot(Val1_it->second, "");
+            llvm::Value *ret_val = Builder->CreateNot(Val1_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -330,7 +330,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("BAnd: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateAnd(Val1_it->second, Val2_it->second, "");
+                Builder->CreateAnd(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -343,7 +343,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("BOr: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateOr(Val1_it->second, Val2_it->second, "");
+                Builder->CreateOr(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -356,7 +356,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("BXor: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateXor(Val1_it->second, Val2_it->second, "");
+                Builder->CreateXor(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -370,7 +370,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             llvm::Value *ret_val = Builder->CreateXor(
                 Val1_it->second, 
                 llvm::ConstantInt::get(Val1_it->second->getType(), -1, true /* signed */),
-                "");
+                "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -383,7 +383,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("LAnd: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateLogicalAnd(Val1_it->second, Val2_it->second, "");
+                Builder->CreateLogicalAnd(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -396,7 +396,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("LOr: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateLogicalOr(Val1_it->second, Val2_it->second, "");
+                Builder->CreateLogicalOr(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -419,8 +419,8 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                                 Val2_it->second->getType(), 
                                 -1, 
                                 true /* signed */), 
-                                ""),
-                            ""),
+                                "symb_"+std::to_string(ins.dst)),
+                            "symb_"+std::to_string(ins.dst)),
                     Builder->CreateLogicalAnd(
                         Val2_it->second, 
                         // negate Val2_it->second
@@ -430,9 +430,9 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                                 Val1_it->second->getType(), 
                                 -1, 
                                 true /* signed */), 
-                                ""),
-                            ""),
-                    "");
+                                "symb_"+std::to_string(ins.dst)),
+                            "symb_"+std::to_string(ins.dst)),
+                    "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -457,7 +457,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             // }
             llvm::Value *ret_val = Builder->CreateICmpSLT(
                 llvm::dyn_cast<llvm::ConstantInt>(Ptr1_it->second), 
-                llvm::dyn_cast<llvm::ConstantInt>(Ptr2_it->second), "");
+                llvm::dyn_cast<llvm::ConstantInt>(Ptr2_it->second), "symb_"+std::to_string(ins.dst));
         }
         case Ins::PLe:
         {
@@ -479,7 +479,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             // }
             llvm::Value *ret_val = Builder->CreateICmpSLE(
                 llvm::dyn_cast<llvm::ConstantInt>(Ptr1_it->second), 
-                llvm::dyn_cast<llvm::ConstantInt>(Ptr2_it->second), "");
+                llvm::dyn_cast<llvm::ConstantInt>(Ptr2_it->second), "symb_"+std::to_string(ins.dst));
         }
         case Ins::PGt:
         {
@@ -501,7 +501,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             // }
             llvm::Value *ret_val = Builder->CreateICmpSGT(
                 llvm::dyn_cast<llvm::ConstantInt>(Ptr1_it->second), 
-                llvm::dyn_cast<llvm::ConstantInt>(Ptr2_it->second), "");
+                llvm::dyn_cast<llvm::ConstantInt>(Ptr2_it->second), "symb_"+std::to_string(ins.dst));
         }
         case Ins::PGe:
         {
@@ -523,7 +523,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             // }
             llvm::Value *ret_val = Builder->CreateICmpSGE(
                 llvm::dyn_cast<llvm::ConstantInt>(Ptr1_it->second), 
-                llvm::dyn_cast<llvm::ConstantInt>(Ptr2_it->second), "");
+                llvm::dyn_cast<llvm::ConstantInt>(Ptr2_it->second), "symb_"+std::to_string(ins.dst));
         }
         case Ins::PEq:
         {
@@ -545,7 +545,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             // }
             llvm::Value *ret_val = Builder->CreateICmpEQ(
                 llvm::dyn_cast<llvm::ConstantInt>(Ptr1_it->second), 
-                llvm::dyn_cast<llvm::ConstantInt>(Ptr2_it->second), "");
+                llvm::dyn_cast<llvm::ConstantInt>(Ptr2_it->second), "symb_"+std::to_string(ins.dst));
         }
         case Ins::PNe:
         {
@@ -567,7 +567,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             // }
             llvm::Value *ret_val = Builder->CreateICmpNE(
                 llvm::dyn_cast<llvm::ConstantInt>(Ptr1_it->second), 
-                llvm::dyn_cast<llvm::ConstantInt>(Ptr2_it->second), "");
+                llvm::dyn_cast<llvm::ConstantInt>(Ptr2_it->second), "symb_"+std::to_string(ins.dst));
         }
 
         // Int comparison
@@ -580,7 +580,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("ILt: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateICmpSLT(Val1_it->second, Val2_it->second, "");
+                Builder->CreateICmpSLT(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -593,7 +593,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("ILe: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateICmpSLE(Val1_it->second, Val2_it->second, "");
+                Builder->CreateICmpSLE(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -606,7 +606,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("IGt: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateICmpSGT(Val1_it->second, Val2_it->second, "");
+                Builder->CreateICmpSGT(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -622,7 +622,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("IGe: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateICmpSGE(Val1_it->second, Val2_it->second, "");
+                Builder->CreateICmpSGE(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -635,7 +635,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("IEq: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateICmpEQ(Val1_it->second, Val2_it->second, "");
+                Builder->CreateICmpEQ(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -648,7 +648,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("INe: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateICmpNE(Val1_it->second, Val2_it->second, "");
+                Builder->CreateICmpNE(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -661,7 +661,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("FLt: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateFCmpOLT(Val1_it->second, Val2_it->second, "");
+                Builder->CreateFCmpOLT(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -674,7 +674,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("FLe: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateFCmpOLE(Val1_it->second, Val2_it->second, "");
+                Builder->CreateFCmpOLE(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -687,7 +687,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("FGt: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateFCmpOGT(Val1_it->second, Val2_it->second, "");
+                Builder->CreateFCmpOGT(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -700,7 +700,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("FGe: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateFCmpOGE(Val1_it->second, Val2_it->second, "");
+                Builder->CreateFCmpOGE(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -713,7 +713,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("FEq: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateFCmpOEQ(Val1_it->second, Val2_it->second, "");
+                Builder->CreateFCmpOEQ(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -726,7 +726,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 throw std::invalid_argument("FNe: src id not found.");
             }
             llvm::Value *ret_val = 
-                Builder->CreateFCmpONE(Val1_it->second, Val2_it->second, "");
+                Builder->CreateFCmpONE(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
             IdMapVal[ins.dst] = ret_val;
             return ret_val;
         }
@@ -752,7 +752,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 auto iter = this->BasicBlockMap.find(id_T);
                 if(iter==this->BasicBlockMap.end())
                 {
-                    BB_True = llvm::BasicBlock::Create(*TheContext, std::to_string(id_T), func);
+                    BB_True = llvm::BasicBlock::Create(*TheContext, "block_"+std::to_string(id_T), func);
                     this->BlockStack.push(std::make_pair<>(
                         BB_True, &this->module.blocks[id_T]
                     ));
@@ -767,7 +767,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 auto iter = this->BasicBlockMap.find(id_F);
                 if(iter==this->BasicBlockMap.end())
                 {
-                    BB_False = llvm::BasicBlock::Create(*TheContext, std::to_string(id_F), func);
+                    BB_False = llvm::BasicBlock::Create(*TheContext, "block_"+std::to_string(id_F), func);
                     this->BlockStack.push(std::make_pair<>(
                         BB_False, &this->module.blocks[id_F]
                     ));
@@ -794,7 +794,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             if(iter==this->BasicBlockMap.end())
             {
                 auto func = this->Builder->GetInsertBlock()->getParent();
-                BB = llvm::BasicBlock::Create(*TheContext, std::to_string(id), func);
+                BB = llvm::BasicBlock::Create(*TheContext, "block_"+std::to_string(id), func);
                 this->BlockStack.push(std::make_pair<>(
                     BB, &this->module.blocks[id]
                 ));
@@ -824,7 +824,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                         throw std::invalid_argument("Call: (i2f) src id not found.");
                     }
                     assert (Args_it->second.size() == 1);
-                    llvm::Value *ret_val = Builder->CreateSIToFP(Args_it->second[0], llvm::Type::getFloatTy(*TheContext), "");
+                    llvm::Value *ret_val = Builder->CreateSIToFP(Args_it->second[0], llvm::Type::getFloatTy(*TheContext), "symb_"+std::to_string(ins.dst));
                     IdMapVal[ins.dst] = ret_val;
                     return ret_val;
                 }
@@ -836,7 +836,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                         throw std::invalid_argument("Call: (f2i) src id not found.");
                     }
                     assert (Args_it->second.size() == 1);
-                    llvm::Value *ret_val = Builder->CreateFPToSI(Args_it->second[0], llvm::Type::getInt32Ty(*TheContext), "");
+                    llvm::Value *ret_val = Builder->CreateFPToSI(Args_it->second[0], llvm::Type::getInt32Ty(*TheContext), "symb_"+std::to_string(ins.dst));
                     IdMapVal[ins.dst] = ret_val;
                     return ret_val;
                 }
@@ -1087,7 +1087,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                     index, 
                     std::to_string(ins.src.id[0])
                 );
-                IdMapVal[ins.dst] = Builder->CreateLoad(val_ptr);
+                IdMapVal[ins.dst] = Builder->CreateLoad(val_ptr, "symb_"+std::to_string(ins.dst));
             }
             if(src->getType()->isPointerTy())
             {
@@ -1118,8 +1118,8 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 //else: product of CreateGEP, simply load
                 IdMapVal[ins.dst] = Builder->CreateLoad(
                     src->getType()->getPointerElementType(), 
-                    src);
-            }
+                    src, "symb_"+std::to_string(ins.dst));
+            } 
             return IdMapVal[ins.dst];
         }
         default:
