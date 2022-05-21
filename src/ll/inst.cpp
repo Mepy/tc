@@ -867,6 +867,19 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 }
                 default:
                 {   
+                    #if DEBUG
+                    std::cout << "Args exist: " << (ArgsMap.find(ins.src.id[1]) != ArgsMap.end()) << std::endl;
+                    # endif
+                    auto &args_block = this->module.blocks[ins.src.id[1]];
+                    for (auto i = 0; i < args_block.head.ord.size; ++i)
+                    {
+                        auto arg_id = args_block.extra.ids[i];
+                        auto arg_val = this->IdMapVal[arg_id];
+                        auto arg_type = arg_val->getType();
+                        auto arg_name = "symb_"+std::to_string(arg_id);
+                        auto arg_val_casted = Builder->CreateBitCast(arg_val, llvm::PointerType::getUnqual(arg_type), arg_name);
+                        ArgsMap[ins.src.id[1]].push_back(arg_val_casted);
+                    }
                     IdMapVal[ins.dst] = Builder->CreateCall(FuncMap[ins.src.id[0]], ArgsMap[ins.src.id[1]]);
                     return nullptr;
                 }
