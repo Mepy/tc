@@ -68,7 +68,7 @@ void	API::BlockStmt(Stmtp stmt)
 		else
 		{
 			block->end->insts.push_back(Ih::Jump(stmt->beg->id));
-			block->end = stmt->beg;
+			block->end = stmt->end;
 		}
 	}
 }
@@ -306,7 +306,6 @@ Stmtp	API::Asgn(Cellp cell, Oper oper, Exprp value)
 		value = this->BinOp(ref, oper, value);
 
 	Typing(ref, this->TypeRef(value->type));
-	
 	auto stmt = new Stmt(new stmt::_asgn(ref, value));
 
 	stmt->insts.push_back(Ih::Set(ref->id, value->id));

@@ -309,11 +309,15 @@ Exprp	API::ExprEle(Exprp array, Exprp index)
 {
 	auto expr = this->Element(array, index);
 
-	expr->insts.push_back(Ih::Get(expr->id, array->id, index->id));
+	expr->type = this->TypePtr(expr->type);
+
+	expr->insts.push_back(Ih::PtrAdd(expr->id, array->id, index->id));
 
 	expr->sort = Sort::NonD;
 
-	return expr;
+	
+
+	return this->ExprVal(expr);
 }
 
 Exprp	API::ExprEleRef(Exprp array, Exprp index)
