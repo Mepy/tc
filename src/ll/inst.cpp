@@ -1004,7 +1004,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                     "malloc"
                 );
 
-            IdMapVal[ins.dst] = Malloc->getOperand(0);
+            IdMapVal[ins.dst] = Builder->CreateBitCast(Malloc->getOperand(0), val_it->second->getType()->getPointerTo());
             auto memset = TheModule->getFunction("memset");
             if (memset == nullptr)
             {
