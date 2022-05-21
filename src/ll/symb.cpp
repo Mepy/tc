@@ -18,13 +18,17 @@ void    LLCodegenVisitor::load_symb()
         ((llvm::FunctionType*)(this->TypeMap[10]))
         , llvm::Function::ExternalLinkage, "puts", *TheModule
     );
+    this->FuncMap[8] = llvm::Function::Create(
+        ((llvm::FunctionType*)(this->TypeMap[11]))
+        , llvm::Function::ExternalLinkage, "putchar", *TheModule
+    );
     }
     auto blocks = this->module.blocks;
     auto& block = blocks[1];
     auto size   = block.head.ord.size;
     auto symbs  = block.extra.symbs;
     llvm::Twine name("fn_");
-    for(auto i = 8;i<size; ++i)
+    for(auto i = 9;i<size; ++i)
     {
         auto symb = symbs[i];
         switch(symb.sort)

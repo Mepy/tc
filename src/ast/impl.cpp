@@ -91,6 +91,15 @@ API::API()
 	this->expr.bind(E_PUTS, "puts");
 	}
 
+	// putc
+	{
+	this->TypeFunBeg();
+	this->TypeFunArg(c);
+	auto type = this->TypeFunEnd(u);
+	this->expr.insert(Expr(E_PUTC, Eh::func(), type, ir::Symbol::CPrg));
+	this->expr.bind(E_PUTC, "putc");
+	}
+
 	{ // adt
 	auto id = this->type.nid();
 	this->type.insert(Type(id, Th::adt(), ir::type::ADT(id)));
