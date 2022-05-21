@@ -880,7 +880,10 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                         auto arg_name = "symb_"+std::to_string(arg_id);
                         ArgsMap[ins.src.id[1]].push_back(arg_val);
                     }
-                    IdMapVal[ins.dst] = Builder->CreateCall(FuncMap[ins.src.id[0]], ArgsMap[ins.src.id[1]], "symb_"+std::to_string(ins.dst));
+                    auto ret_val = Builder->CreateCall(FuncMap[ins.src.id[0]], ArgsMap[ins.src.id[1]]);
+                    if(ret_val->getType()!=Builder->getVoidTy())
+                        ret_val->setName("symb_"+std::to_string(ins.dst));
+                    IdMapVal[ins.dst] = ret_val;
                     return nullptr;
                 }
             }

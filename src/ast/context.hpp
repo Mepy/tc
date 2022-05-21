@@ -197,6 +197,7 @@ struct Context
     ,   E_GETI  = 5
     ,   E_PUTI  = 6
     ,   E_PUTS  = 7
+    ,   E_PUTC  = 8
     ,   E_END
     };
 
