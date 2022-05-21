@@ -398,8 +398,14 @@ void	API::AppArg(Exprp arg)
 	// NOT Ref Needed ~> Auto Dereference
 	if(type::Shape::Ref!=type->shape->flag)
 		arg = AutoDereference(arg);
-	
-	Typing(arg, type, "API::AppArg TypeNotEq;");
+
+	if(type::Shape::Array==arg->type->shape->flag&&type::Shape::Ptr==type->shape->flag)
+	{
+		auto shape = ((type::Array*)(arg->type->shape));
+		unify(*type, *this->TypePtr(&this->type[shape->id]));
+	}
+	else
+		Typing(arg, type, "API::AppArg TypeNotEq;");
 	call->inst_front(arg);
 	args.push_back(arg->id);
 }
