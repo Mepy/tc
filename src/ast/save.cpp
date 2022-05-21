@@ -193,6 +193,22 @@ inline void save_symb(Context* context, Obfs& obfs)
         obfs<<Byte8(0);
 }
 
+
+void    save_symb_names(API* context, string path)
+{
+    std::ofstream fs(path+".expr_name.txt");
+
+    for(const auto& expr:context->expr.def)
+    {
+        if(expr.names.empty())
+            continue;
+        
+        fs<<expr.id<<" ";
+        for(const auto& name:expr.names)
+            fs<<name<<" ";
+        fs<<std::endl;
+    }
+}
 // [TODO]
 void    API::save(string path)
 {
@@ -212,6 +228,7 @@ void    API::save(string path)
 
     save_type(this, obfs);
     save_symb(this, obfs);
+    save_symb_names(this, path);
     
     for(auto& block : this->block)
     {

@@ -291,7 +291,7 @@ EleAddr: Expr PTRLB Expr RB {
 }
 
 New: 
-NEW Expr ARR Expr { $$ = context.New($2); }
+NEW Expr { $$ = context.New($2); }
 
 
 // **************************Fun **************************
