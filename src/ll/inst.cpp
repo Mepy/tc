@@ -1039,6 +1039,29 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             #endif
             return nullptr;
         }
+        case Ins::Del:
+        {
+            auto dst_= IdMapVal.find(ins.dst);
+            if (dst_ == IdMapVal.end() ){
+                throw std::invalid_argument("Del: dst id not found.");
+            }
+            if (dst_->second->getNumUses() != 0){
+                throw std::invalid_argument("Del: dst id has uses.");
+            }
+            Builder->CreateCall(
+                TheModule->getOrInsertFunction("free", 
+                    llvm::FunctionType::get(
+                        llvm::Type::getVoidTy(*TheContext),
+                        {
+                            llvm::Type::getInt8PtrTy(*TheContext)
+                        },
+                        false
+                    )
+                ),
+                {dst_->second}
+            );
+            return nullptr;
+        }
 
         case Ins::Set:
         {
