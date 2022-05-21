@@ -612,6 +612,9 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
         }
         case Ins::IGe:
         {
+            #if DEBUG
+            std::cout << "IGe: " << std::endl;
+            #endif
             auto Val1_it = IdMapVal.find(ins.src.id[0]);
             auto Val2_it = IdMapVal.find(ins.src.id[1]);
             if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
@@ -733,10 +736,13 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
 
         case Ins::Br:
         {
+            #if DEBUG
+            std::cout << "Br: " << IdMapVal[ins.dst]->getType()->isIntegerTy() << std::endl;
+            #endif
             if (IdMapVal.find(ins.dst) == IdMapVal.end()) {
                 throw std::invalid_argument("Br: dst id not found.");
             }
-            if (IdMapVal[ins.dst]->getType()->isIntegerTy(1)) {
+            if (IdMapVal[ins.dst]->getType()->isIntegerTy()) {
 
                 auto func = this->Builder->GetInsertBlock()->getParent();
                 
@@ -986,17 +992,14 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                     "malloc"
                 );
 
-            // init malloc-ed array with init val
-            IdMapVal[ins.dst] = Malloc->getOperand(0); // The allocated pointer            
-            // for (auto i=0; i<; i++)
-            // {
-            //     #if DEBUG
-            //     std::cout << "NewAr: " << i << std::endl;
-            //     #endif
-            //     Builder->CreateStore(val_it->second, 
-            //         Builder->CreateGEP(IdMapVal[ins.dst], 
-            //             llvm::ConstantInt::get(llvm::Type::getInt32Ty(*TheContext), i)));
-            // }
+            IdMapVal[ins.dst] = Malloc->getOperand(0);
+            auto memset = TheModule->getFunction("memset");
+            if (memset == nullptr)
+            {
+                throw std::invalid_argument("NewAr: memset not found.");
+            }
+            Builder->CreateCall(memset, {IdMapVal[ins.dst], val_it->second, size_it->second});
+
             #if DEBUG
             std::cout << "NewAr: " << "end, no init" << std::endl;
             #endif
@@ -1005,10 +1008,13 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
 
         case Ins::Set:
         {
-            if (IdMapVal[ins.dst] == nullptr ) {
+            #if DEBUG
+            std::cout << "Set: " << std::endl;
+            #endif
+            if (IdMapVal.find(ins.dst) == IdMapVal.end() ){
                 throw std::invalid_argument("Set: dst(ptr) id not found.");
             }
-            if (IdMapVal[ins.src.id[0]] == nullptr ) {
+            if (IdMapVal.find(ins.src.id[0]) == IdMapVal.end() ) {
                 throw std::invalid_argument("Set: src(val) id not found.");
             }
             auto& src = IdMapVal[ins.src.id[0]];
@@ -1016,6 +1022,9 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             llvm::Value *index;
             if (dst->getType()->isArrayTy() ) 
             {
+                #if DEBUG
+                std::cout << "Set: " << "array" << std::endl;
+                #endif
                 llvm::Value *index = llvm::ConstantInt::get(
                     llvm::Type::getInt32Ty(*TheContext), ins.src.id[1]);
 
@@ -1026,28 +1035,34 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                     std::to_string(ins.src.id[0])
                 );
 
-                Builder->CreateStore(src, val_store_ptr);
+                Builder->CreateStore(dst, val_store_ptr);
             }
-            else if (src->getType()->isPointerTy() ) 
+            else if (dst->getType()->isPointerTy() ) 
             {
+                #if DEBUG
+                std::cout << "Set: " << "ptr" << std::endl;
+                #endif
                 if (ins.src.id[1] != 0) 
                 {
                     // TODO: this can be a warning, not an error?
                     throw std::invalid_argument("Set: src(ptr) id mapped to ptr; But offset is non-zero.");
                 }
-                if (src->getType()->getPointerElementType()->isArrayTy())
+                if (dst->getType()->getPointerElementType()->isArrayTy())
                 {   // pointer to array type: in CStr
                     #if DEBUG
                     std::cout << "Set: src(ptr) to array (CStr).\n";
                     #endif
                     auto cast = Builder->CreateBitCast(src, 
-                        src->getType()->getPointerElementType()->getArrayElementType()->getPointerTo()
+                        dst->getType()->getPointerElementType()->getArrayElementType()->getPointerTo()
                     ); // cast from ptr to array to ptr to element
                     Builder->CreateStore(
                         src, 
                         cast);
                     return nullptr;
                 }
+                #if DEBUG
+                std::cout << "Set: src(ptr) to ptr.\n";
+                #endif
                 Builder->CreateStore(src, dst);
             }
             return nullptr;
