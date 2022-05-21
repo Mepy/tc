@@ -878,25 +878,22 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
         }
         case Ins::Array:
         {
-            throw std::invalid_argument("Array: not implemented.");
-            // auto init_it = IdMapVal.find(ins.src.id[0]);
-            // if (init_it == IdMapVal.end())
-            // {
-            //     throw std::invalid_argument("Array: src(init val) id not found.");
-            // }
-            // auto size_it = IdMapVal.find(ins.src.id[1]);
-            // if (size_it == IdMapVal.end())
-            // {
-            //     throw std::invalid_argument("Array: src(size) id not found.");
-            // }
+            // throw std::invalid_argument("Array: not implemented.");
+            auto init_it = IdMapVal.find(ins.src.id[0]);
+            if (init_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("Array: src(init val) id not found.");
+            }
+            auto size_it = IdMapVal.find(ins.src.id[1]);
+            if (size_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("Array: src(size) id not found.");
+            }
             // auto constIntSize = llvm::dyn_cast<llvm::ConstantInt>(size_it->second);
             // #if DEBUG
             // std::cout << "Array: " << constIntSize << std::endl;
             // #endif
-            // llvm::ArrayType *arr_type = llvm::ArrayType::get(
-            //     init_it->second->getType(),
-            //     constIntSize->getZExtValue()
-            // );
+            auto IntType = llvm::Type::getInt32Ty(*TheContext);
             // #if DEBUG
             // std::cout << "Array: " << arr_type << std::endl;
             // #endif
@@ -904,16 +901,18 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             //     llvm::dyn_cast<llvm::ConstantInt>(size_it->second)->getZExtValue(),
             //     llvm::dyn_cast<llvm::ConstantInt>(init_it->second)
             // );
-            // #if DEBUG
-            // std::cout << "Array: "  << std::endl;
-            // #endif
-            // IdMapVal[ins.dst] = llvm::ConstantArray::get(
-            //     arr_type, 
-            //     llvm::ArrayRef<llvm::Constant*>(arr_init_vals)
+            #if DEBUG
+            std::cout << "Array: "  << std::endl;
+            #endif
+            IdMapVal[ins.dst] = Builder->CreateAlloca(IntType, 
+                size_it->second, std::to_string(ins.dst));
+            #if DEBUG
+            std::cout << "Array: " << "Out" << std::endl;
+            #endif
+            // Builder->CreateStore(
+            //     llvm::ConstantArray::get(arr_type, arr_init_vals),
+            //     IdMapVal[ins.dst]
             // );
-            // #if DEBUG
-            // std::cout << "Array: " << IdMapVal[ins.dst] << std::endl;
-            // #endif
             return nullptr;
         }
         case Ins::Alloc:
@@ -939,24 +938,35 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             // The memory is uninitialized
             // The memory is allocated on the stack
             // The memory is not freed when the function returns
+            #if DEBUG
+            std::cout << "New: " << std::endl;
+            #endif
             auto val_it = IdMapVal.find(ins.src.id[0]);
             if (val_it == IdMapVal.end() ){
                 throw std::invalid_argument("New: src id not found.");
             }
             std::string name = std::to_string(val_it->first);
-            auto ret_ptr = Builder->CreateCall(
-                TheModule->getFunction("_Znwm"),
-                {
-                    llvm::ConstantExpr::getSizeOf(val_it->second->getType()),
-                    // llvm::ConstantInt::get(llvm::Type::getInt32Ty(*TheContext), 1)
-                }
-            );
-            IdMapVal[ins.dst] = llvm::dyn_cast<llvm::AllocaInst>(ret_ptr);
+            llvm::Instruction* Malloc = 
+                llvm::CallInst::CreateMalloc(
+                    Builder->GetInsertBlock(),
+                    llvm::Type::getInt32PtrTy(*TheContext), /*IntPtrTy*/
+                    val_it->second->getType(), /*AllocatedType*/
+                    llvm::ConstantExpr::getSizeOf(val_it->second->getType()), /*AllocatedTypeSize*/
+                    nullptr, /*ArraySize*/
+                    nullptr, /*function default*/
+                    "malloc"
+                );
+            #if DEBUG
+            std::cout << "New: " << "end" << std::endl;
+            #endif
+            
+            IdMapVal[ins.dst] = Malloc->getOperand(0);
+            Builder->CreateStore(val_it->second, IdMapVal[ins.dst]);
             return nullptr;
         }
         case Ins::NewAr:
         {
-            // Call the _Znam function from libc
+            // Call the malloc function to allocate space for an array and init its value
             auto val_it = IdMapVal.find(ins.src.id[0]);
             if (val_it == IdMapVal.end() ){
                 throw std::invalid_argument("NewAr: src(init) id not found.");
@@ -965,15 +975,31 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             if (size_it == IdMapVal.end() ){
                 throw std::invalid_argument("NewAr: src(len) id not found.");
             }
-            std::string name = std::to_string(val_it->first);
-            auto ret_ptr = Builder->CreateCall(
-                TheModule->getFunction("_Znam"),
-                {
-                    llvm::ConstantExpr::getSizeOf(val_it->second->getType()),
-                    // llvm::ConstantInt::get(llvm::Type::getInt32Ty(*TheContext), 1)
-                }
-            );
-            IdMapVal[ins.dst] = llvm::dyn_cast<llvm::AllocaInst>(ret_ptr);
+            llvm::Instruction* Malloc = 
+                llvm::CallInst::CreateMalloc(
+                    Builder->GetInsertBlock(),
+                    llvm::Type::getInt32PtrTy(*TheContext), /*IntPtrTy*/
+                    val_it->second->getType(), /*AllocatedType*/
+                    llvm::ConstantExpr::getSizeOf(val_it->second->getType()), /*AllocatedTypeSize*/
+                    size_it->second, /*ArraySize*/
+                    nullptr, /*function default*/
+                    "malloc"
+                );
+
+            // init malloc-ed array with init val
+            IdMapVal[ins.dst] = Malloc->getOperand(0); // The allocated pointer            
+            // for (auto i=0; i<; i++)
+            // {
+            //     #if DEBUG
+            //     std::cout << "NewAr: " << i << std::endl;
+            //     #endif
+            //     Builder->CreateStore(val_it->second, 
+            //         Builder->CreateGEP(IdMapVal[ins.dst], 
+            //             llvm::ConstantInt::get(llvm::Type::getInt32Ty(*TheContext), i)));
+            // }
+            #if DEBUG
+            std::cout << "NewAr: " << "end, no init" << std::endl;
+            #endif
             return nullptr;
         }
 
