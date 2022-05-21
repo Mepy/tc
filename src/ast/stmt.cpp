@@ -92,7 +92,8 @@ Stmtp	API::Let(Name name, Exprp expr, Typep type) // = nullptr
 
     Typing(expr, type);
 
-	this->expr.bind(expr->id, name);
+	if("_"!=name)
+		this->expr.bind(expr->id, name);
 
 	auto stmt = new Stmt(new stmt::_let(name, type, expr));
 
@@ -112,7 +113,9 @@ Stmtp	API::Var(Name name, Exprp expr, Typep type) // = nullptr
 	auto id = this->expr.nid();
 	this->expr.insert(Expr(id, Eh::ref(expr->id), ref_type, Ih::Alloc(id, expr->id), ir::Symbol::Const));
 	auto ref = &(this->expr[id]);
-	this->expr.bind(ref->id, name);
+
+	if("_"!=name)
+		this->expr.bind(ref->id, name);
 
 	ref->inst_front(expr);
 
@@ -127,7 +130,8 @@ ID If_Br(Context* context, Stmtp stmt, ID next)
 {
 	if(nullptr!=stmt->beg)
 	{
-		stmt->end->insts.push_back(Ih::Jump(next));
+		if(false==stmt->is_end)
+			stmt->end->insts.push_back(Ih::Jump(next));
 		return stmt->beg->id;
 	}
 
@@ -144,7 +148,7 @@ ID If_Br(Context* context, Stmtp stmt, ID next)
 
 	auto block = context->new_block();
 	block->insts.eat(stmt->insts);
-	block->insts.push_back(Ih::Jump(next));
+	if(false==stmt->is_end) block->insts.push_back(Ih::Jump(next));
 	return block->id;
 }
 Stmtp	API::If(Exprp cond, Stmtp fst, Stmtp snd) // = nullptr

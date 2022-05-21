@@ -836,7 +836,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                         throw std::invalid_argument("Call: (f2i) src id not found.");
                     }
                     assert (Args_it->second.size() == 1);
-                    llvm::Value *ret_val = Builder->CreateFPToSI(Args_it->second[0], llvm::Type::getInt32Ty(*TheContext), "symb_"+std::to_string(ins.dst));
+                    llvm::Value *ret_val = Builder->CreateFPToSI(Args_it->second[0], llvm::Type::getInt64Ty(*TheContext), "symb_"+std::to_string(ins.dst));
                     IdMapVal[ins.dst] = ret_val;
                     return ret_val;
                 }
@@ -879,7 +879,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                         auto arg_name = "symb_"+std::to_string(arg_id);
                         ArgsMap[ins.src.id[1]].push_back(arg_val);
                     }
-                    IdMapVal[ins.dst] = Builder->CreateCall(FuncMap[ins.src.id[0]], ArgsMap[ins.src.id[1]]);
+                    IdMapVal[ins.dst] = Builder->CreateCall(FuncMap[ins.src.id[0]], ArgsMap[ins.src.id[1]], "symb_"+std::to_string(ins.dst));
                     return nullptr;
                 }
             }
@@ -911,7 +911,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             // #if DEBUG
             // std::cout << "Array: " << constIntSize << std::endl;
             // #endif
-            auto IntType = llvm::Type::getInt32Ty(*TheContext);
+            auto IntType = llvm::Type::getInt64Ty(*TheContext);
             // #if DEBUG
             // std::cout << "Array: " << arr_type << std::endl;
             // #endif
@@ -967,7 +967,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             llvm::Instruction* Malloc = 
                 llvm::CallInst::CreateMalloc(
                     Builder->GetInsertBlock(),
-                    llvm::Type::getInt32PtrTy(*TheContext), /*IntPtrTy*/
+                    llvm::Type::getInt64PtrTy(*TheContext), /*IntPtrTy*/
                     val_it->second->getType(), /*AllocatedType*/
                     llvm::ConstantExpr::getSizeOf(val_it->second->getType()), /*AllocatedTypeSize*/
                     nullptr, /*ArraySize*/
@@ -1001,7 +1001,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             llvm::Instruction* Malloc = 
                 llvm::CallInst::CreateMalloc(
                     Builder->GetInsertBlock(),
-                    llvm::Type::getInt32PtrTy(*TheContext), /*IntPtrTy*/
+                    llvm::Type::getInt64PtrTy(*TheContext), /*IntPtrTy*/
                     val_it->second->getType(), /*AllocatedType*/
                     llvm::ConstantExpr::getSizeOf(val_it->second->getType()), /*AllocatedTypeSize*/
                     size_it->second, /*ArraySize*/
@@ -1060,7 +1060,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                 std::cout << "Set: " << "array" << std::endl;
                 #endif
                 llvm::Value *index = llvm::ConstantInt::get(
-                    llvm::Type::getInt32Ty(*TheContext), ins.src.id[1]);
+                    llvm::Type::getInt64Ty(*TheContext), ins.src.id[1]);
 
                 llvm::Value *val_store_ptr = Builder->CreateGEP(
                     dst->getType()->getArrayElementType(),
@@ -1114,7 +1114,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             if (src->getType()->isArrayTy() ) {
                 // needs testing
                 llvm::Value *index = llvm::ConstantInt::get(
-                    llvm::Type::getInt32Ty(*TheContext), ins.src.id[1]);
+                    llvm::Type::getInt64Ty(*TheContext), ins.src.id[1]);
                 auto val_ptr = Builder->CreateGEP(
                     src->getType(),
                     src, 
