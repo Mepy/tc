@@ -877,8 +877,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                         auto arg_val = this->IdMapVal[arg_id];
                         auto arg_type = arg_val->getType();
                         auto arg_name = "symb_"+std::to_string(arg_id);
-                        auto arg_val_casted = Builder->CreateBitCast(arg_val, llvm::PointerType::getUnqual(arg_type), arg_name);
-                        ArgsMap[ins.src.id[1]].push_back(arg_val_casted);
+                        ArgsMap[ins.src.id[1]].push_back(arg_val);
                     }
                     IdMapVal[ins.dst] = Builder->CreateCall(FuncMap[ins.src.id[0]], ArgsMap[ins.src.id[1]]);
                     return nullptr;
@@ -940,7 +939,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             if (val_it == IdMapVal.end() ){
                 throw std::invalid_argument("Alloc: src id not found.");
             }
-            std::string name = std::to_string(val_it->first);
+            std::string name = "symb_" + std::to_string(val_it->first);
             llvm::Value *ret_val = val_it->second;
             llvm::Type *type = ret_val->getType();
 
