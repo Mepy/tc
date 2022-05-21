@@ -866,6 +866,25 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
                     IdMapVal[ins.dst] = dst;
                     return dst;
                 }
+                case 7: /*puts */
+                {
+                    #if DEBUG
+                    std::cout << "puts: " << std::endl;
+                    #endif
+                    auto& args = this->module.blocks[ins.src.id[1]];
+                    
+                    auto arg = this->IdMapVal[args.extra.ids[0]];
+
+                    auto cast_arg = Builder->CreateBitCast(arg, 
+                        llvm::Type::getInt8PtrTy(*TheContext), "cast_arg");
+                    #if DEBUG
+                    std::cout << "cast_arg: " << cast_arg->getType()->isPointerTy() << std::endl;
+                    #endif 
+                    auto puts = TheModule->getFunction("puts");
+                    auto dst = Builder->CreateCall(puts, cast_arg);
+                    IdMapVal[ins.dst] = dst;
+                    return dst;
+                }
                 default:
                 {   
                     #if DEBUG
