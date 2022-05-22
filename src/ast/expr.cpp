@@ -722,6 +722,20 @@ Exprp	API::UnOp(Oper oper, Exprp expr)
 	switch(oper)
 	{
 	case Pos:
+	{
+		expr = AutoDereference(expr);
+		switch(expr->type->shape->flag)
+		{
+		case type::Shape::Infer:
+			Typing(expr, i);
+			std::cerr<<"WARNING : Select Int for + T;"<<std::endl;
+		case type::Shape::F:
+		case type::Shape::I:
+			return expr;
+		default:
+			throw "API::UnOp + Neither Int Nor Float;";
+		}
+	}
 	case Neg:
 	{
 		expr = AutoDereference(expr);
@@ -734,12 +748,14 @@ Exprp	API::UnOp(Oper oper, Exprp expr)
 			, 	new expr::Unary(
 					expr::Shape::Flag((oper-Pos)+int(expr::Shape::Pos))
 					, expr->id)
-			, f, Sort::NonD));
-			return &(this->expr[id]);
+			, f, Ih::FNeg(id, expr->id) ,Sort::NonD));
+			auto neg = &(this->expr[id]);
+			neg->inst_front(expr);
+			return neg;
 		}
 		case type::Shape::Infer:
 			Typing(expr, i);
-			std::cerr<<"WARNING : Select Int for + - T;"<<std::endl;
+			std::cerr<<"WARNING : Select Int for - T;"<<std::endl;
 		case type::Shape::I:
 		{
 			auto id = this->expr.nid();
@@ -747,11 +763,13 @@ Exprp	API::UnOp(Oper oper, Exprp expr)
 			, 	new expr::Unary(
 					expr::Shape::Flag((oper-Pos)+int(expr::Shape::Pos))
 					, expr->id)
-			, i, Sort::NonD));
-			return &(this->expr[id]);
+			, i, Ih::FNeg(id, expr->id), Sort::NonD));
+			auto neg = &(this->expr[id]);
+			neg->inst_front(expr);
+			return neg;
 		}
 		default:
-			throw "API::UnOp + - Neither Int Nor Float;";
+			throw "API::UnOp - Neither Int Nor Float;";
 		}
 	}
 	default:

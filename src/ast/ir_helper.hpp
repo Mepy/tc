@@ -179,6 +179,11 @@ inline Instruction ANe(ID dst, ID src1, ID src2)
 inline Instruction TNe(ID dst, ID src1, ID src2)
 { return Instruction(Instruction::TNe, dst, src1, src2); }
 
+inline Instruction INeg(ID dst, ID src)
+{ return Instruction(Instruction::INeg, dst, src, 0x0); }
+inline Instruction FNeg(ID dst, ID src)
+{ return Instruction(Instruction::FNeg, dst, src, 0x0); }
+
 inline Instruction LShift(ID dst, ID src1, ID src2)
 { return Instruction(Instruction::LShift, dst, src1, src2); }
 inline Instruction RShift(ID dst, ID src1, ID src2)
