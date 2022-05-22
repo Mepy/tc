@@ -8,6 +8,7 @@ test      : test.o ${OBJ}
 	${CC} $^ -fPIC -o $@ && ./$@ && rm ./$@
 
 build     : ast.o
+	mv $< $@
 
 ast.o     : ${OBJ}
 	${LD} -r $^ -o $@
@@ -34,4 +35,4 @@ save.o    : save.cpp api.hpp
 	${MakeOBJ}
 
 clean     : 
-	rm *.o *.hex
+	- rm *.o *.hex build

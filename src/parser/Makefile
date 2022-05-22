@@ -15,7 +15,7 @@ test.out : ${OBJ}
 # 	g++ $^ api.o -o $@
 
 build : ${OBJ}
-	g++ $^ -o $@ -lm
+	${LD} -r $^ -o $@
 
 api.o : api.cpp 
 	${MakeOBJ}
@@ -33,4 +33,4 @@ parser.cpp : tc.y
 	bison -d -o $@ $<
 
 clean :
-	rm *.o *.c *.h *.hex parser.cpp parser.hpp lexer.cpp test.out
+	- rm *.o *.c *.h *.hex parser.cpp parser.hpp lexer.cpp test.out build

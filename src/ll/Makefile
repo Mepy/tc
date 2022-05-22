@@ -7,6 +7,9 @@ test : test.out
 	./$< ../parser/tc.hex > $@.ll && cat $@.ll \
 	&& ${LLVMPATH}/bin/clang++ $@.ll ./lib/io.ll -o tc.out && ./tc.out
 
+build : test.out
+	mv test.out build
+
 test.out: test.o ${OBJ}
 	${CC} $? ${CFLAGS} -o $@ 
 
@@ -35,4 +38,4 @@ demo.out : demo.cpp
 	${CC} $< ${CFLAGS} -o $@ 
 
 clean : 
-	rm *.ll *.out ${OBJ}
+	- rm *.ll *.out *.o build
