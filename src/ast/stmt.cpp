@@ -168,7 +168,6 @@ Stmtp	API::If(Exprp cond, Stmtp fst, Stmtp snd) // = nullptr
 
 	if(nullptr==snd)
 	{
-		std::cout<<"If "<<cond->id<<", fst_id "<<fst_id<<", snd_id = "<<end->id<<std::endl;
 		beg->insts.push_back(Ih::Br(cond->id, fst_id, end->id));
 		stmt->retype = fst->retype;
 	}
@@ -176,7 +175,6 @@ Stmtp	API::If(Exprp cond, Stmtp fst, Stmtp snd) // = nullptr
 	{
 		stmt->retype = unify_opt(fst->retype, snd->retype);
 		auto snd_id = If_Br(this, snd, end->id);
-		std::cout<<"If "<<cond->id<<", fst_id = "<<fst_id<<", snd_id = "<<snd_id<<std::endl;
 		beg->insts.push_back(Ih::Br(cond->id, fst_id, snd_id));
 		
 	}

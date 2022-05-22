@@ -73,6 +73,8 @@ Exprp	API::S(Str s)
         
         auto inst = Ih::IDs();
         
+		if(index<s_size)
+		{
         for(char *ptr = (char*)&str[index], *qtr=(char*)&inst
         ;   index<s_size
         ; ++index, ++ptr, ++qtr)
@@ -80,6 +82,7 @@ Exprp	API::S(Str s)
             *qtr=*ptr;
         }
         block->insts.push_back(inst);
+		}
         
         this->expr.insert(Expr(eid, Eh::s(s), type, Ih::CStr(eid, block->id+2), Sort::Const));
     }
