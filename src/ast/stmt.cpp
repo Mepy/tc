@@ -176,7 +176,6 @@ Stmtp	API::If(Exprp cond, Stmtp fst, Stmtp snd) // = nullptr
 		stmt->retype = unify_opt(fst->retype, snd->retype);
 		auto snd_id = If_Br(this, snd, end->id);
 		beg->insts.push_back(Ih::Br(cond->id, fst_id, snd_id));
-		
 	}
 	
 	return stmt;

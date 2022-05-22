@@ -60,6 +60,9 @@ struct Instruction
         PSub  = 0x622D5350, /* PS-b */
         PMov  = 0x763D4D50, /* PM=v */
 
+        INeg  = 0x672D4E49, /* IN-g */
+        FNeg  = 0x672D4e46, /* FN-g */
+
         LShift= 0x3C3C3C3C, /* <<<< */
         RShift= 0x3E3E3E3E, /* >>>> */
         BNot  = 0x21212121, /* !!!! */
