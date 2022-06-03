@@ -40,7 +40,7 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
         }
         case Ins::FImm:
         {
-            auto *FImm_ptr = llvm::ConstantInt::get(
+            auto *FImm_ptr = llvm::ConstantFP::get(
                 llvm::Type::getDoubleTy(*TheContext),
                 ins.src.Fimm
             );  
@@ -815,97 +815,25 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
         }
         case Ins::Call:
         {
-            switch (ins.src.id[0] /*Func Symb id*/)
+            #if DEBUG
+                std::cout << "Args exist: " << (ArgsMap.find(ins.src.id[1]) != ArgsMap.end()) << std::endl;
+            # endif
+            auto &args_block = this->module.blocks[ins.src.id[1]];
+            std::vector<llvm::Value*> args;
+            for (auto i = 0; i < args_block.head.ord.size; ++i)
             {
-                case 3: /*i2f; for details, see ir.hpp->conventions*/
-                {
-                    auto Args_it = ArgsMap.find(ins.src.id[1]);
-                    if (Args_it == ArgsMap.end())
-                    {
-                        throw std::invalid_argument("Call: (i2f) src id not found.");
-                    }
-                    assert (Args_it->second.size() == 1);
-                    llvm::Value *ret_val = Builder->CreateSIToFP(Args_it->second[0], llvm::Type::getFloatTy(*TheContext), "symb_"+std::to_string(ins.dst));
-                    IdMapVal[ins.dst] = ret_val;
-                    return ret_val;
-                }
-                case 4: /*f2i; for details, see ir.hpp->conventions*/
-                {
-                    auto Args_it = ArgsMap.find(ins.src.id[1]);
-                    if (Args_it == ArgsMap.end())
-                    {
-                        throw std::invalid_argument("Call: (f2i) src id not found.");
-                    }
-                    assert (Args_it->second.size() == 1);
-                    llvm::Value *ret_val = Builder->CreateFPToSI(Args_it->second[0], llvm::Type::getInt64Ty(*TheContext), "symb_"+std::to_string(ins.dst));
-                    IdMapVal[ins.dst] = ret_val;
-                    return ret_val;
-                }
-                case 5: /*getint; for details, see ir.hpp->conventions*/
-                {
-                    auto& args = this->module.blocks[ins.src.id[1]];
-                    // assert (args.head.ord.size == 0);
-                    // type safety for TyCk in AST, no need to assert
-                    
-                    auto geti = TheModule->getFunction("geti");
-                    auto dst = Builder->CreateCall(geti);
-                    IdMapVal[ins.dst] = dst;
-                    #if DEBUG
-                    std::cout << "getint: " << dst << std::endl;
-                    #endif
-                    return dst;
-                }
-                case 6: /*putint; for details, see ir.hpp->conventions*/
-                {
-                    auto& args = this->module.blocks[ins.src.id[1]];
-                    
-                    auto arg = this->IdMapVal[args.extra.ids[0]];
-                    
-                    auto puti = TheModule->getFunction("puti");
-                    auto dst = Builder->CreateCall(puti, { arg });
-                    IdMapVal[ins.dst] = dst;
-                    return dst;
-                }
-                case 7: /*puts */
-                {
-                    #if DEBUG
-                    std::cout << "puts: " << std::endl;
-                    #endif
-                    auto& args = this->module.blocks[ins.src.id[1]];
-                    
-                    auto arg = this->IdMapVal[args.extra.ids[0]];
-
-                    auto cast_arg = Builder->CreateBitCast(arg, 
-                        llvm::Type::getInt8PtrTy(*TheContext), "cast_arg");
-                    #if DEBUG
-                    std::cout << "cast_arg: " << cast_arg->getType()->isPointerTy() << std::endl;
-                    #endif 
-                    auto puts = TheModule->getFunction("puts");
-                    auto dst = Builder->CreateCall(puts, cast_arg);
-                    IdMapVal[ins.dst] = dst;
-                    return dst;
-                }
-                default:
-                {   
-                    #if DEBUG
-                    std::cout << "Args exist: " << (ArgsMap.find(ins.src.id[1]) != ArgsMap.end()) << std::endl;
-                    # endif
-                    auto &args_block = this->module.blocks[ins.src.id[1]];
-                    for (auto i = 0; i < args_block.head.ord.size; ++i)
-                    {
-                        auto arg_id = args_block.extra.ids[i];
-                        auto arg_val = this->IdMapVal[arg_id];
-                        auto arg_type = arg_val->getType();
-                        auto arg_name = "symb_"+std::to_string(arg_id);
-                        ArgsMap[ins.src.id[1]].push_back(arg_val);
-                    }
-                    auto ret_val = Builder->CreateCall(FuncMap[ins.src.id[0]], ArgsMap[ins.src.id[1]]);
-                    if(ret_val->getType()!=Builder->getVoidTy())
-                        ret_val->setName("symb_"+std::to_string(ins.dst));
-                    IdMapVal[ins.dst] = ret_val;
-                    return nullptr;
-                }
+                auto arg_id = args_block.extra.ids[i];
+                auto arg_val = this->IdMapVal[arg_id];
+                auto arg_type = arg_val->getType();
+                auto arg_name = "symb_"+std::to_string(arg_id);
+                args.push_back(arg_val);
             }
+            auto func = FuncMap[ins.src.id[0]];
+            auto ret_val = Builder->CreateCall(func, args);
+            if(ret_val->getType()!=Builder->getVoidTy())
+                ret_val->setName("symb_"+std::to_string(ins.dst));
+            IdMapVal[ins.dst] = ret_val;
+            return nullptr;
             // Implemented in visitor.cpp
             // return nullptr;
             // if (SymMap[ins.src.id[0]].first == 'B')

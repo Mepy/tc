@@ -1,0 +1,6 @@
+let s = "c2";
+let ptr = s&[1];
+let i = sgeti(ptr);
+puti(i);
+puts("\n");
+put1f(1.23);

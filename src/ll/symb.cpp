@@ -1,26 +1,48 @@
 #include "visitor.hpp"
-
+#include "../ast/convention.hpp"
+using namespace tc::ast;
 using Sort = ir::Symbol::Sort;
 void    LLCodegenVisitor::load_symb()
 {
-    { // buitlin 
-    this->IdMapVal[1] = llvm::ConstantInt::getTrue(*TheContext);
-    this->IdMapVal[2] = llvm::ConstantInt::getFalse(*TheContext);
-    this->FuncMap[5] = llvm::Function::Create(
-        ((llvm::FunctionType*)(this->TypeMap[7]))
+    { // buitlin with convention
+    this->IdMapVal[E_TRUE] = llvm::ConstantInt::getTrue(*TheContext);
+    this->IdMapVal[E_FALSE] = llvm::ConstantInt::getFalse(*TheContext);
+
+    this->FuncMap[E_GETC] = llvm::Function::Create(
+        ((llvm::FunctionType*)(this->TypeMap[T_2C]))
+        , llvm::Function::ExternalLinkage, "getchar", *TheModule
+    ); 
+    this->FuncMap[E_PUTC] = llvm::Function::Create(
+        ((llvm::FunctionType*)(this->TypeMap[T_C2U]))
+        , llvm::Function::ExternalLinkage, "putchar", *TheModule
+    );
+    this->FuncMap[E_GETI] = llvm::Function::Create(
+        ((llvm::FunctionType*)(this->TypeMap[T_2I]))
         , llvm::Function::ExternalLinkage, "geti", *TheModule
     );
-    this->FuncMap[6] = llvm::Function::Create(
-        ((llvm::FunctionType*)(this->TypeMap[8]))
+    this->FuncMap[E_PUTI] = llvm::Function::Create(
+        ((llvm::FunctionType*)(this->TypeMap[T_I2U]))
         , llvm::Function::ExternalLinkage, "puti", *TheModule
     );
-    this->FuncMap[7] = llvm::Function::Create(
-        ((llvm::FunctionType*)(this->TypeMap[10]))
-        , llvm::Function::ExternalLinkage, "puts", *TheModule
+    this->FuncMap[E_GETS] = llvm::Function::Create(
+        ((llvm::FunctionType*)(this->TypeMap[T_PC2PC]))
+        , llvm::Function::ExternalLinkage, "gets", *TheModule
     );
-    this->FuncMap[8] = llvm::Function::Create(
-        ((llvm::FunctionType*)(this->TypeMap[11]))
-        , llvm::Function::ExternalLinkage, "putchar", *TheModule
+    this->FuncMap[E_PUTS] = llvm::Function::Create(
+        ((llvm::FunctionType*)(this->TypeMap[T_PC2U]))
+        , llvm::Function::ExternalLinkage, "putstr", *TheModule
+    );
+    this->FuncMap[E_SGETI] = llvm::Function::Create(
+        ((llvm::FunctionType*)(this->TypeMap[T_PC2I]))
+        , llvm::Function::ExternalLinkage, "atoi", *TheModule
+    );
+    this->FuncMap[E_GETF] = llvm::Function::Create(
+        ((llvm::FunctionType*)(this->TypeMap[T_2F]))
+        , llvm::Function::ExternalLinkage, "getf", *TheModule
+    );
+    this->FuncMap[E_PUT1F] = llvm::Function::Create(
+        ((llvm::FunctionType*)(this->TypeMap[T_F2U]))
+        , llvm::Function::ExternalLinkage, "put1f", *TheModule
     );
     }
     auto blocks = this->module.blocks;
@@ -28,7 +50,7 @@ void    LLCodegenVisitor::load_symb()
     auto size   = block.head.ord.size;
     auto symbs  = block.extra.symbs;
     llvm::Twine name("fn_");
-    for(auto i = 9;i<size; ++i)
+    for(unsigned i = E_END;i<size; ++i)
     {
         auto symb = symbs[i];
         switch(symb.sort)

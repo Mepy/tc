@@ -7,6 +7,7 @@
 #include "ir.hpp"
 #include "ir_helper.hpp"
 #include <iostream>
+#include "convention.hpp"
 namespace tc{
 namespace ast{
 namespace Ih = ir::instruction;
@@ -180,26 +181,6 @@ struct Context
     Typep u, b, c, i, f, adt;
     Exprp unit;
     Exprp i2f, f2i;
-
-    enum T_ID : ID
-    {   T_UNIT  = 0
-    ,   T_BOOL  = 1
-    ,   T_CHAR  = 2
-    ,   T_INT   = 3
-    ,   T_FLOAT = 4
-    };
-    enum E_ID : ID 
-    {   E_UNIT  = 0
-    ,   E_TRUE  = 1
-    ,   E_FALSE = 2
-    ,   E_I2F   = 3
-    ,   E_F2I   = 4
-    ,   E_GETI  = 5
-    ,   E_PUTI  = 6
-    ,   E_PUTS  = 7
-    ,   E_PUTC  = 8
-    ,   E_END
-    };
 
     Context(){}
     ~Context(){}
