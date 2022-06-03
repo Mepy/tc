@@ -1,0 +1,12 @@
+0 unit 
+1 true 
+2 false 
+3 i2f 
+4 f2i 
+5 geti 
+6 puti 
+7 puts 
+8 putc 
+9 gets 
+10 getc 
+13 x 

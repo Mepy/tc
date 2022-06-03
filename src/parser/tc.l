@@ -84,6 +84,7 @@
 "->" {return RSARROW; }
 "**" {return ARR; }
 
+
 "~" {return BNOT; }
 "!" {return LNOT; }
 
@@ -134,8 +135,15 @@
 "with" {return WITH; }
 "new" {return NEW;}
 
+"null"|"nullptr" {return _NULL;}
+
 "'\\n'" {
     char c = '\n';
+    yylval.cval = c;
+    return CHAR;
+}
+"'\\0'" {
+    char c = '\0';
     yylval.cval = c;
     return CHAR;
 }
@@ -150,12 +158,14 @@
 
     char * EscapeS[] = {
         (char *)"\\n",
-        (char *)'\\t'
+        (char *)"\\t",
+        (char *)"\\0"
     };
 
     char EscapeC[] = {
         '\n',
-        '\t'
+        '\t',
+        '\0'
     };
 
     char *s = (char *)malloc(yyleng-1);
@@ -164,7 +174,8 @@
         s[i] = yytext[i+1];
 
     escape_string(s, EscapeS[0], EscapeC[0]);
-
+    escape_string(s, EscapeS[1], EscapeC[1]);
+    escape_string(s, EscapeS[2], EscapeC[2]);
 
     yylval.sval = s;
     return STRING;

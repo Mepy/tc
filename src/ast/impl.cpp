@@ -86,7 +86,7 @@ API::API()
 	this->expr.insert(Expr(E_GETI, Eh::func(), type, ir::Symbol::CPrg));
 	this->expr.bind(E_GETI, "geti");
 	}
-
+	
 	{ // puti 
 	this->TypeFunBeg();
 	this->TypeFunArg(i);
@@ -134,6 +134,26 @@ API::API()
 	this->expr.insert(Expr(E_PUT1F, Eh::func(), f2u, ir::Symbol::CPrg));
 	this->expr.bind(E_PUT1F, "put1f");
 	}
+
+	{
+	// gets
+	auto cptr = this->TypePtr(c);
+	this->TypeFunBeg();
+	this->TypeFunArg(cptr);
+	auto type = this->TypeFunEnd(cptr);
+	this->expr.insert(Expr(E_GETS, Eh::func(), type, ir::Symbol::CPrg));
+	this->expr.bind(E_GETS, "gets");
+	}
+
+	// getc
+	{
+	this->TypeFunBeg();
+	this->TypeFunArg(u);
+	auto type = this->TypeFunEnd(c);
+	this->expr.insert(Expr(E_GETC, Eh::func(), type, ir::Symbol::CPrg));
+	this->expr.bind(E_GETC, "getc");
+	}
+
 
 	{ // adt
 	auto id = this->type.nid();

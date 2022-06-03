@@ -106,7 +106,6 @@ let matrix_mult = \ a:&Int b: &Int c:&Int => {
     return 0;
 };
 
-
 let main = \ =>
 {   
     let mat_a = 0 ** 2000;

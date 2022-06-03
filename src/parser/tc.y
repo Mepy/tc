@@ -33,18 +33,18 @@
         MOD BAND BOR BXOR LSHIFT RSHIFT
         EQ NEQ ADDPTR PTRADD PTRSUB
 %token  LET IF ELSE WHILE BREAK CONT RET DEL _TYPE CHECK FUN MATCH WITH NEW
+%token  _NULL
 %token <ival> INT
 %token <fval> FLOAT
 %token <cval> CHAR
 %token <sval> STRING TN EN
 
-%type <expr> Expr I F C S Calc UnCalc BinCalc1 BinCalc2 BinCalc3 BinCalc4 BinCalc5
+%type <expr> Expr I F C S Null Calc UnCalc BinCalc1 BinCalc2 BinCalc3 BinCalc4 BinCalc5
 %type <expr> ExprPtr ExprVal ExprRef ExprVar ExprVarRef Arr Ele EleRef EleAddr New
 %type <expr> Fun ExprFunDef 
 %type <expr> App
 %type <expr> Match
 %type <oper> UnOp BinOp1 BinOp2 BinOp3 BinOp4 AssignOp 
-
 %type <type> Type TypeVar TypeRef TypePtr TypeArr TypeFun TypeFunArg TypeDef 
 %type <cell> Cell CellVar CellEle CellRef CellVarEle
 %type <stmt> Stmt Empty Block Let Var If While Break Cont Ret Del Asgn Exp NewType ADT Alias Check
@@ -253,6 +253,11 @@ S: STRING {
     // printf("S: %s\n", $1);
     $$ = context.S($1); 
 };
+
+Null: _NULL {
+    $$ = context.Null();
+};
+
 
 ExprPtr: PTR Cell {
     $$ = context.ExprPtr($2);
