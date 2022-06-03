@@ -1,5 +1,6 @@
-let s = "c2";
-let ptr = s&[1];
+let buffer = '\n' ** 1000;
+gets(buffer);
+let ptr = buffer&[1];
 let i = sgeti(ptr);
 puti(i);
 puts("\n");

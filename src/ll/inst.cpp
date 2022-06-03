@@ -873,8 +873,8 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             #if DEBUG
             std::cout << "Array: "  << std::endl;
             #endif
-            IdMapVal[ins.dst] = Builder->CreateAlloca(IntType, 
-                size_it->second, std::to_string(ins.dst));
+            IdMapVal[ins.dst] = Builder->CreateAlloca(init_it->second->getType(), 
+                size_it->second, "symb_"+std::to_string(ins.dst));
             #if DEBUG
             std::cout << "Array: " << "Out" << std::endl;
             #endif

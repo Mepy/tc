@@ -159,7 +159,7 @@ inline void save_symb(Context* context, Obfs& obfs)
 
     auto iter = context->expr.def.begin();
 
-    for(auto i=0; i<API::E_ID::E_END-API::E_ID::E_UNIT;++i, ++iter)
+    for(auto i=0; i<E_ID::E_END-E_ID::E_UNIT;++i, ++iter)
         obfs<<iter->sort<<0;
 
     for( ; iter!=context->expr.def.end(); ++iter)
