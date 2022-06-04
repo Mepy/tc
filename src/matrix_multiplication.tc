@@ -121,7 +121,7 @@ let main = \ =>
         matrix_put(mat_c);
     }
     else {
-        puts("Incompatible Dimensions");
+        puts("Incompatible Dimensions\n");
     }
 
     

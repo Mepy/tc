@@ -14,11 +14,11 @@ tcl()
 tcc()
 {
     tcl $1
-    /usr/local/llvm/bin/clang++ ${LL} ./ll/lib/io.ll -o ${OUT}
+    /usr/local/llvm/bin/clang++ tc.ll ./ll/lib/io.ll -o tc.out
 }
 
 tcx()
 {
     tcc $1
-    ./tc.out
+    ./tc.out < input.txt
 }

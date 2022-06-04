@@ -3,10 +3,13 @@
 2 false 
 3 i2f 
 4 f2i 
-5 geti 
-6 puti 
-7 puts 
-8 putc 
-9 gets 
-10 getc 
-13 x 
+5 getc getc 
+6 putc 
+7 geti 
+8 puti 
+9 gets gets 
+10 puts 
+11 sgeti 
+12 getf 
+13 put1f 
+16 x 

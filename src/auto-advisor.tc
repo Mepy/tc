@@ -1,3 +1,4 @@
+let putln = \ => { puts("\n"); return; };
 let sub_array = \ 
     dst   : &Char 
     src   : &Char
@@ -31,9 +32,11 @@ let parse_course = \
     while(info[iend]!='|')
         iend = iend + 1;
 
-    sub_array(buffer, info, istart, iend-istart-1);
 
+
+    sub_array(buffer, info, istart+1, iend-istart-1);
     let course_id = sgeti(buffer);
+
 
     course[course_id*200+idx] = 1;
     idx = idx + 1;
@@ -42,12 +45,11 @@ let parse_course = \
     iend = iend + 1;
     istart = iend;
     
-
     {
     while(info[iend]!='|')
         iend = iend + 1;
 
-    sub_array(buffer, info, istart, iend-istart-1);
+    sub_array(buffer, info, istart, iend-istart);
 
     let credit = sgeti(buffer);
     course[course_id*200+idx] = credit;
@@ -57,6 +59,9 @@ let parse_course = \
     iend = iend + 1;
     istart = iend;
     }
+
+
+
 
     {
     let cc = '\0' ** 3;
@@ -126,7 +131,6 @@ let parse_course = \
 
     course[course_id*200+199] = idx - 1;
     order[time] = course_id;
-
     return;
 };
 
@@ -136,11 +140,13 @@ let is_recommend = \
 =>{
     let gpa_idx = course[idx*200+199];
     let score = course[idx*200+gpa_idx];
+
     if(score>0)
         return false;
     
     let start = 4;
     let end = gpa_idx - 1;
+
     if(end==start)
         return true;
     
@@ -168,7 +174,7 @@ let is_recommend = \
     ret = ret || item;
     return ret;
 };
-let putln = \ => { puts("\n"); return; };
+
 let cal = \
     course : &Int
     order  : &Int
@@ -183,7 +189,12 @@ let cal = \
     let @i = 0;
     while(i<100)
     {
-        if(course[i*200]==0) continue;
+
+        if(course[i*200]==0){
+            i = i + 1;
+            continue;
+        }
+
         let credit = course[i*200+2];
         total_credit += credit;
         let gpa_idx = course[i*200+199];
@@ -195,12 +206,13 @@ let cal = \
         if(score>=0)
         {
             try_credit = try_credit + credit;
-            scores     = scores     + credit * score;
+            scores = scores + credit * score;
 
             if(score>0)
-            get_credit = get_credit +  credit;
+                get_credit = get_credit +  credit;
         }
         i = i + 1;
+
     }
 
     let @gpa = 0.0;
@@ -213,13 +225,11 @@ let cal = \
     puts("Hours Attempted: "); puti(try_credit); putln();
     puts("Hours Completed: "); puti(get_credit); putln();
     puts("Credits Remaining: "); puti(remain_credit); putln();
-
     putln();
-
     puts("Possible Courses to Take Next\n");
     let @i = 0;
     while(order[i] != 6666)
-    {
+    {   
         if(is_recommend(course, order[i]))
         {
             puts("  c");
@@ -232,7 +242,7 @@ let cal = \
     if(remain_credit == 0)
         puts("  None - Congratulations!\n");
 
-    return gpa;
+    return;
 };
 
 let main = \ =>{
@@ -265,9 +275,13 @@ let main = \ =>{
             parse_course(info, buffer, course, order, time);
         time = time + 1;
     }
-    
+
     cal(course, order);
+
     return;
+
 };
+
+
 
 main();

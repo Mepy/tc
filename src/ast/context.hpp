@@ -74,7 +74,7 @@ struct Namespace
     void bind(ID id, Name&& name){ bind(id, name); }
     void bind(ID id, Name& name)
     {
-        sym->insert(pair<string, ID>(name, id));
+        sym->operator[](name) = id;
         def[id].names.push_back(name);
     }
 

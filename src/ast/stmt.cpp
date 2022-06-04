@@ -49,16 +49,15 @@ void	API::BlockStmt(Stmtp stmt)
 	if(nullptr==block->beg)
 	{
 		auto& insts = block->insts;
-
 		if(nullptr==stmt->beg)
 			insts.concat_back(stmt->insts);
 		else
 		{
-			block->beg = stmt->beg;
+			auto beg = block->beg = this->new_block();
+			beg->insts.eat(insts);
+			beg->insts.push_back(Ih::Jump(stmt->beg->id));
 			block->end = stmt->end;
 			block->retype = stmt->retype;
-			if(0!=insts.size())
-				block->beg->insts.concat_front(insts);
 		}
 	}
 	

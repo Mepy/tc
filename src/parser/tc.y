@@ -371,7 +371,7 @@ SUB  { $$ = Oper::Neg; } |
 FSUB { $$ = Oper::Neg; };
 
 BinCalc1: 
-BinCalc2 BinOp1 BinCalc2 {
+BinCalc1 BinOp1 BinCalc2 {
     $$ = context.BinOp($1, $2, $3);
 } | 
 BinCalc2 {
@@ -386,7 +386,7 @@ LOR { $$ = Oper::LOr;} |
 LXOR { $$ = Oper::LXOr; };
 
 BinCalc2: 
-BinCalc3 BinOp2 BinCalc3 {
+BinCalc2 BinOp2 BinCalc3 {
     $$ = context.BinOp($1, $2, $3);
 } | 
 BinCalc3 {
@@ -403,7 +403,7 @@ LSHIFT { $$ = Oper::LShift; } |
 RSHIFT { $$ = Oper::RShift; };
 
 BinCalc3: 
-BinCalc4 BinOp3 BinCalc4 {
+BinCalc3 BinOp3 BinCalc4 {
     $$ = context.BinOp($1, $2, $3);
 } | 
 BinCalc4 {
@@ -419,7 +419,7 @@ PTRADD { $$ = Oper::PtrAdd; } |
 PTRSUB { $$ = Oper::PtrSub; };
 
 BinCalc4: 
-BinCalc5 BinOp4 BinCalc5 {
+BinCalc4 BinOp4 BinCalc5 {
     $$ = context.BinOp($1, $2, $3);
 } | 
 BinCalc5 {

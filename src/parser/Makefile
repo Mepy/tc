@@ -9,7 +9,7 @@ test : test.out
 	cat test.tc && cat test.tc | ./$< && rm ./$<
 
 test.out : ${OBJ}
-	g++ $^ ../ast/ast.o -o $@
+	g++ $^ ../ast/build -o $@
 
 # test.out : ${OBJ}
 # 	g++ $^ api.o -o $@
