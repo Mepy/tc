@@ -8,6 +8,14 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
     // std::cout << "in codegen\n";
     switch (ins.sort) 
     {
+        /* 
+        case Ins::Null:
+        {
+            auto dst = llvm::ConstantPointerNull::get(); // TODO
+            IdMapVal[ins.dst] = dst;
+            return dst;
+        }
+        */
         case Ins::IImm:
         {
             llvm::Value* IImm_ptr = llvm::ConstantInt::get(
@@ -64,33 +72,58 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             }
             else 
             {
-                // throw std::invalid_argument("CSTR src id not found in StringMap.");
                 auto& CSTRblock = this->module.blocks[ins.src.id[0]];
                 auto str_size = CSTRblock.head.ord.size;
-                std::string str;
-                for (auto i=0; i<str_size; i++)
-                {
-                   str += CSTRblock.extra.chars[i];
-                }
+                std::string str(CSTRblock.extra.chars);
                 llvm::StringRef str_ref(str);
-                IdMapVal[ins.dst] = Builder->CreateGlobalString(str_ref);
-                // llvm::Value *name = llvm::ConstantDataArray::getString(
-                //         *TheContext, 
-                //         str_ref
-                //     );
-                // // Create alloc for string
-                // IdMapVal[ins.dst] = Builder->CreateAlloca(
-                //     name->getType(),
-                //     llvm::ConstantExpr::getSizeOf(name->getType()),
-                //     "CSTR");
-                // // Store string
-                // Builder->CreateStore(
-                //     name,
-                //     IdMapVal[ins.dst]
-                // );
+                IdMapVal[ins.dst] = Builder->CreateGlobalStringPtr(str_ref);
                 return nullptr;
             }
             break;
+        }
+        case Ins::I2F:
+        {
+            auto Val_it = IdMapVal.find(ins.src.id[0]);
+            if (Val_it == IdMapVal.end())
+                throw std::invalid_argument("I2F: src id[0] not found.");
+            auto dst = 
+                Builder->CreateSIToFP(Val_it->second
+                    , llvm::Type::getDoubleTy(*TheContext)
+                    , "symb_"+std::to_string(ins.dst));
+            IdMapVal[ins.dst] = dst;
+            return dst;
+        }
+        case Ins::F2I:
+        {
+            auto Val_it = IdMapVal.find(ins.src.id[0]);
+            if (Val_it == IdMapVal.end())
+                throw std::invalid_argument("F2I: src id[0] not found.");
+            auto dst = 
+                Builder->CreateFPToSI(Val_it->second
+                    , llvm::Type::getInt64Ty(*TheContext)
+                    , "symb_"+std::to_string(ins.dst));
+            IdMapVal[ins.dst] = dst;
+            return dst;
+        }
+        case Ins::INeg:
+        {
+            auto Val_it = IdMapVal.find(ins.src.id[0]);
+            if (Val_it == IdMapVal.end())
+                throw std::invalid_argument("INeg: src id[0] not found.");
+            auto dst = 
+                Builder->CreateNeg(Val_it->second, "symb_"+std::to_string(ins.dst));
+            IdMapVal[ins.dst] = dst;
+            return dst;
+        }
+        case Ins::FNeg:
+        {
+            auto Val_it = IdMapVal.find(ins.src.id[0]);
+            if (Val_it == IdMapVal.end())
+                throw std::invalid_argument("FNeg: src id[0] not found.");
+            auto dst = 
+                Builder->CreateFNeg(Val_it->second, "symb_"+std::to_string(ins.dst));
+            IdMapVal[ins.dst] = dst;
+            return dst;
         }
         case Ins::IAdd:
         {
@@ -731,6 +764,33 @@ llvm::Value *LLCodegenVisitor::codegen(const Ins &ins) {
             return ret_val;
         }
         
+        case Ins::CEq:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("CEq: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateICmpEQ(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+        case Ins::CNe:
+        {
+            auto Val1_it = IdMapVal.find(ins.src.id[0]);
+            auto Val2_it = IdMapVal.find(ins.src.id[1]);
+            if (Val1_it == IdMapVal.end() || Val2_it == IdMapVal.end())
+            {
+                throw std::invalid_argument("CNe: src id not found.");
+            }
+            llvm::Value *ret_val = 
+                Builder->CreateICmpNE(Val1_it->second, Val2_it->second, "symb_"+std::to_string(ins.dst));
+            IdMapVal[ins.dst] = ret_val;
+            return ret_val;
+        }
+
         // typed comparison to be implemented
 
 

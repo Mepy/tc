@@ -44,14 +44,6 @@ void    LLCodegenVisitor::load_symb()
         ((llvm::FunctionType*)(this->TypeMap[T_F2U]))
         , llvm::Function::ExternalLinkage, "put1f", *TheModule
     );
-    this->FuncMap[9] = llvm::Function::Create(
-        ((llvm::FunctionType*)(this->TypeMap[13]))
-        , llvm::Function::ExternalLinkage, "gets", *TheModule
-    );
-    this->FuncMap[10] = llvm::Function::Create(
-        ((llvm::FunctionType*)(this->TypeMap[14]))
-        , llvm::Function::ExternalLinkage, "getchar", *TheModule
-    );
     }
     auto blocks = this->module.blocks;
     auto& block = blocks[1];

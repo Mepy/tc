@@ -766,7 +766,7 @@ Exprp	API::UnOp(Oper oper, Exprp expr)
 			, 	new expr::Unary(
 					expr::Shape::Flag((oper-Pos)+int(expr::Shape::Pos))
 					, expr->id)
-			, i, Ih::FNeg(id, expr->id), Sort::NonD));
+			, i, Ih::INeg(id, expr->id), Sort::NonD));
 			auto neg = &(this->expr[id]);
 			neg->inst_front(expr);
 			return neg;
