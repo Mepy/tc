@@ -1,24 +1,17 @@
-make
-
-tci()
-{
-    ./analyser < $1
+tcs(){ 
+    ./analyser < $1 
 }
-
-tcl()
-{
-    tci $1
+tcc(){
     ./codegen tc.hex > tc.ll
 }
 
-tcc()
-{
-    tcl $1
-    /usr/local/llvm/bin/clang++ tc.ll ./ll/lib/io.ll -o tc.out
+# --- llvm ---
+tcl(){ 
+    llvm-link tc.ll ./lib/io.ll -o tc.bc
 }
-
-tcx()
-{
-    tcc $1
-    ./tc.out < input.txt
+tco(){ 
+    llc tc.bc -o tc.out 
+}
+tcx(){ 
+    lli tc.bc 
 }

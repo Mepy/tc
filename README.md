@@ -2,6 +2,8 @@
 ### Intro
 This project is just a compiler course project, implementing a simple toy language named **tc**, the abbreviation of **typed c**.
 
+There is also [report](http://mepy.net/tc/report.pdf) and [presentation slides](http://mepy.net/tc/pre.pdf), while simplified Chinese version only.
+
 ### Type System
 **tc**, as is named after, is a strongly typed programming language.
 
